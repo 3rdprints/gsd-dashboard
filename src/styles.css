@@ -25,18 +25,12 @@ select {
 
 .app-shell {
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   padding: 24px;
 }
 
-.foundation-panel {
-  width: min(800px, 100%);
-  background: #FFFFFF;
-  border: 1px solid #D1D5DB;
-  border-radius: 8px;
-  padding: 24px;
+.foundation-layout {
+  width: min(1040px, 100%);
+  margin: 0 auto;
 }
 
 .app-header {
@@ -60,18 +54,15 @@ select {
   font-size: 14px;
 }
 
-.ready-badge {
-  min-height: 40px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: #2563EB;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
+.foundation-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  gap: 24px;
+  margin-top: 32px;
 }
 
-.status-label {
+.label-text,
+.field-label {
   margin: 0 0 4px;
   color: #4B5563;
   font-size: 12px;
@@ -79,25 +70,29 @@ select {
   line-height: 1.4;
 }
 
-.status-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 32px;
-}
-
-.status-card {
-  border: 1px solid #E5E7EB;
+.status-panel,
+.settings-panel,
+.empty-state {
+  background: #FFFFFF;
+  border: 1px solid #D1D5DB;
   border-radius: 8px;
-  padding: 16px;
+  padding: 24px;
 }
 
-.status-card svg {
+.panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.panel-heading svg,
+.status-row svg,
+.settings-saved svg {
   color: #2563EB;
-  margin-bottom: 16px;
 }
 
-.status-card h2 {
+.panel-heading h2,
+.empty-state h2 {
   margin: 0 0 8px;
   color: #111827;
   font-size: 20px;
@@ -105,18 +100,89 @@ select {
   line-height: 1.2;
 }
 
-.status-card p {
+.empty-state p {
   margin: 0;
   color: #4B5563;
   font-size: 14px;
 }
 
-.status-card-wide {
-  grid-column: 1 / -1;
+.status-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 24px;
 }
 
-.status-card-wide h2 {
-  color: #DC2626;
+.status-row,
+.settings-saved {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #4B5563;
+  font-size: 14px;
+}
+
+.scan-root-form {
+  margin-top: 24px;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.control-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+input {
+  width: 100%;
+  height: 40px;
+  box-sizing: border-box;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #111827;
+  background: #FFFFFF;
+}
+
+input:focus {
+  border-color: #2563EB;
+  outline: 2px solid #2563EB;
+  outline-offset: 1px;
+}
+
+button {
+  min-width: 44px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 16px;
+  color: #FFFFFF;
+  background: #2563EB;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:disabled,
+input:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.settings-saved {
+  color: #2563EB;
+}
+
+.empty-state {
+  margin-top: 24px;
 }
 
 @media (max-width: 640px) {
@@ -125,7 +191,12 @@ select {
     flex-direction: column;
   }
 
-  .status-grid {
+  .foundation-grid,
+  .control-row {
     grid-template-columns: 1fr;
+  }
+
+  button {
+    width: 100%;
   }
 }

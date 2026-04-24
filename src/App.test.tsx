@@ -3,14 +3,16 @@ import { resolve } from "node:path";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@testing-library/jest-dom/vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "./App";
 import type { SettingsInput } from "./lib/types";
 
-const invokeMock = vi.fn();
+const { invokeMock } = vi.hoisted(() => ({
+  invokeMock: vi.fn()
+}));
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock
@@ -112,8 +114,8 @@ describe("Phase 1 shell", () => {
     expect(await screen.findByText("Cache ready")).toBeInTheDocument();
     expect(screen.getByText("Migrations applied")).toBeInTheDocument();
     expect(screen.getByText("Settings saved")).toBeInTheDocument();
-    expect(screen.getByText("Default scan root")).toBeInTheDocument();
-    expect(screen.getByText("No projects scanned yet")).toBeInTheDocument();
+    expect(screen.getAllByText("Default scan root").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("No projects scanned yet").length).toBeGreaterThan(0);
     expect(
       screen.getByText(
         "GSD Dashboard is initialized with ~/Documents as the default scan root. Project discovery starts in the next phase."
@@ -126,13 +128,13 @@ describe("Phase 1 shell", () => {
 
     const rootInput = await screen.findByLabelText("Default scan root");
 
-    expect(rootInput).toHaveValue("~/Documents");
+    await waitFor(() => expect(rootInput).toHaveValue("~/Documents"));
   });
 
   it("does not render Phase 3 dashboard controls or data surfaces", async () => {
     renderWithQueryClient(<App />);
 
-    await screen.findByText("No projects scanned yet");
+    await screen.findByRole("heading", { name: "No projects scanned yet" });
 
     expect(screen.queryByText("Rebuild cache")).not.toBeInTheDocument();
     expect(screen.queryByText("Scan now")).not.toBeInTheDocument();
