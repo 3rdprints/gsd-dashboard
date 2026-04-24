@@ -1,6 +1,8 @@
 use gsd_dashboard::{
     bootstrap,
-    commands::settings::{get_boot_status_from_state, get_settings_from_state, save_settings_for_app},
+    commands::settings::{
+        get_boot_status_from_state, get_settings_from_state, save_settings_for_app,
+    },
     error::AppError,
     settings::{SettingsInput, TrayBarSort},
 };
@@ -90,9 +92,10 @@ async fn save_settings_delegates_validation_and_emits_invalidation() {
     assert_eq!(saved.scan_roots.len(), 2);
     assert!(event_seen.load(Ordering::SeqCst));
 
-    let rejected = save_settings_for_app(app.handle(), &state, settings_input(vec!["/".to_string()]))
-        .await
-        .expect_err("broad root should be rejected");
+    let rejected =
+        save_settings_for_app(app.handle(), &state, settings_input(vec!["/".to_string()]))
+            .await
+            .expect_err("broad root should be rejected");
 
     match rejected {
         AppError::InvalidScanRoot { path, .. } => assert_eq!(path, "/"),

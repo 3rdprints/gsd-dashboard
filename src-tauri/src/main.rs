@@ -10,6 +10,11 @@ fn main() {
             app.manage(state);
             Ok(())
         })
+        .invoke_handler(tauri::generate_handler![
+            gsd_dashboard::commands::settings::get_boot_status,
+            gsd_dashboard::commands::settings::get_settings,
+            gsd_dashboard::commands::settings::save_settings
+        ])
         .run(tauri::generate_context!())
         .expect("failed to run GSD Dashboard");
 }
