@@ -10,10 +10,10 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Foundation
 
 - [x] **FND-01**: Tauri 2 application launches on macOS, Windows, and Linux from a single codebase
-- [ ] **FND-02**: App creates and migrates a SQLite cache in the OS-appropriate app-data directory using WAL mode
-- [ ] **FND-03**: App reads and persists user settings (scan roots, hidden projects, autostart, tray config) to disk
-- [ ] **FND-04**: First-run experience defaults scan roots to `~/Documents` with a zero-configuration path to a populated dashboard
-- [ ] **FND-05**: App refuses to scan `/` or the bare `$HOME` directory as a guardrail against runaway scans
+- [x] **FND-02**: App creates and migrates a SQLite cache in the OS-appropriate app-data directory using WAL mode
+- [x] **FND-03**: App reads and persists user settings (scan roots, hidden projects, autostart, tray config) to disk
+- [x] **FND-04**: First-run experience defaults scan roots to `~/Documents` with a zero-configuration path to a populated dashboard
+- [x] **FND-05**: App refuses to scan `/` or the bare `$HOME` directory as a guardrail against runaway scans
 
 ### Discovery & Scanning
 
@@ -177,10 +177,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | FND-01 | Phase 1 | Complete |
-| FND-02 | Phase 1 | Pending |
-| FND-03 | Phase 1 | Pending |
-| FND-04 | Phase 1 | Pending |
-| FND-05 | Phase 1 | Pending |
+| FND-02 | Phase 1 | Complete |
+| FND-03 | Phase 1 | Complete |
+| FND-04 | Phase 1 | Complete |
+| FND-05 | Phase 1 | Complete |
 | SCAN-01 | Phase 2 | Pending |
 | SCAN-02 | Phase 3 | Pending |
 | SCAN-03 | Phase 3 | Pending |
