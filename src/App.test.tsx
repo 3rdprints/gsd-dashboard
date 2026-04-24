@@ -66,7 +66,7 @@ describe("Phase 1 IPC plumbing", () => {
 
     invokeMock.mockResolvedValueOnce(settingsInput);
     await createSaveSettingsMutationOptions(queryClient).mutationFn(settingsInput);
-    await createSaveSettingsMutationOptions(queryClient).onSuccess?.(settingsInput, settingsInput, undefined);
+    await createSaveSettingsMutationOptions(queryClient).onSuccess?.(settingsInput);
 
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: settingsQueryKey });
   });
