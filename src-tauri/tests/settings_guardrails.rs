@@ -1,7 +1,10 @@
 use gsd_dashboard::{
+    error::AppError,
+    scan_roots,
     settings::{self, AppSettings, SettingsInput, TrayBarSort},
     store,
 };
+use std::path::Path;
 
 async fn open_migrated_pool(db_path: &std::path::Path) -> deadpool_sqlite::Pool {
     let pool = store::open_pool(db_path)
@@ -100,4 +103,80 @@ async fn invalid_saved_json_returns_app_error_instead_of_panicking() {
 
     assert_eq!(serialized["kind"], "store");
     assert!(serialized["message"].as_str().is_some());
+}
+
+#[test]
+fn validate_scan_root_rejects_broad_roots_and_accepts_specific_folders() {
+    let home = Path::new("/Users/smacdonald");
+
+    assert_invalid_root(scan_roots::validate_scan_root(Path::new("/"), home), "/");
+    assert_invalid_root(scan_roots::validate_scan_root(home, home), "/Users/smacdonald");
+    assert_invalid_root(scan_roots::validate_scan_root(Path::new("~"), home), "/Users/smacdonald");
+
+    scan_roots::validate_scan_root(Path::new("~/Documents"), home)
+        .expect("specific folders under home should be accepted");
+}
+
+#[tokio::test]
+async fn invalid_roots_do_not_persist() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let db_path = temp_dir.path().join("cache.db");
+    let home = temp_dir.path().join("home");
+    let pool = open_migrated_pool(&db_path).await;
+
+    let saved = settings::save(
+        &pool,
+        &home,
+        SettingsInput {
+            scan_roots: vec!["~/Documents".to_string()],
+            hidden_project_ids: Vec::new(),
+            autostart_enabled: false,
+            tray_bar_max_projects: 8,
+            tray_bar_sort: TrayBarSort::RecentActivity,
+        },
+    )
+    .await
+    .expect("valid settings should save");
+
+    let rejected = settings::save(
+        &pool,
+        &home,
+        SettingsInput {
+            scan_roots: vec!["/".to_string(), home.display().to_string()],
+            hidden_project_ids: vec!["should-not-persist".to_string()],
+            autostart_enabled: true,
+            tray_bar_max_projects: 2,
+            tray_bar_sort: TrayBarSort::Progress,
+        },
+    )
+    .await
+    .expect_err("broad roots should be rejected");
+
+    assert_invalid_root(Err(rejected), "/");
+
+    let after_rejection = settings::load_or_initialize(&pool, &home)
+        .await
+        .expect("previous settings should still load");
+    assert_eq!(after_rejection, saved);
+    assert!(!after_rejection.scan_roots.iter().any(|root| root == "/"));
+    assert!(
+        !after_rejection
+            .scan_roots
+            .iter()
+            .any(|root| root == &home.display().to_string())
+    );
+}
+
+fn assert_invalid_root(result: Result<(), AppError>, expected_path: &str) {
+    let error = result.expect_err("root should be rejected");
+    match error {
+        AppError::InvalidScanRoot { path, reason } => {
+            assert_eq!(path, expected_path);
+            assert_eq!(
+                reason,
+                "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace."
+            );
+        }
+        other => panic!("expected invalid scan root, got {other:?}"),
+    }
 }
