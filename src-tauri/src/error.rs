@@ -28,3 +28,9 @@ impl From<rusqlite_migration::Error> for AppError {
         Self::store(error)
     }
 }
+
+impl From<serde_json::Error> for AppError {
+    fn from(error: serde_json::Error) -> Self {
+        Self::store(error)
+    }
+}

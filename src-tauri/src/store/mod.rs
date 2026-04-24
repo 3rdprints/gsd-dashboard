@@ -6,6 +6,7 @@ use rusqlite::Connection;
 use crate::error::AppError;
 
 pub mod migrations;
+pub mod settings_repo;
 
 pub async fn open_pool(db_path: &Path) -> Result<Pool, AppError> {
     let config = Config::new(db_path);
