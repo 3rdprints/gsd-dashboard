@@ -37,6 +37,30 @@ pub async fn run_migrations(pool: &Pool) -> Result<(), AppError> {
         .map_err(AppError::from)
 }
 
+pub async fn migration_version(pool: &Pool) -> Result<u32, AppError> {
+    let connection = pool.get().await.map_err(AppError::store)?;
+    let version = connection
+        .interact(|connection| {
+            connection.pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
+        })
+        .await
+        .map_err(AppError::store)??;
+
+    Ok(version)
+}
+
+pub async fn wal_enabled(pool: &Pool) -> Result<bool, AppError> {
+    let connection = pool.get().await.map_err(AppError::store)?;
+    let journal_mode = connection
+        .interact(|connection| {
+            connection.pragma_query_value(None, "journal_mode", |row| row.get::<_, String>(0))
+        })
+        .await
+        .map_err(AppError::store)??;
+
+    Ok(journal_mode.eq_ignore_ascii_case("wal"))
+}
+
 fn configure_connection(connection: &mut Connection) -> rusqlite::Result<()> {
     connection.pragma_update(None, "journal_mode", "WAL")?;
     connection.pragma_update(None, "synchronous", "NORMAL")?;

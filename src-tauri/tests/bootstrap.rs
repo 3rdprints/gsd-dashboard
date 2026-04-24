@@ -1,7 +1,8 @@
 use gsd_dashboard::{
     app_state::{AppState, BootStatus},
-    bootstrap, events::AppEvent,
+    bootstrap,
     error::AppError,
+    events::AppEvent,
 };
 use tauri::Manager;
 
@@ -65,7 +66,7 @@ async fn bootstrap_paths_create_cache_and_ready_boot_status() {
 
 #[test]
 fn tauri_setup_manages_app_state_before_commands_run() {
-    let app = tauri::test::mock_builder()
+    let mut app = tauri::test::mock_builder()
         .setup(|app| {
             let temp_dir = tempfile::tempdir().expect("temp dir should be created");
             let app_data_dir = temp_dir.path().join("app-data");
@@ -78,6 +79,9 @@ fn tauri_setup_manages_app_state_before_commands_run() {
         })
         .build(tauri::test::mock_context(tauri::test::noop_assets()))
         .expect("app should build");
+
+    #[allow(deprecated)]
+    app.run_iteration(|_, _| {});
 
     let state = app.state::<AppState>();
     assert!(state.boot_status.cache_ready);
