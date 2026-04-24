@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches:
+      - main
       - gsd/phase-01-foundation
 
 jobs:

@@ -66,11 +66,13 @@ impl From<AppSettings> for SettingsInput {
 }
 
 pub async fn load_or_initialize(pool: &Pool, home_dir: &Path) -> Result<AppSettings, AppError> {
-    let connection = pool.get().await.map_err(AppError::store)?;
-    let stored = connection
-        .interact(settings_repo::load_settings)
-        .await
-        .map_err(AppError::store)??;
+    let stored = {
+        let connection = pool.get().await.map_err(AppError::store)?;
+        connection
+            .interact(settings_repo::load_settings)
+            .await
+            .map_err(AppError::store)??
+    };
 
     match stored {
         Some(stored_settings) => {

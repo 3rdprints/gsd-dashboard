@@ -19,22 +19,26 @@ pub async fn bootstrap_from_paths(
     app_data_dir: PathBuf,
     home_dir: PathBuf,
 ) -> Result<AppState, AppError> {
-    std::fs::create_dir_all(&app_data_dir)?;
+    let app_data_dir_for_create = app_data_dir.clone();
+    tokio::task::spawn_blocking(move || std::fs::create_dir_all(&app_data_dir_for_create))
+        .await
+        .map_err(AppError::io)??;
     let cache_path = app_data_dir.join("cache.db");
     let pool = store::open_pool(&cache_path).await?;
     store::run_migrations(&pool).await?;
-    let settings_initialized = settings::load_or_initialize(&pool, &home_dir).await.is_ok();
-    if !settings_initialized {
-        settings::load_or_initialize(&pool, &home_dir).await?;
-    }
+    settings::load_or_initialize(&pool, &home_dir).await?;
+    let cache_path_for_ready = cache_path.clone();
+    let cache_ready = tokio::task::spawn_blocking(move || cache_path_for_ready.exists())
+        .await
+        .map_err(AppError::io)?;
 
     let boot_status = BootStatus {
         app_data_dir: app_data_dir.display().to_string(),
         cache_path: cache_path.display().to_string(),
-        cache_ready: cache_path.exists(),
+        cache_ready,
         wal_enabled: store::wal_enabled(&pool).await?,
         migrations_applied: store::migration_version(&pool).await?,
-        settings_initialized,
+        settings_initialized: true,
     };
 
     Ok(AppState::new(

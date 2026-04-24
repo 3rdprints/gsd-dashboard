@@ -1,6 +1,6 @@
 use std::{path::Path, time::Duration};
 
-use deadpool_sqlite::{Config, Hook, HookError, Pool, Runtime};
+use deadpool_sqlite::{Config, Hook, HookError, Pool, PoolConfig, Runtime};
 use rusqlite::Connection;
 
 use crate::error::AppError;
@@ -9,7 +9,8 @@ pub mod migrations;
 pub mod settings_repo;
 
 pub async fn open_pool(db_path: &Path) -> Result<Pool, AppError> {
-    let config = Config::new(db_path);
+    let mut config = Config::new(db_path);
+    config.pool = Some(PoolConfig::new(4));
     let pool = config
         .builder(Runtime::Tokio1)
         .map_err(AppError::store)?

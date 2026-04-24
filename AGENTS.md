@@ -79,7 +79,7 @@ This project was initialized with `/gsd-new-project`. Phase workflow:
 
 **Config:** YOLO mode, standard granularity (5-8 phases), parallel execution on, commit_docs off (`.planning/` is gitignored).
 
-**Next step:** `/gsd-plan-phase 1` (Foundation — Tauri skeleton + WAL SQLite + capabilities + error/events infra).
+**Next step:** `/gsd-plan-phase 2`
 
 ---
-*Last updated: 2026-04-23 after project initialization*
+*Last updated: 2026-04-24 after Phase 01 foundation completion*

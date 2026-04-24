@@ -113,33 +113,36 @@ async fn invalid_saved_json_returns_app_error_instead_of_panicking() {
 
 #[test]
 fn validate_scan_root_rejects_broad_roots_and_accepts_specific_folders() {
-    let home = Path::new("/Users/smacdonald");
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let home = temp_dir.path().join("home");
+    let outside_home = temp_dir.path().join("outside");
+    let documents = home.join("Documents");
+    let work = home.join("Documents").join("Work");
 
-    assert_invalid_root(scan_roots::validate_scan_root(Path::new("/"), home), "/");
     assert_invalid_root(
-        scan_roots::validate_scan_root(home, home),
-        "/Users/smacdonald",
+        scan_roots::validate_scan_root(&home, &home),
+        &home.display().to_string(),
     );
     assert_invalid_root(
-        scan_roots::validate_scan_root(Path::new("~"), home),
-        "/Users/smacdonald",
+        scan_roots::validate_scan_root(Path::new("~"), &home),
+        &home.display().to_string(),
     );
     assert_invalid_root(
-        scan_roots::validate_scan_root(Path::new("/Users"), home),
-        "/Users",
+        scan_roots::validate_scan_root(temp_dir.path(), &home),
+        &temp_dir.path().display().to_string(),
     );
     assert_invalid_root(
-        scan_roots::validate_scan_root(Path::new("/tmp"), home),
-        "/tmp",
-    );
-    assert_invalid_root(
-        scan_roots::validate_scan_root(Path::new("/Volumes"), home),
-        "/Volumes",
+        scan_roots::validate_scan_root(&outside_home, &home),
+        &outside_home.display().to_string(),
     );
 
-    scan_roots::validate_scan_root(Path::new("~/Documents"), home)
+    scan_roots::validate_scan_root(&documents, &home)
         .expect("specific folders under home should be accepted");
-    scan_roots::validate_scan_root(Path::new("~/Documents/Work"), home)
+    scan_roots::validate_scan_root(&work, &home)
+        .expect("nested folders under home should be accepted");
+    scan_roots::validate_scan_root(Path::new("~/Documents"), &home)
+        .expect("tilde-specific folders under home should be accepted");
+    scan_roots::validate_scan_root(Path::new("~/Documents/Work"), &home)
         .expect("nested folders under home should be accepted");
 }
 
