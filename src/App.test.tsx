@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@testing-library/jest-dom/vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -142,6 +142,114 @@ describe("Phase 1 shell", () => {
     expect(screen.queryByText(/chart/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/tray/i)).not.toBeInTheDocument();
     expect(screen.queryByText("Hidden projects")).not.toBeInTheDocument();
+  });
+
+  it("shows the backend broad-root error for slash and keeps the rejected value", async () => {
+    invokeMock.mockImplementation((command: string) => {
+      if (command === "get_boot_status") {
+        return Promise.resolve({
+          appDataDir: "/tmp/gsd-dashboard",
+          cachePath: "/tmp/gsd-dashboard/cache.db",
+          cacheReady: true,
+          walEnabled: true,
+          migrationsApplied: 1,
+          settingsInitialized: true
+        });
+      }
+
+      if (command === "get_settings") {
+        return Promise.resolve({
+          scanRoots: ["~/Documents"],
+          hiddenProjectIds: [],
+          autostartEnabled: false,
+          trayBarMaxProjects: 8,
+          trayBarSort: "recent_activity"
+        });
+      }
+
+      if (command === "save_settings") {
+        return Promise.reject({
+          kind: "invalidScanRoot",
+          message:
+            "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace.",
+          path: "/",
+          reason:
+            "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace."
+        });
+      }
+
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+    renderWithQueryClient(<App />);
+    const rootInput = await screen.findByLabelText("Default scan root");
+    await waitFor(() => expect(rootInput).toHaveValue("~/Documents"));
+
+    fireEvent.change(rootInput, { target: { value: "/" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
+
+    expect(
+      await screen.findByText(
+        "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText("Rejected path: /")).toBeInTheDocument();
+    expect(rootInput).toHaveValue("/");
+    expect(screen.queryByText("Settings saved")).not.toBeInTheDocument();
+  });
+
+  it("shows the backend broad-root error for the bare home path", async () => {
+    const homePath = "/Users/smacdonald";
+
+    invokeMock.mockImplementation((command: string) => {
+      if (command === "get_boot_status") {
+        return Promise.resolve({
+          appDataDir: "/tmp/gsd-dashboard",
+          cachePath: "/tmp/gsd-dashboard/cache.db",
+          cacheReady: true,
+          walEnabled: true,
+          migrationsApplied: 1,
+          settingsInitialized: true
+        });
+      }
+
+      if (command === "get_settings") {
+        return Promise.resolve({
+          scanRoots: ["~/Documents"],
+          hiddenProjectIds: [],
+          autostartEnabled: false,
+          trayBarMaxProjects: 8,
+          trayBarSort: "recent_activity"
+        });
+      }
+
+      if (command === "save_settings") {
+        return Promise.reject({
+          kind: "invalidScanRoot",
+          message:
+            "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace.",
+          path: homePath,
+          reason:
+            "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace."
+        });
+      }
+
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+    renderWithQueryClient(<App />);
+    const rootInput = await screen.findByLabelText("Default scan root");
+    await waitFor(() => expect(rootInput).toHaveValue("~/Documents"));
+
+    fireEvent.change(rootInput, { target: { value: homePath } });
+    fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
+
+    expect(
+      await screen.findByText(
+        "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText(`Rejected path: ${homePath}`)).toBeInTheDocument();
+    expect(rootInput).toHaveValue(homePath);
+    expect(screen.queryByText("Settings saved")).not.toBeInTheDocument();
   });
 });
 
