@@ -34,7 +34,7 @@
 Plans:
 - [x] 01-01-PLAN.md — Scaffold pinned Tauri 2 + React/Vite/Tailwind app with strict capabilities
 - [x] 01-02-PLAN.md — Implement WAL SQLite cache, migrations, settings defaults, and scan-root guardrails
-- [ ] 01-03-PLAN.md — Wire AppState, AppError, AppEvent, and thin boot/settings commands
+- [x] 01-03-PLAN.md — Wire AppState, AppError, AppEvent, and thin boot/settings commands
 - [ ] 01-04-PLAN.md — Build sparse Phase 1 UI shell for boot/cache/settings/error/empty states
 **UI hint**: yes
 
@@ -136,7 +136,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 2/4 | In progress | - |
+| 1. Foundation | 3/4 | In progress | - |
 | 2. Planning Parser & Scanner | 0/? | Not started | - |
 | 3. Portfolio Vertical Slice | 0/? | Not started | - |
 | 4. Session Indexer | 0/? | Not started | - |
