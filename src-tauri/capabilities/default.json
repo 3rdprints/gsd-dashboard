@@ -1,0 +1,11 @@
+{
+  "identifier": "default",
+  "description": "Release-strict default capability for the main dashboard window.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "allow-get-boot-status",
+    "allow-get-settings",
+    "allow-save-settings"
+  ]
+}

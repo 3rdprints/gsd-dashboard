@@ -11,10 +11,11 @@ __pycache__/
 build/
 develop-eggs/
 dist/
+node_modules/
 downloads/
 eggs/
 .eggs/
-lib/
+/lib/
 lib64/
 parts/
 sdist/
@@ -74,6 +75,7 @@ docs/_build/
 # PyBuilder
 .pybuilder/
 target/
+src-tauri/gen/
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -179,3 +181,4 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+.planning/
