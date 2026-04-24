@@ -37,7 +37,7 @@ pub struct SettingsInput {
 pub enum TrayBarSort {
     Name,
     Progress,
-    #[serde(alias = "recent_activity")]
+    #[serde(rename = "recent_activity", alias = "recentActivity")]
     RecentActivity,
 }
 

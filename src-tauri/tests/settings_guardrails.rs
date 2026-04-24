@@ -41,6 +41,14 @@ async fn missing_settings_row_initializes_phase_one_defaults() {
     assert_eq!(settings.tray_bar_sort, TrayBarSort::RecentActivity);
 }
 
+#[test]
+fn default_settings_serialize_recent_activity_wire_value() {
+    let serialized =
+        serde_json::to_value(AppSettings::default()).expect("settings should serialize");
+
+    assert_eq!(serialized["trayBarSort"], "recent_activity");
+}
+
 #[tokio::test]
 async fn settings_round_trip_survives_database_reopen() {
     let temp_dir = tempfile::tempdir().expect("temp dir should be created");
