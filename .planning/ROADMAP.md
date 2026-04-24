@@ -8,7 +8,7 @@
 
 ## Phases
 
-- [ ] **Phase 1: Foundation** - Tauri 2 skeleton, WAL-SQLite pool, settings persistence, capabilities, error/events infra, first-run defaults
+- [x] **Phase 1: Foundation** - Tauri 2 skeleton, WAL-SQLite pool, settings persistence, capabilities, error/events infra, first-run defaults
 - [ ] **Phase 2: Planning Parser & Scanner** - Pure-function parsers over ROADMAP/STATE/PLAN/config + gitignore-respecting scanner with guardrails
 - [ ] **Phase 3: Portfolio Vertical Slice** - First visible demo: scan on launch, project cards with progress bars, Settings scan-roots UI, Rebuild Cache
 - [ ] **Phase 4: Session Indexer** - Claude + Codex JSONL streaming with byte-offset incremental parsing and project attribution
@@ -35,7 +35,7 @@ Plans:
 - [x] 01-01-PLAN.md — Scaffold pinned Tauri 2 + React/Vite/Tailwind app with strict capabilities
 - [x] 01-02-PLAN.md — Implement WAL SQLite cache, migrations, settings defaults, and scan-root guardrails
 - [x] 01-03-PLAN.md — Wire AppState, AppError, AppEvent, and thin boot/settings commands
-- [ ] 01-04-PLAN.md — Build sparse Phase 1 UI shell for boot/cache/settings/error/empty states
+- [x] 01-04-PLAN.md — Build sparse Phase 1 UI shell for boot/cache/settings/error/empty states
 **UI hint**: yes
 
 ### Phase 2: Planning Parser & Scanner
@@ -136,7 +136,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 3/4 | In progress | - |
+| 1. Foundation | 4/4 | Complete | 2026-04-24 |
 | 2. Planning Parser & Scanner | 0/? | Not started | - |
 | 3. Portfolio Vertical Slice | 0/? | Not started | - |
 | 4. Session Indexer | 0/? | Not started | - |
