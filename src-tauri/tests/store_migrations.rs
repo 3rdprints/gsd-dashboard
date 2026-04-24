@@ -2,9 +2,7 @@ use gsd_dashboard::store;
 use rusqlite::OptionalExtension;
 
 async fn migrated_pool(db_path: &std::path::Path) -> deadpool_sqlite::Pool {
-    let pool = store::open_pool(db_path)
-        .await
-        .expect("pool should open");
+    let pool = store::open_pool(db_path).await.expect("pool should open");
     store::run_migrations(&pool)
         .await
         .expect("migrations should run");

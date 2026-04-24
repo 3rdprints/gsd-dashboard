@@ -7,9 +7,7 @@ use gsd_dashboard::{
 use std::path::Path;
 
 async fn open_migrated_pool(db_path: &std::path::Path) -> deadpool_sqlite::Pool {
-    let pool = store::open_pool(db_path)
-        .await
-        .expect("pool should open");
+    let pool = store::open_pool(db_path).await.expect("pool should open");
     store::run_migrations(&pool)
         .await
         .expect("migrations should run");
@@ -110,8 +108,14 @@ fn validate_scan_root_rejects_broad_roots_and_accepts_specific_folders() {
     let home = Path::new("/Users/smacdonald");
 
     assert_invalid_root(scan_roots::validate_scan_root(Path::new("/"), home), "/");
-    assert_invalid_root(scan_roots::validate_scan_root(home, home), "/Users/smacdonald");
-    assert_invalid_root(scan_roots::validate_scan_root(Path::new("~"), home), "/Users/smacdonald");
+    assert_invalid_root(
+        scan_roots::validate_scan_root(home, home),
+        "/Users/smacdonald",
+    );
+    assert_invalid_root(
+        scan_roots::validate_scan_root(Path::new("~"), home),
+        "/Users/smacdonald",
+    );
 
     scan_roots::validate_scan_root(Path::new("~/Documents"), home)
         .expect("specific folders under home should be accepted");
@@ -159,12 +163,10 @@ async fn invalid_roots_do_not_persist() {
         .expect("previous settings should still load");
     assert_eq!(after_rejection, saved);
     assert!(!after_rejection.scan_roots.iter().any(|root| root == "/"));
-    assert!(
-        !after_rejection
-            .scan_roots
-            .iter()
-            .any(|root| root == &home.display().to_string())
-    );
+    assert!(!after_rejection
+        .scan_roots
+        .iter()
+        .any(|root| root == &home.display().to_string()));
 }
 
 fn assert_invalid_root(result: Result<(), AppError>, expected_path: &str) {

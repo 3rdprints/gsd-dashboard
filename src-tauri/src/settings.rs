@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     error::AppError,
+    scan_roots::validate_scan_root,
     store::settings_repo::{self, StoredSettings},
 };
 
@@ -72,7 +73,11 @@ pub async fn load_or_initialize(pool: &Pool, home_dir: &Path) -> Result<AppSetti
         .map_err(AppError::store)??;
 
     match stored {
-        Some(stored_settings) => AppSettings::try_from(stored_settings),
+        Some(stored_settings) => {
+            let settings = AppSettings::try_from(stored_settings)?;
+            validate_settings(&settings.scan_roots, home_dir)?;
+            Ok(settings)
+        }
         None => {
             let defaults = AppSettings::default();
             save(pool, home_dir, defaults.clone().into()).await
@@ -82,9 +87,10 @@ pub async fn load_or_initialize(pool: &Pool, home_dir: &Path) -> Result<AppSetti
 
 pub async fn save(
     pool: &Pool,
-    _home_dir: &Path,
+    home_dir: &Path,
     input: SettingsInput,
 ) -> Result<AppSettings, AppError> {
+    validate_settings(&input.scan_roots, home_dir)?;
     let settings = AppSettings::from(input);
     let stored = StoredSettings::try_from(settings.clone())?;
     let now = unix_timestamp();
@@ -95,6 +101,14 @@ pub async fn save(
         .map_err(AppError::store)??;
 
     Ok(settings)
+}
+
+fn validate_settings(scan_roots: &[String], home_dir: &Path) -> Result<(), AppError> {
+    for scan_root in scan_roots {
+        validate_scan_root(Path::new(scan_root), home_dir)?;
+    }
+
+    Ok(())
 }
 
 impl From<SettingsInput> for AppSettings {
