@@ -116,9 +116,23 @@ fn validate_scan_root_rejects_broad_roots_and_accepts_specific_folders() {
         scan_roots::validate_scan_root(Path::new("~"), home),
         "/Users/smacdonald",
     );
+    assert_invalid_root(
+        scan_roots::validate_scan_root(Path::new("/Users"), home),
+        "/Users",
+    );
+    assert_invalid_root(
+        scan_roots::validate_scan_root(Path::new("/tmp"), home),
+        "/tmp",
+    );
+    assert_invalid_root(
+        scan_roots::validate_scan_root(Path::new("/Volumes"), home),
+        "/Volumes",
+    );
 
     scan_roots::validate_scan_root(Path::new("~/Documents"), home)
         .expect("specific folders under home should be accepted");
+    scan_roots::validate_scan_root(Path::new("~/Documents/Work"), home)
+        .expect("nested folders under home should be accepted");
 }
 
 #[tokio::test]

@@ -11,7 +11,10 @@ pub fn validate_scan_root(candidate: &Path, home: &Path) -> Result<(), AppError>
     let normalized_candidate = normalize_scan_root(candidate, home);
     let normalized_home = normalize_path(home);
 
-    if normalized_candidate == Path::new("/") || normalized_candidate == normalized_home {
+    if normalized_candidate == Path::new("/")
+        || normalized_candidate == normalized_home
+        || !normalized_candidate.starts_with(&normalized_home)
+    {
         return Err(AppError::InvalidScanRoot {
             path: normalized_candidate.display().to_string(),
             reason: BROAD_ROOT_REASON.to_string(),
