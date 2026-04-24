@@ -3,7 +3,7 @@
 :root {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
   color: #111827;
-  background: #f7f8fa;
+  background: #F7F8FA;
   font-size: 14px;
   font-weight: 400;
   line-height: 1.5;
@@ -13,7 +13,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #f7f8fa;
+  background: #F7F8FA;
 }
 
 button,
@@ -31,22 +31,22 @@ select {
   padding: 24px;
 }
 
-.status-panel {
-  width: min(720px, 100%);
-  background: #ffffff;
-  border: 1px solid #d1d5db;
+.foundation-panel {
+  width: min(800px, 100%);
+  background: #FFFFFF;
+  border: 1px solid #D1D5DB;
   border-radius: 8px;
   padding: 24px;
 }
 
-.status-header {
+.app-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  color: #2563eb;
+  justify-content: space-between;
+  gap: 24px;
 }
 
-.status-header h1 {
+.app-header h1 {
   margin: 0;
   color: #111827;
   font-size: 28px;
@@ -54,9 +54,26 @@ select {
   line-height: 1.2;
 }
 
+.app-header p {
+  margin: 8px 0 0;
+  color: #6B7280;
+  font-size: 14px;
+}
+
+.ready-badge {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #2563EB;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .status-label {
   margin: 0 0 4px;
-  color: #4b5563;
+  color: #4B5563;
   font-size: 12px;
   font-weight: 600;
   line-height: 1.4;
@@ -69,18 +86,45 @@ select {
   margin-top: 32px;
 }
 
-.status-grid > div {
-  border: 1px solid #e5e7eb;
+.status-card {
+  border: 1px solid #E5E7EB;
   border-radius: 8px;
   padding: 16px;
 }
 
-.status-grid p {
+.status-card svg {
+  color: #2563EB;
+  margin-bottom: 16px;
+}
+
+.status-card h2 {
+  margin: 0 0 8px;
+  color: #111827;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.status-card p {
   margin: 0;
+  color: #4B5563;
   font-size: 14px;
 }
 
+.status-card-wide {
+  grid-column: 1 / -1;
+}
+
+.status-card-wide h2 {
+  color: #DC2626;
+}
+
 @media (max-width: 640px) {
+  .app-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .status-grid {
     grid-template-columns: 1fr;
   }
