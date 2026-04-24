@@ -181,6 +181,27 @@ input:disabled {
   color: #2563EB;
 }
 
+.scan-root-error {
+  margin-top: 16px;
+  border: 1px solid #DC2626;
+  border-radius: 8px;
+  padding: 16px;
+  color: #DC2626;
+  background: #FFFFFF;
+}
+
+.scan-root-error p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.scan-root-error p + p {
+  margin-top: 8px;
+  color: #4B5563;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .empty-state {
   margin-top: 24px;
 }

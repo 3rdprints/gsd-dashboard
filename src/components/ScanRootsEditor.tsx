@@ -7,6 +7,10 @@ import {
   createSaveSettingsMutationOptions,
   settingsQueryKey
 } from "../lib/queryClient";
+import type { AppError } from "../lib/types";
+
+const INVALID_SCAN_ROOT_MESSAGE =
+  "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace.";
 
 export function ScanRootsEditor() {
   const queryClient = useQueryClient();
@@ -17,6 +21,7 @@ export function ScanRootsEditor() {
   const saveSettings = useMutation(createSaveSettingsMutationOptions(queryClient));
   const [scanRootDraft, setScanRootDraft] = useState("");
   const [hasSavedSettings, setHasSavedSettings] = useState(false);
+  const rejectedScanRoot = parseRejectedScanRoot(saveSettings.error);
 
   useEffect(() => {
     if (settings.data && scanRootDraft === "") {
@@ -75,6 +80,13 @@ export function ScanRootsEditor() {
         </div>
       </form>
 
+      {rejectedScanRoot ? (
+        <div className="scan-root-error" role="alert">
+          <p>{INVALID_SCAN_ROOT_MESSAGE}</p>
+          <p>Rejected path: {rejectedScanRoot.path}</p>
+        </div>
+      ) : null}
+
       {hasSavedSettings && !saveSettings.isError ? (
         <div className="settings-saved">
           <CheckCircle2 aria-hidden="true" size={16} strokeWidth={2} />
@@ -83,4 +95,23 @@ export function ScanRootsEditor() {
       ) : null}
     </section>
   );
+}
+
+function parseRejectedScanRoot(error: unknown): AppError | null {
+  if (!error || typeof error !== "object") {
+    return null;
+  }
+
+  const appError = error as Partial<AppError>;
+
+  if (appError.kind !== "invalidScanRoot" || !appError.path) {
+    return null;
+  }
+
+  return {
+    kind: "invalidScanRoot",
+    message: appError.message ?? INVALID_SCAN_ROOT_MESSAGE,
+    path: appError.path,
+    reason: appError.reason
+  };
 }
