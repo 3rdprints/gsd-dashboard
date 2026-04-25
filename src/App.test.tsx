@@ -251,6 +251,50 @@ describe("portfolio vertical slice", () => {
     expect(window.location.pathname).toBe("/");
   });
 
+  it("hides a visible project and removes it after portfolio refetch", async () => {
+    let hiddenSaved = false;
+    invokeMock.mockImplementation((command: string, args?: Record<string, unknown>) => {
+      if (command === "get_boot_status") {
+        return Promise.resolve({ appDataDir: "/tmp", cachePath: "/tmp/cache.db", cacheReady: true, walEnabled: true, migrationsApplied: 3, settingsInitialized: true });
+      }
+      if (command === "get_settings") return Promise.resolve(defaultSettings);
+      if (command === "get_portfolio") {
+        return Promise.resolve(
+          hiddenSaved
+            ? { ...portfolio, projects: portfolio.projects.filter((project) => project.id !== "gsd-dashboard"), hiddenProjects: [...portfolio.hiddenProjects, { id: "gsd-dashboard", name: "GSD Dashboard", rootPath: portfolio.projects[0].rootPath }] }
+            : portfolio
+        );
+      }
+      if (command === "save_settings") {
+        expect(args).toEqual({
+          input: { ...defaultSettings, hiddenProjectIds: ["listingguru", "gsd-dashboard"] }
+        });
+        hiddenSaved = true;
+        return Promise.resolve((args as { input: SettingsInput }).input);
+      }
+      if (command === "scan_projects") return Promise.resolve({ discoveredCount: 2, parsedCount: 2, errorCount: 0 });
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+    renderWithQueryClient(<App />);
+
+    expect(await screen.findByRole("link", { name: /GSD Dashboard/ })).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: "Hide Project" }));
+
+    await waitFor(() => expect(screen.queryByRole("link", { name: /GSD Dashboard/ })).not.toBeInTheDocument());
+  });
+
+  it("does not show Copied when clipboard failed", async () => {
+    writeTextMock.mockRejectedValueOnce(new Error("clipboard failed"));
+    renderWithQueryClient(<App />);
+
+    await screen.findByRole("link", { name: /GSD Dashboard/ });
+    fireEvent.click((await screen.findAllByRole("button", { name: "Copy next command" }))[0]);
+
+    await waitFor(() => expect(writeTextMock).toHaveBeenCalled());
+    expect(screen.queryByText("Copied")).not.toBeInTheDocument();
+    expect(window.location.pathname).toBe("/");
+  });
+
   it("links from a card to project detail and calls get_project on the detail route", async () => {
     renderWithQueryClient(<App />);
 
