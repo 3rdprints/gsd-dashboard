@@ -21,11 +21,12 @@ struct StateFrontmatter {
 pub fn parse_state(bytes: &[u8]) -> Result<StateDocument, ParseError> {
     let source = std::str::from_utf8(bytes)?;
     let matter = Matter::<YAML>::new();
-    let parsed = matter
-        .parse::<StateFrontmatter>(source)
-        .map_err(|error| ParseError::Frontmatter {
-            message: error.to_string(),
-        })?;
+    let parsed =
+        matter
+            .parse::<StateFrontmatter>(source)
+            .map_err(|error| ParseError::Frontmatter {
+                message: error.to_string(),
+            })?;
     let frontmatter = parsed.data.unwrap_or_default();
     let current_milestone = parse_milestone(&parsed.content, &frontmatter);
     let current_phase = parse_phase(&parsed.content);
@@ -68,7 +69,10 @@ fn parse_phase(body: &str) -> Option<PhaseIdentity> {
 
     let name = value
         .split_once('(')
-        .and_then(|(_, rest)| rest.split_once(')').map(|(name, _)| name.trim().to_string()))
+        .and_then(|(_, rest)| {
+            rest.split_once(')')
+                .map(|(name, _)| name.trim().to_string())
+        })
         .unwrap_or_default();
 
     Some(PhaseIdentity { number, name })

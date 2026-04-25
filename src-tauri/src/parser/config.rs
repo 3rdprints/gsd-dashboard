@@ -58,10 +58,7 @@ mod tests {
 
         assert_eq!(config.commit_docs, Some(false));
         assert_eq!(config.parallelization, Some(true));
-        assert_eq!(
-            config.workflow.unwrap().auto_advance,
-            Some(true)
-        );
+        assert_eq!(config.workflow.unwrap().auto_advance, Some(true));
         assert_eq!(
             config.git.unwrap().branching_strategy.as_deref(),
             Some("phase")

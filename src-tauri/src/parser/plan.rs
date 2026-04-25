@@ -18,11 +18,12 @@ struct PlanFrontmatter {
 pub fn parse_plan(bytes: &[u8]) -> Result<PlanDocument, ParseError> {
     let source = std::str::from_utf8(bytes)?;
     let matter = Matter::<YAML>::new();
-    let parsed = matter
-        .parse::<PlanFrontmatter>(source)
-        .map_err(|error| ParseError::Frontmatter {
-            message: error.to_string(),
-        })?;
+    let parsed =
+        matter
+            .parse::<PlanFrontmatter>(source)
+            .map_err(|error| ParseError::Frontmatter {
+                message: error.to_string(),
+            })?;
     let frontmatter = parsed.data.unwrap_or_default();
     let tasks = parse_task_blocks(&parsed.content);
     let checklist = parse_markdown_checklist(&parsed.content);
@@ -145,7 +146,10 @@ type: execute
         assert_eq!(plan.plan.as_deref(), Some("01"));
         assert_eq!(plan.plan_type.as_deref(), Some("execute"));
         assert_eq!(plan.tasks[0].name, "Task 1: Add parser contracts");
-        assert_eq!(plan.tasks[0].done.as_deref(), Some("Parser contracts exist."));
+        assert_eq!(
+            plan.tasks[0].done.as_deref(),
+            Some("Parser contracts exist.")
+        );
         assert!(plan.tasks[0].completed);
         assert_eq!(plan.checklist.len(), 2);
         assert!(plan.checklist[0].completed);

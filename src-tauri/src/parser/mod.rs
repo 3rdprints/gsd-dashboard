@@ -200,10 +200,7 @@ pub fn derive_progress(
     let completed_items = plans
         .iter()
         .map(|plan| {
-            plan.checklist
-                .iter()
-                .filter(|item| item.completed)
-                .count()
+            plan.checklist.iter().filter(|item| item.completed).count()
                 + plan.tasks.iter().filter(|task| task.completed).count()
         })
         .sum::<usize>();
