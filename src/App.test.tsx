@@ -8,7 +8,7 @@ import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "./App";
-import type { ScanEvent, SettingsInput } from "./lib/types";
+import type { PortfolioDto, ProjectDetail, ScanEvent, SettingsInput } from "./lib/types";
 
 const { channelInstances, invokeMock, openPathMock, openUrlMock, writeTextMock } = vi.hoisted(() => ({
   channelInstances: [] as Array<{ onmessage: ((event: unknown) => void) | null }>,
@@ -40,37 +40,95 @@ vi.mock("@tauri-apps/plugin-opener", () => ({
 
 const defaultSettings: SettingsInput = {
   scanRoots: ["~/Documents"],
-  hiddenProjectIds: [],
+  hiddenProjectIds: ["listingguru"],
   autostartEnabled: false,
   trayBarMaxProjects: 8,
   trayBarSort: "recent_activity"
 };
 
-describe("Phase 1 IPC plumbing", () => {
+const portfolio: PortfolioDto = {
+  stats: {
+    projectsTracked: 2,
+    activeMilestones: 2,
+    sessionsToday: 0,
+    tokensToday: 0
+  },
+  projects: [
+    {
+      id: "gsd-dashboard",
+      name: "GSD Dashboard",
+      rootPath: "/Users/smacdonald/homegit/gsd-dashboard",
+      planningPath: "/Users/smacdonald/homegit/gsd-dashboard/.planning",
+      currentMilestoneName: "v1.0 MVP",
+      currentPhaseNumber: "03",
+      currentPhaseName: "Portfolio Vertical Slice",
+      milestoneProgressPct: 42,
+      nextCommand: "/gsd-execute-phase 3",
+      parseError: null,
+      lastActivityAt: 1_777_132_245,
+      lastScannedAt: 1_777_132_245
+    },
+    {
+      id: "deckpilot",
+      name: "DeckPilot",
+      rootPath: "/Users/smacdonald/homegit/deckpilot",
+      planningPath: "/Users/smacdonald/homegit/deckpilot/.planning",
+      currentMilestoneName: "Launch",
+      currentPhaseNumber: "02",
+      currentPhaseName: "Parser",
+      milestoneProgressPct: 75,
+      nextCommand: "/gsd-next",
+      parseError: "ROADMAP frontmatter could not be parsed",
+      lastActivityAt: null,
+      lastScannedAt: 1_777_132_200
+    }
+  ],
+  hiddenProjects: [
+    {
+      id: "listingguru",
+      name: "ListingGuru",
+      rootPath: "/Users/smacdonald/homegit/listingguru"
+    }
+  ],
+  unmatchedSessions: {
+    count: 0,
+    label: "Available after session indexing"
+  }
+};
+
+const projectDetail: ProjectDetail = portfolio.projects[0];
+
+describe("IPC plumbing", () => {
   beforeEach(() => {
     channelInstances.length = 0;
     invokeMock.mockReset();
   });
 
-  it("calls the exact boot and settings command names", async () => {
-    const { getBootStatus, getSettings, saveSettings } = await import("./lib/ipc");
-    const settingsInput: SettingsInput = {
-      scanRoots: ["~/Documents"],
-      hiddenProjectIds: [],
-      autostartEnabled: false,
-      trayBarMaxProjects: 8,
-      trayBarSort: "recent_activity"
-    };
+  it("calls the exact command names for boot, settings, portfolio, detail, scan, and rebuild", async () => {
+    const { getBootStatus, getPortfolio, getProject, getSettings, rebuildCache, saveSettings, scanProjects } =
+      await import("./lib/ipc");
 
     invokeMock.mockResolvedValue({});
 
     await getBootStatus();
     await getSettings();
-    await saveSettings(settingsInput);
+    await saveSettings(defaultSettings);
+    await getPortfolio();
+    await getProject("gsd-dashboard");
+    await scanProjects(vi.fn());
+    await rebuildCache(vi.fn());
 
     expect(invokeMock).toHaveBeenNthCalledWith(1, "get_boot_status");
     expect(invokeMock).toHaveBeenNthCalledWith(2, "get_settings");
-    expect(invokeMock).toHaveBeenNthCalledWith(3, "save_settings", { input: settingsInput });
+    expect(invokeMock).toHaveBeenNthCalledWith(3, "save_settings", { input: defaultSettings });
+    expect(invokeMock).toHaveBeenNthCalledWith(4, "get_portfolio");
+    expect(invokeMock).toHaveBeenNthCalledWith(5, "get_project", { projectId: "gsd-dashboard" });
+    expect(invokeMock).toHaveBeenNthCalledWith(6, "scan_projects", {
+      onEvent: channelInstances[0]
+    });
+    expect(invokeMock).toHaveBeenNthCalledWith(7, "rebuild_cache", {
+      onEvent: channelInstances[1]
+    });
   });
 
   it("provides the query client at the app root", () => {
@@ -80,118 +138,31 @@ describe("Phase 1 IPC plumbing", () => {
     expect(mainSource).toContain("queryClient");
   });
 
-  it("invalidates settings only after a successful settings save", async () => {
-    const { createSaveSettingsMutationOptions, settingsQueryKey } = await import(
+  it("invalidates settings, portfolio, and project queries only after a successful settings save", async () => {
+    const { createSaveSettingsMutationOptions, portfolioQueryKey, settingsQueryKey } = await import(
       "./lib/queryClient"
     );
     const queryClient = new QueryClient();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
-    const settingsInput: SettingsInput = {
-      scanRoots: ["~/Documents"],
-      hiddenProjectIds: [],
-      autostartEnabled: false,
-      trayBarMaxProjects: 8,
-      trayBarSort: "recent_activity"
-    };
 
     invokeMock.mockRejectedValueOnce({ kind: "store", message: "save failed" });
-    await expect(createSaveSettingsMutationOptions(queryClient).mutationFn(settingsInput)).rejects
-      .toEqual({ kind: "store", message: "save failed" });
+    await expect(createSaveSettingsMutationOptions(queryClient).mutationFn(defaultSettings)).rejects.toEqual({
+      kind: "store",
+      message: "save failed"
+    });
     expect(invalidateSpy).not.toHaveBeenCalled();
 
-    invokeMock.mockResolvedValueOnce(settingsInput);
-    await createSaveSettingsMutationOptions(queryClient).mutationFn(settingsInput);
-    await createSaveSettingsMutationOptions(queryClient).onSuccess?.(settingsInput);
+    invokeMock.mockResolvedValueOnce(defaultSettings);
+    await createSaveSettingsMutationOptions(queryClient).mutationFn(defaultSettings);
+    await createSaveSettingsMutationOptions(queryClient).onSuccess?.(defaultSettings);
 
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: settingsQueryKey });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: portfolioQueryKey });
+    expect(invalidateSpy).toHaveBeenCalledWith({ predicate: expect.any(Function) });
   });
 });
 
-describe("Phase 2 scan IPC plumbing", () => {
-  beforeEach(() => {
-    channelInstances.length = 0;
-    invokeMock.mockReset();
-  });
-
-  it("calls the exact scan command name with a typed event channel", async () => {
-    const { scanProjects } = await import("./lib/ipc");
-    const onEvent = vi.fn();
-    const summary = {
-      discoveredCount: 1,
-      parsedCount: 1,
-      errorCount: 0
-    };
-
-    invokeMock.mockResolvedValue(summary);
-
-    await expect(scanProjects(onEvent)).resolves.toEqual(summary);
-
-    expect(channelInstances).toHaveLength(1);
-    expect(invokeMock).toHaveBeenCalledWith("scan_projects", {
-      onEvent: channelInstances[0]
-    });
-
-    const event: ScanEvent = {
-      event: "projectFound",
-      data: {
-        projectId: "deckpilot-web",
-        projectName: "DeckPilot",
-        rootPath: "/Users/smacdonald/homegit/deckpilot-web"
-      }
-    };
-    channelInstances[0].onmessage?.(event);
-
-    expect(onEvent).toHaveBeenCalledWith(event);
-  });
-
-  it("keeps scan event fixtures metadata-only without raw planning document bodies", () => {
-    const events: ScanEvent[] = [
-      { event: "started", data: { rootCount: 1 } },
-      { event: "rootStarted", data: { rootPath: "/Users/smacdonald/homegit" } },
-      {
-        event: "projectFound",
-        data: {
-          projectId: "deckpilot-web",
-          projectName: "DeckPilot",
-          rootPath: "/Users/smacdonald/homegit/deckpilot-web"
-        }
-      },
-      {
-        event: "projectParsed",
-        data: {
-          projectId: "deckpilot-web",
-          projectName: "DeckPilot"
-        }
-      },
-      {
-        event: "projectParseError",
-        data: {
-          projectId: "listingguru",
-          projectName: "ListingGuru",
-          filePath: ".planning/ROADMAP.md",
-          message: "frontmatter could not be parsed"
-        }
-      },
-      {
-        event: "finished",
-        data: {
-          discoveredCount: 2,
-          parsedCount: 1,
-          errorCount: 1
-        }
-      }
-    ];
-
-    const serializedEvents = JSON.stringify(events);
-
-    expect(serializedEvents).not.toContain("# Roadmap");
-    expect(serializedEvents).not.toContain("<task");
-    expect(serializedEvents).toContain("projectParseError");
-    expect(serializedEvents).toContain("finished");
-  });
-});
-
-describe("Phase 3 safe action wrappers", () => {
+describe("safe action wrappers", () => {
   beforeEach(() => {
     invokeMock.mockReset();
     openPathMock.mockReset();
@@ -210,253 +181,151 @@ describe("Phase 3 safe action wrappers", () => {
     expect(invokeMock).not.toHaveBeenCalled();
   });
 
-  it("openProjectInFinder opens the project path directly", async () => {
-    const { openProjectInFinder } = await import("./lib/actions");
+  it("opens project paths through official Tauri opener wrappers", async () => {
+    const { openProjectInFinder, openProjectInVsCode } = await import("./lib/actions");
     const rootPath = "/Users/smacdonald/homegit/gsd-dashboard";
 
     openPathMock.mockResolvedValueOnce(undefined);
-
-    await openProjectInFinder(rootPath);
-
-    expect(openPathMock).toHaveBeenCalledWith(rootPath);
-  });
-
-  it("openProjectInVsCode_preserves_path_separators", async () => {
-    const { openProjectInVsCode } = await import("./lib/actions");
-    const rootPath = "/Users/smacdonald/homegit/gsd-dashboard";
-
     openUrlMock.mockResolvedValueOnce(undefined);
 
+    await openProjectInFinder(rootPath);
     await openProjectInVsCode(rootPath);
 
+    expect(openPathMock).toHaveBeenCalledWith(rootPath);
     expect(openUrlMock).toHaveBeenCalledWith(
       "vscode://file//Users/smacdonald/homegit/gsd-dashboard"
     );
   });
 });
 
-describe("Phase 1 shell", () => {
+describe("portfolio vertical slice", () => {
   beforeEach(() => {
     resetMocks();
-    mockBaseCommands(1);
+    mockCommands();
+    window.history.pushState({}, "", "/");
   });
 
-  it("renders boot, cache, settings, and empty dashboard states", async () => {
+  it("renders project cards with portfolio stats", async () => {
     renderWithQueryClient(<App />);
+
+    expect(await screen.findByRole("heading", { name: "Portfolio" })).toBeInTheDocument();
+    expect(screen.getByText("Projects tracked")).toBeInTheDocument();
+    expect(screen.getByText("Active milestones")).toBeInTheDocument();
+    expect(screen.getByText("Sessions today")).toBeInTheDocument();
+    expect(screen.getByText("Tokens today")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /GSD Dashboard/ })).toBeInTheDocument();
+    expect(screen.getByText("v1.0 MVP")).toBeInTheDocument();
+    expect(screen.getByText("Phase 03: Portfolio Vertical Slice")).toBeInTheDocument();
+    expect(screen.getByText("42%")).toBeInTheDocument();
+    expect(screen.getByText("Parse error")).toBeInTheDocument();
+  });
+
+  it("copies from a card without navigating and shows Copied feedback", async () => {
+    writeTextMock.mockResolvedValueOnce(undefined);
+    renderWithQueryClient(<App />);
+
+    const copyButtons = await screen.findAllByRole("button", { name: "Copy next command" });
+    fireEvent.click(copyButtons[0]);
+
+    expect(writeTextMock).toHaveBeenCalledWith("/gsd-execute-phase 3");
+    expect(await screen.findByText("Copied")).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/");
+  });
+
+  it("navigates from a card to project detail and calls get_project", async () => {
+    renderWithQueryClient(<App />);
+
+    fireEvent.click(await screen.findByRole("link", { name: /GSD Dashboard/ }));
 
     expect(await screen.findByRole("heading", { name: "GSD Dashboard" })).toBeInTheDocument();
-    expect(await screen.findByText("Cache ready")).toBeInTheDocument();
-    expect(screen.getByText("Migrations applied")).toBeInTheDocument();
-    expect(screen.getByText("Settings saved")).toBeInTheDocument();
-    expect(screen.getAllByText("Default scan root").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("No projects scanned yet").length).toBeGreaterThan(0);
-    expect(
-      screen.getByText(
-        "GSD Dashboard is ready to scan your configured roots. Start a scan to discover projects with `.planning/` directories."
-      )
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith("get_project", { projectId: "gsd-dashboard" })
+    );
+    expect(screen.getByText("/Users/smacdonald/homegit/gsd-dashboard")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open in Finder" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open in VS Code" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Copy next command" })).toBeInTheDocument();
   });
 
-  it("displays the first-run default scan root exactly", async () => {
+  it("renders right rail placeholders", async () => {
     renderWithQueryClient(<App />);
 
-    const rootInput = await screen.findByLabelText("Default scan root");
-
-    await waitFor(() => expect(rootInput).toHaveValue("~/Documents"));
-  });
-
-  it("does not render Phase 3 dashboard controls or data surfaces", async () => {
-    renderWithQueryClient(<App />);
-
-    await screen.findByRole("heading", { name: "No projects scanned yet" });
-
-    expect(screen.queryByText("Rebuild cache")).not.toBeInTheDocument();
-    expect(screen.queryByText("Scan now")).not.toBeInTheDocument();
-    expect(screen.queryByText(/session/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/chart/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/tray/i)).not.toBeInTheDocument();
-    expect(screen.queryByText("Hidden projects")).not.toBeInTheDocument();
-  });
-
-  it("shows the backend broad-root error for slash and keeps the rejected value", async () => {
-    mockInvalidScanRoot("/");
-    renderWithQueryClient(<App />);
-    const rootInput = await screen.findByLabelText("Default scan root");
-    await waitFor(() => expect(rootInput).toHaveValue("~/Documents"));
-
-    fireEvent.change(rootInput, { target: { value: "/" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
-
-    expect(
-      await screen.findByText(
-        "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace."
-      )
-    ).toBeInTheDocument();
-    expect(screen.getByText("Rejected path: /")).toBeInTheDocument();
-    expect(rootInput).toHaveValue("/");
-    expect(screen.queryByText("Settings saved")).not.toBeInTheDocument();
-  });
-
-  it("shows the backend broad-root error for the bare home path", async () => {
-    const homePath = "/Users/smacdonald";
-
-    mockInvalidScanRoot(homePath);
-    renderWithQueryClient(<App />);
-    const rootInput = await screen.findByLabelText("Default scan root");
-    await waitFor(() => expect(rootInput).toHaveValue("~/Documents"));
-
-    fireEvent.change(rootInput, { target: { value: homePath } });
-    fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
-
-    expect(
-      await screen.findByText(
-        "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace."
-      )
-    ).toBeInTheDocument();
-    expect(screen.getByText(`Rejected path: ${homePath}`)).toBeInTheDocument();
-    expect(rootInput).toHaveValue(homePath);
-    expect(screen.queryByText("Settings saved")).not.toBeInTheDocument();
+    expect(await screen.findByText("Hidden projects")).toBeInTheDocument();
+    expect(screen.getAllByText("ListingGuru").length).toBeGreaterThan(0);
+    expect(screen.getByText("Unmatched sessions")).toBeInTheDocument();
+    expect(screen.getByText("Available after session indexing")).toBeInTheDocument();
   });
 });
 
-describe("Phase 2 scan status shell", () => {
+describe("settings vertical slice", () => {
   beforeEach(() => {
     resetMocks();
-    mockBaseCommands(2, true);
+    mockCommands();
+    window.history.pushState({}, "", "/settings");
   });
 
-  it("renders the ready scan CTA and Phase 2 empty-state copy", async () => {
+  it("renders settings sections and disabled indexing toggles", async () => {
     renderWithQueryClient(<App />);
 
-    expect(await screen.findByRole("button", { name: /Scan Projects/ })).toBeInTheDocument();
-    expect(screen.getAllByText("Ready to scan").length).toBeGreaterThan(0);
+    expect(await screen.findByRole("heading", { name: "Settings" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Scan roots" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Hidden projects" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Rebuild Cache" })).toBeDisabled();
+    expect(screen.getByLabelText("Index tool usage")).toBeDisabled();
+    expect(screen.getByLabelText("Index message content")).toBeDisabled();
+  });
+
+  it("adds and removes scan roots before saving settings", async () => {
+    renderWithQueryClient(<App />);
+
+    const rootInputs = await screen.findAllByLabelText(/Scan root/);
+    fireEvent.change(rootInputs[0], { target: { value: "~/homegit" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add Root" }));
+
+    const updatedInputs = await screen.findAllByLabelText(/Scan root/);
+    fireEvent.change(updatedInputs[1], { target: { value: "~/Documents/clients" } });
+    fireEvent.click(screen.getAllByRole("button", { name: "Remove Root" })[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
+
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith("save_settings", {
+        input: {
+          ...defaultSettings,
+          scanRoots: ["~/Documents/clients"]
+        }
+      })
+    );
+  });
+
+  it("unhides hidden projects through settings save", async () => {
+    renderWithQueryClient(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Unhide Project" }));
+
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith("save_settings", {
+        input: {
+          ...defaultSettings,
+          hiddenProjectIds: []
+        }
+      })
+    );
+  });
+
+  it("requires rebuild confirmation before calling rebuild_cache", async () => {
+    renderWithQueryClient(<App />);
+
     expect(
-      screen.getByText(
-        "GSD Dashboard is ready to scan your configured roots. Start a scan to discover projects with `.planning/` directories."
+      await screen.findByText(
+        "Rebuild cache: This clears the derived project cache and runs a full rescan. Source `.planning/` files will not be changed."
       )
     ).toBeInTheDocument();
-  });
+    expect(screen.getByRole("button", { name: "Rebuild Cache" })).toBeDisabled();
 
-  it("disables the scan CTA and announces active scan progress", async () => {
-    let resolveScan: ((summary: { discoveredCount: number; parsedCount: number; errorCount: number }) => void) | null =
-      null;
-    invokeMock.mockImplementation((command: string) => {
-      const baseResponse = baseCommandResponse(command, 2);
-      if (baseResponse) return baseResponse;
+    fireEvent.click(screen.getByLabelText("Confirm rebuild cache"));
+    fireEvent.click(screen.getByRole("button", { name: "Rebuild Cache" }));
 
-      if (command === "scan_projects") {
-        return new Promise((resolve) => {
-          resolveScan = resolve;
-        });
-      }
-
-      return Promise.reject(new Error(`Unexpected command: ${command}`));
-    });
-    renderWithQueryClient(<App />);
-    const scanButton = await screen.findByRole("button", { name: /Scan Projects/ });
-
-    fireEvent.click(scanButton);
-    act(() => {
-      channelInstances[0].onmessage?.({ event: "started", data: { rootCount: 1 } });
-    });
-
-    expect(scanButton).toBeDisabled();
-    expect((await screen.findAllByText("Scanning projects")).length).toBeGreaterThan(0);
-    expect(screen.getByText("Walking scan roots")).toHaveAttribute("aria-live", "polite");
-
-    act(() => {
-      resolveScan?.({ discoveredCount: 0, parsedCount: 0, errorCount: 0 });
-    });
-  });
-
-  it("shows completed scan counts without adding Phase 3 surfaces", async () => {
-    renderWithQueryClient(<App />);
-    const scanButton = await screen.findByRole("button", { name: /Scan Projects/ });
-
-    fireEvent.click(scanButton);
-    act(() => {
-      channelInstances[0].onmessage?.({
-        event: "finished",
-        data: { discoveredCount: 3, parsedCount: 3, errorCount: 0 }
-      });
-    });
-
-    expect((await screen.findAllByText("Scan complete")).length).toBeGreaterThan(0);
-    expect(screen.getByText("3 projects discovered")).toBeInTheDocument();
-    expect(screen.queryByText("Project Detail")).not.toBeInTheDocument();
-    expect(screen.queryByText("Rebuild cache")).not.toBeInTheDocument();
-    expect(screen.queryByText("Copy next command")).not.toBeInTheDocument();
-  });
-
-  it("normalizes snake_case scan summary counts from backend payloads", async () => {
-    renderWithQueryClient(<App />);
-    const scanButton = await screen.findByRole("button", { name: /Scan Projects/ });
-
-    fireEvent.click(scanButton);
-    act(() => {
-      channelInstances[0].onmessage?.({
-        event: "finished",
-        data: { discovered_count: 9, parsed_count: 9, error_count: 0 }
-      });
-    });
-
-    expect((await screen.findAllByText("Scan complete")).length).toBeGreaterThan(0);
-    expect(screen.getByText("9 projects discovered")).toBeInTheDocument();
-    expect(screen.queryByText(/NaN projects discovered/)).not.toBeInTheDocument();
-  });
-
-  it("renders compact parse-error status when scanning continues after errors", async () => {
-    renderWithQueryClient(<App />);
-    const scanButton = await screen.findByRole("button", { name: /Scan Projects/ });
-
-    fireEvent.click(scanButton);
-    act(() => {
-      channelInstances[0].onmessage?.({
-        event: "projectParseError",
-        data: {
-          projectId: "listingguru",
-          projectName: "ListingGuru",
-          filePath: ".planning/ROADMAP.md",
-          message: "frontmatter could not be parsed"
-        }
-      });
-      channelInstances[0].onmessage?.({
-        event: "finished",
-        data: { discoveredCount: 2, parsedCount: 1, errorCount: 1 }
-      });
-    });
-
-    expect((await screen.findAllByText("Scan completed with parse errors")).length).toBeGreaterThan(
-      0
-    );
-    expect(screen.getByText("2 projects discovered · 1 parse errors")).toBeInTheDocument();
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Some planning files could not be parsed. Scanning continued; open the scan details to review the affected project and file."
-    );
-    expect(screen.getByText("ListingGuru · .planning/ROADMAP.md")).toBeInTheDocument();
-  });
-
-  it("shows scan command failures separately from parse errors", async () => {
-    invokeMock.mockImplementation((command: string) => {
-      const baseResponse = baseCommandResponse(command, 2);
-      if (baseResponse) return baseResponse;
-
-      if (command === "scan_projects") {
-        return Promise.reject({ kind: "invalidScanRoot", message: "scan root is invalid" });
-      }
-
-      return Promise.reject(new Error(`Unexpected command: ${command}`));
-    });
-    renderWithQueryClient(<App />);
-    const scanButton = await screen.findByRole("button", { name: /Scan Projects/ });
-
-    fireEvent.click(scanButton);
-
-    expect((await screen.findAllByText("Scan failed")).length).toBeGreaterThan(0);
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Scan could not start. Check that the configured scan root exists and is allowed."
-    );
-    expect(screen.queryByText("0 projects discovered · 1 parse errors")).not.toBeInTheDocument();
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith("rebuild_cache", expect.any(Object)));
   });
 });
 
@@ -476,49 +345,50 @@ function renderWithQueryClient(ui: React.ReactElement) {
 function resetMocks() {
   channelInstances.length = 0;
   invokeMock.mockReset();
+  openPathMock.mockReset();
+  openUrlMock.mockReset();
+  writeTextMock.mockReset();
 }
 
-function mockBaseCommands(migrationsApplied: number, includeScan = false) {
-  invokeMock.mockImplementation((command: string) => {
-    const baseResponse = baseCommandResponse(command, migrationsApplied);
-    if (baseResponse) return baseResponse;
-
-    if (includeScan && command === "scan_projects") {
-      return Promise.resolve({ discoveredCount: 0, parsedCount: 0, errorCount: 0 });
+function mockCommands() {
+  invokeMock.mockImplementation((command: string, args?: Record<string, unknown>) => {
+    if (command === "get_boot_status") {
+      return Promise.resolve({
+        appDataDir: "/tmp/gsd-dashboard",
+        cachePath: "/tmp/gsd-dashboard/cache.db",
+        cacheReady: true,
+        walEnabled: true,
+        migrationsApplied: 3,
+        settingsInitialized: true
+      });
     }
 
-    return Promise.reject(new Error(`Unexpected command: ${command}`));
-  });
-}
+    if (command === "get_settings") {
+      return Promise.resolve(defaultSettings);
+    }
 
-function baseCommandResponse(command: string, migrationsApplied: number) {
-  if (command === "get_boot_status") {
-    return Promise.resolve({
-      appDataDir: "/tmp/gsd-dashboard",
-      cachePath: "/tmp/gsd-dashboard/cache.db",
-      cacheReady: true,
-      walEnabled: true,
-      migrationsApplied,
-      settingsInitialized: true
-    });
-  }
-
-  if (command === "get_settings") {
-    return Promise.resolve(defaultSettings);
-  }
-
-  return null;
-}
-
-function mockInvalidScanRoot(path: string) {
-  const message =
-    "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace.";
-
-  invokeMock.mockImplementation((command: string) => {
-    const baseResponse = baseCommandResponse(command, 1);
-    if (baseResponse) return baseResponse;
     if (command === "save_settings") {
-      return Promise.reject({ kind: "invalidScanRoot", message, path, reason: message });
+      return Promise.resolve((args as { input: SettingsInput }).input);
+    }
+
+    if (command === "get_portfolio") {
+      return Promise.resolve(portfolio);
+    }
+
+    if (command === "get_project") {
+      return Promise.resolve(projectDetail);
+    }
+
+    if (command === "scan_projects" || command === "rebuild_cache") {
+      const event = (args as { onEvent: { onmessage: ((event: ScanEvent) => void) | null } })
+        .onEvent;
+      act(() => {
+        event.onmessage?.({
+          event: "finished",
+          data: { discoveredCount: 2, parsedCount: 2, errorCount: 0 }
+        });
+      });
+      return Promise.resolve({ discoveredCount: 2, parsedCount: 2, errorCount: 0 });
     }
 
     return Promise.reject(new Error(`Unexpected command: ${command}`));

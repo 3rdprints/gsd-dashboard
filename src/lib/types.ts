@@ -25,6 +25,48 @@ export interface ScanSummary {
   errorCount: number;
 }
 
+export type PortfolioStats = {
+  projectsTracked: number;
+  activeMilestones: number;
+  sessionsToday: number;
+  tokensToday: number;
+};
+
+export type PortfolioProjectCard = {
+  id: string;
+  name: string;
+  rootPath: string;
+  planningPath: string;
+  currentMilestoneName: string | null;
+  currentPhaseNumber: string | null;
+  currentPhaseName: string | null;
+  milestoneProgressPct: number;
+  nextCommand: string;
+  parseError: string | null;
+  lastActivityAt: number | null;
+  lastScannedAt: number;
+};
+
+export type HiddenProject = {
+  id: string;
+  name: string;
+  rootPath: string;
+};
+
+export type UnmatchedSessions = {
+  count: number;
+  label: string;
+};
+
+export type PortfolioDto = {
+  stats: PortfolioStats;
+  projects: PortfolioProjectCard[];
+  hiddenProjects: HiddenProject[];
+  unmatchedSessions: UnmatchedSessions;
+};
+
+export type ProjectDetail = PortfolioProjectCard;
+
 export type ScanEvent =
   | {
       event: "started";

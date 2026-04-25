@@ -1,6 +1,14 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
 
-import type { AppSettings, BootStatus, ScanEvent, ScanSummary, SettingsInput } from "./types";
+import type {
+  AppSettings,
+  BootStatus,
+  PortfolioDto,
+  ProjectDetail,
+  ScanEvent,
+  ScanSummary,
+  SettingsInput
+} from "./types";
 
 export function getBootStatus(): Promise<BootStatus> {
   return invoke<BootStatus>("get_boot_status");
@@ -19,4 +27,19 @@ export function scanProjects(onEvent: (event: ScanEvent) => void): Promise<ScanS
   onEventChannel.onmessage = onEvent;
 
   return invoke<ScanSummary>("scan_projects", { onEvent: onEventChannel });
+}
+
+export function getPortfolio(): Promise<PortfolioDto> {
+  return invoke<PortfolioDto>("get_portfolio");
+}
+
+export function getProject(projectId: string): Promise<ProjectDetail> {
+  return invoke<ProjectDetail>("get_project", { projectId });
+}
+
+export function rebuildCache(onEvent: (event: ScanEvent) => void): Promise<ScanSummary> {
+  const onEventChannel = new Channel<ScanEvent>();
+  onEventChannel.onmessage = onEvent;
+
+  return invoke<ScanSummary>("rebuild_cache", { onEvent: onEventChannel });
 }
