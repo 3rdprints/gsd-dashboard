@@ -237,13 +237,18 @@ describe("portfolio vertical slice", () => {
   });
 
   it("copies from a card without navigating and shows Copied feedback", async () => {
-    writeTextMock.mockResolvedValueOnce(undefined);
+    let resolveCopy: (() => void) | null = null;
+    writeTextMock.mockReturnValueOnce(new Promise<void>((resolve) => { resolveCopy = resolve; }));
     renderWithQueryClient(<App />);
 
     await screen.findByRole("link", { name: /GSD Dashboard/ });
     const copyButtons = await screen.findAllByRole("button", { name: "Copy next command" });
+    fireEvent.click(copyButtons[0]);
+    expect(screen.queryByText("Copied")).not.toBeInTheDocument();
     await act(async () => {
-      fireEvent.click(copyButtons[0]);
+      resolveCopy?.();
+      await Promise.resolve();
+      await Promise.resolve();
     });
 
     expect(writeTextMock).toHaveBeenCalledWith("/gsd-execute-phase 3");
@@ -278,7 +283,7 @@ describe("portfolio vertical slice", () => {
     renderWithQueryClient(<App />);
 
     expect(await screen.findByRole("link", { name: /GSD Dashboard/ })).toBeInTheDocument();
-    fireEvent.click(await screen.findByRole("button", { name: "Hide Project" }));
+    fireEvent.click((await screen.findAllByRole("button", { name: "Hide Project" }))[0]);
 
     await waitFor(() => expect(screen.queryByRole("link", { name: /GSD Dashboard/ })).not.toBeInTheDocument());
   });

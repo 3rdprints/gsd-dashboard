@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Search } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { PortfolioHeaderStats } from "../components/PortfolioHeaderStats";
 import { ProjectCard } from "../components/ProjectCard";
@@ -12,7 +12,12 @@ import {
   ScanProgressPanel
 } from "../components/ScanProgressPanel";
 import { getBootStatus, getPortfolio, getSettings, scanProjects } from "../lib/ipc";
-import { bootStatusQueryKey, portfolioQueryKey, settingsQueryKey } from "../lib/queryClient";
+import {
+  bootStatusQueryKey,
+  createSaveSettingsMutationOptions,
+  portfolioQueryKey,
+  settingsQueryKey
+} from "../lib/queryClient";
 
 export function PortfolioPage() {
   const queryClient = useQueryClient();
@@ -22,6 +27,7 @@ export function PortfolioPage() {
   const bootStatus = useQuery({ queryKey: bootStatusQueryKey, queryFn: getBootStatus });
   const settings = useQuery({ queryKey: settingsQueryKey, queryFn: getSettings });
   const portfolio = useQuery({ queryKey: portfolioQueryKey, queryFn: getPortfolio });
+  const saveSettings = useMutation(createSaveSettingsMutationOptions(queryClient));
 
   useEffect(() => {
     if (initialScanStarted.current || !bootStatus.data || !settings.data) {
@@ -52,6 +58,19 @@ export function PortfolioPage() {
         progressText: "Scan failed"
       }));
     }
+  }
+
+  async function handleHideProject(projectId: string) {
+    if (!settings.data) return;
+
+    const nextHiddenProjectIds = settings.data.hiddenProjectIds.includes(projectId)
+      ? settings.data.hiddenProjectIds
+      : [...settings.data.hiddenProjectIds, projectId];
+
+    await saveSettings.mutateAsync({
+      ...settings.data,
+      hiddenProjectIds: nextHiddenProjectIds
+    });
   }
 
   return (
@@ -92,7 +111,14 @@ export function PortfolioPage() {
               <div className="project-card-skeleton" />
             </>
           ) : portfolio.data && portfolio.data.projects.length > 0 ? (
-            portfolio.data.projects.map((project) => <ProjectCard key={project.id} project={project} />)
+            portfolio.data.projects.map((project) => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                onHideProject={handleHideProject}
+                hideDisabled={!settings.data || saveSettings.isPending}
+              />
+            ))
           ) : (
             <div className="empty-state">
               <h2>No projects found</h2>

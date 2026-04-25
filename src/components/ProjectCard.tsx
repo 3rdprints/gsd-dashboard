@@ -1,5 +1,6 @@
 import { MouseEvent, useState } from "react";
-import { ClipboardCopy } from "lucide-react";
+import { flushSync } from "react-dom";
+import { ClipboardCopy, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { copyNextCommand } from "../lib/actions";
@@ -7,9 +8,11 @@ import type { PortfolioProjectCard } from "../lib/types";
 
 type ProjectCardProps = {
   project: PortfolioProjectCard;
+  onHideProject: (projectId: string) => Promise<void> | void;
+  hideDisabled?: boolean;
 };
 
-export function ProjectCard({ project }: ProjectCardProps) {
+export function ProjectCard({ project, onHideProject, hideDisabled = false }: ProjectCardProps) {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const phaseLabel =
@@ -20,9 +23,20 @@ export function ProjectCard({ project }: ProjectCardProps) {
   async function handleCopy(event: MouseEvent<HTMLButtonElement>) {
     event.preventDefault();
     event.stopPropagation();
-    setCopied(true);
-    await copyNextCommand(project.nextCommand);
-    window.setTimeout(() => setCopied(false), 1600);
+
+    try {
+      await copyNextCommand(project.nextCommand);
+      flushSync(() => setCopied(true));
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  async function handleHide(event: MouseEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    await onHideProject(project.id);
   }
 
   return (
@@ -63,6 +77,10 @@ export function ProjectCard({ project }: ProjectCardProps) {
       <button className="card-copy-action" type="button" onClick={handleCopy}>
         <ClipboardCopy aria-hidden="true" size={16} strokeWidth={2} />
         {copied ? "Copied" : "Copy next command"}
+      </button>
+      <button type="button" onClick={handleHide} disabled={hideDisabled}>
+        <EyeOff aria-hidden="true" size={16} strokeWidth={2} />
+        Hide Project
       </button>
     </article>
   );
