@@ -207,14 +207,69 @@ fn parse_plan_files(
         return Ok(plans);
     }
 
-    for phase_entry in std::fs::read_dir(phases_path)? {
-        let phase_entry = phase_entry?;
-        if !phase_entry.file_type()?.is_dir() {
+    let phase_entries = match std::fs::read_dir(&phases_path) {
+        Ok(entries) => entries,
+        Err(error) => {
+            parse_issues.push(ParseIssue {
+                file_path: display_path(&phases_path),
+                kind: "io".to_string(),
+                message: error.to_string(),
+            });
+            return Ok(plans);
+        }
+    };
+
+    for phase_entry in phase_entries {
+        let phase_entry = match phase_entry {
+            Ok(entry) => entry,
+            Err(error) => {
+                parse_issues.push(ParseIssue {
+                    file_path: display_path(&phases_path),
+                    kind: "io".to_string(),
+                    message: error.to_string(),
+                });
+                continue;
+            }
+        };
+        let file_type = match phase_entry.file_type() {
+            Ok(file_type) => file_type,
+            Err(error) => {
+                parse_issues.push(ParseIssue {
+                    file_path: display_path(&phase_entry.path()),
+                    kind: "io".to_string(),
+                    message: error.to_string(),
+                });
+                continue;
+            }
+        };
+        if !file_type.is_dir() {
             continue;
         }
 
-        for plan_entry in std::fs::read_dir(phase_entry.path())? {
-            let plan_entry = plan_entry?;
+        let plan_entries = match std::fs::read_dir(phase_entry.path()) {
+            Ok(entries) => entries,
+            Err(error) => {
+                parse_issues.push(ParseIssue {
+                    file_path: display_path(&phase_entry.path()),
+                    kind: "io".to_string(),
+                    message: error.to_string(),
+                });
+                continue;
+            }
+        };
+
+        for plan_entry in plan_entries {
+            let plan_entry = match plan_entry {
+                Ok(entry) => entry,
+                Err(error) => {
+                    parse_issues.push(ParseIssue {
+                        file_path: display_path(&phase_entry.path()),
+                        kind: "io".to_string(),
+                        message: error.to_string(),
+                    });
+                    continue;
+                }
+            };
             let plan_path = plan_entry.path();
             let is_plan = plan_path
                 .file_name()
@@ -390,15 +445,32 @@ fn infer_project_identity(candidate: &PlanningProjectCandidate) -> ProjectIdenti
         .collect::<String>()
         .trim_matches('-')
         .to_string();
+    let slug = if id.is_empty() {
+        fallback.to_string()
+    } else {
+        id
+    };
+    let canonical_root = candidate
+        .project_root
+        .canonicalize()
+        .unwrap_or_else(|_| candidate.project_root.clone());
+    let root_hash = stable_short_hash(canonical_root.to_string_lossy().as_ref());
 
     ProjectIdentity {
-        id: if id.is_empty() {
-            fallback.to_string()
-        } else {
-            id
-        },
+        id: format!("{slug}-{root_hash}"),
         name: raw_name.replace(['-', '_'], " "),
     }
+}
+
+fn stable_short_hash(value: &str) -> String {
+    let mut hash = 0xcbf29ce484222325_u64;
+
+    for byte in value.as_bytes() {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+
+    format!("{:08x}", hash as u32)
 }
 
 fn empty_roadmap(milestones: Vec<parser::MilestoneIdentity>) -> roadmap::RoadmapDocument {

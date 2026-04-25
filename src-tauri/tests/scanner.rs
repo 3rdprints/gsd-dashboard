@@ -216,9 +216,9 @@ async fn malformed_project_does_not_abort_scan() {
             )?
             .expect("later valid project should be persisted");
 
-            assert_eq!(bad.id, "bad-project");
+            assert!(bad.id.starts_with("bad-project-"));
             assert!(bad.parse_error.is_some());
-            assert_eq!(good.id, "good-project");
+            assert!(good.id.starts_with("good-project-"));
             assert_eq!(good.parse_error, None);
 
             Ok::<_, AppError>(())
@@ -256,8 +256,8 @@ async fn scanner_records_parse_error_in_scan_log() {
     connection
         .interact(|connection| {
             let status = connection.query_row(
-                "SELECT status FROM scan_log WHERE project_id = ?1",
-                ["bad-project"],
+                "SELECT status FROM scan_log WHERE status = ?1",
+                ["parseError"],
                 |row| row.get::<_, String>(0),
             )?;
 
@@ -268,6 +268,105 @@ async fn scanner_records_parse_error_in_scan_log() {
         .await
         .expect("interaction should complete")
         .expect("scan log should be readable");
+}
+
+#[tokio::test]
+async fn same_named_projects_get_distinct_cache_ids() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let home_dir = temp_dir.path();
+    let scan_root = home_dir.join("workspace");
+    let first_project = scan_root.join("client-a/app");
+    let second_project = scan_root.join("client-b/app");
+    let pool = migrated_pool(&temp_dir.path().join("cache.db")).await;
+
+    write_valid_planning_project(&first_project, "First App");
+    write_valid_planning_project(&second_project, "Second App");
+
+    let summary = scan_service::scan_roots(
+        pool.clone(),
+        vec![scan_root],
+        home_dir.to_path_buf(),
+        |_| Ok(()),
+    )
+    .await
+    .expect("same-named projects should scan");
+
+    assert_eq!(summary.discovered_count, 2);
+    assert_eq!(summary.parsed_count, 2);
+    assert_eq!(summary.error_count, 0);
+
+    let connection = pool.get().await.expect("connection should be available");
+    connection
+        .interact(move |connection| {
+            let first = project_repo::load_project_by_root(
+                connection,
+                first_project.to_string_lossy().as_ref(),
+            )?
+            .expect("first same-named project should be persisted");
+            let second = project_repo::load_project_by_root(
+                connection,
+                second_project.to_string_lossy().as_ref(),
+            )?
+            .expect("second same-named project should be persisted");
+
+            assert_ne!(first.id, second.id);
+            assert!(first.id.starts_with("app-"));
+            assert!(second.id.starts_with("app-"));
+
+            Ok::<_, AppError>(())
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("repository reads should pass");
+}
+
+#[tokio::test]
+async fn plan_directory_io_error_records_parse_error() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let home_dir = temp_dir.path();
+    let scan_root = home_dir.join("workspace");
+    let bad_project = scan_root.join("bad-project");
+    let planning_dir = bad_project.join(".planning");
+    let pool = migrated_pool(&temp_dir.path().join("cache.db")).await;
+
+    fs::create_dir_all(&planning_dir).expect("planning dir should be created");
+    fs::write(
+        planning_dir.join("ROADMAP.md"),
+        "# Roadmap\n\n- [ ] **Phase 1: Bad Project**\n",
+    )
+    .expect("roadmap should be written");
+    fs::write(planning_dir.join("phases"), "not a directory")
+        .expect("phases file should trigger read_dir error");
+
+    let summary = scan_service::scan_roots(
+        pool.clone(),
+        vec![scan_root],
+        home_dir.to_path_buf(),
+        |_| Ok(()),
+    )
+    .await
+    .expect("plan directory I/O errors should not abort scan");
+
+    assert_eq!(summary.discovered_count, 1);
+    assert_eq!(summary.parsed_count, 0);
+    assert_eq!(summary.error_count, 1);
+
+    let connection = pool.get().await.expect("connection should be available");
+    connection
+        .interact(move |connection| {
+            let bad = project_repo::load_project_by_root(
+                connection,
+                bad_project.to_string_lossy().as_ref(),
+            )?
+            .expect("project with plan directory error should be persisted");
+
+            assert!(bad.parse_error.is_some());
+
+            Ok::<_, AppError>(())
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("repository read should pass");
 }
 
 #[test]
