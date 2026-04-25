@@ -232,7 +232,7 @@ async fn clear_project_cache_removes_only_derived_rows() {
 }
 
 #[tokio::test]
-async fn rebuild_cache_preserves_settings_and_emits_scan_events() {
+async fn rebuild_cache_preserves_settings_and_hidden_project_survives_rebuild() {
     let temp_dir = tempfile::tempdir().expect("temp dir should be created");
     let home_dir = temp_dir.path().to_path_buf();
     let scan_root = home_dir.join("workspace");

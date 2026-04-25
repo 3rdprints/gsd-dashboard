@@ -209,6 +209,7 @@ describe("portfolio vertical slice", () => {
     renderWithQueryClient(<App />);
 
     expect(await screen.findByRole("heading", { name: "Portfolio" })).toBeInTheDocument();
+    expect(document.querySelectorAll(".project-card-skeleton")).toHaveLength(2);
     expect(screen.getByText("Projects tracked")).toBeInTheDocument();
     expect(screen.getByText("Active milestones")).toBeInTheDocument();
     expect(screen.getByText("Sessions today")).toBeInTheDocument();
@@ -218,6 +219,21 @@ describe("portfolio vertical slice", () => {
     expect(screen.getByText("Phase 03: Portfolio Vertical Slice")).toBeInTheDocument();
     expect(screen.getByText("42%")).toBeInTheDocument();
     expect(screen.getByText("Parse error")).toBeInTheDocument();
+  });
+
+  it("renders No projects found empty state when portfolio has no cards", async () => {
+    mockCommands({
+      ...portfolio,
+      stats: { projectsTracked: 0, activeMilestones: 0, sessionsToday: 0, tokensToday: 0 },
+      projects: [],
+      hiddenProjects: []
+    });
+    renderWithQueryClient(<App />);
+
+    expect(await screen.findByRole("heading", { name: "No projects found" })).toBeInTheDocument();
+    expect(
+      screen.getByText("Add a scan root or rebuild the cache to discover projects with `.planning/` directories.")
+    ).toBeInTheDocument();
   });
 
   it("copies from a card without navigating and shows Copied feedback", async () => {
@@ -253,6 +269,18 @@ describe("portfolio vertical slice", () => {
     expect(screen.getByRole("button", { name: "Open in Finder" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open in VS Code" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Copy next command" })).toBeInTheDocument();
+  });
+
+  it("detail_opener_failure_renders_inline_error", async () => {
+    window.history.pushState({}, "", "/project/gsd-dashboard");
+    openPathMock.mockRejectedValueOnce(new Error("open failed"));
+    renderWithQueryClient(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Open in Finder" }));
+
+    expect(
+      await screen.findByText("Action failed. Check the configured project path and try again.")
+    ).toBeInTheDocument();
   });
 
   it("renders right rail placeholders", async () => {
@@ -321,7 +349,7 @@ describe("settings vertical slice", () => {
     );
   });
 
-  it("requires rebuild confirmation before calling rebuild_cache", async () => {
+  it("settings rebuild confirmation states source planning files will not be changed", async () => {
     renderWithQueryClient(<App />);
 
     expect(
@@ -335,6 +363,16 @@ describe("settings vertical slice", () => {
     fireEvent.click(screen.getByRole("button", { name: "Rebuild Cache" }));
 
     await waitFor(() => expect(invokeMock).toHaveBeenCalledWith("rebuild_cache", expect.any(Object)));
+  });
+
+  it("disables duplicate rebuild while rebuild_cache is in progress", async () => {
+    mockCommands(portfolio, projectDetail, true);
+    renderWithQueryClient(<App />);
+
+    fireEvent.click(await screen.findByLabelText("Confirm rebuild cache"));
+    fireEvent.click(screen.getByRole("button", { name: "Rebuild Cache" }));
+
+    expect(screen.getByRole("button", { name: "Rebuild Cache" })).toBeDisabled();
   });
 });
 
@@ -359,7 +397,11 @@ function resetMocks() {
   writeTextMock.mockReset();
 }
 
-function mockCommands() {
+function mockCommands(
+  portfolioResponse: PortfolioDto = portfolio,
+  projectResponse: ProjectDetail = projectDetail,
+  holdRebuild = false
+) {
   invokeMock.mockImplementation((command: string, args?: Record<string, unknown>) => {
     if (command === "get_boot_status") {
       return Promise.resolve({
@@ -381,14 +423,17 @@ function mockCommands() {
     }
 
     if (command === "get_portfolio") {
-      return Promise.resolve(portfolio);
+      return Promise.resolve(portfolioResponse);
     }
 
     if (command === "get_project") {
-      return Promise.resolve(projectDetail);
+      return Promise.resolve(projectResponse);
     }
 
     if (command === "scan_projects" || command === "rebuild_cache") {
+      if (command === "rebuild_cache" && holdRebuild) {
+        return new Promise(() => {});
+      }
       const event = (args as { onEvent: { onmessage: ((event: ScanEvent) => void) | null } })
         .onEvent;
       act(() => {

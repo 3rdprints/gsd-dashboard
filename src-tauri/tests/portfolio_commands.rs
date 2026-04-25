@@ -197,6 +197,17 @@ async fn get_project_returns_detail_with_phase_and_next_command() {
 }
 
 #[tokio::test]
+async fn missing_project_returns_store_error() {
+    let (_temp_dir, state) = test_state().await;
+
+    let error = get_project_for_app(&state, "missing-project")
+        .await
+        .expect_err("missing projects should return an error");
+
+    assert!(error.to_string().contains("project not found"));
+}
+
+#[tokio::test]
 async fn portfolio_stats_count_visible_projects_and_active_milestones() {
     let (_temp_dir, state) = test_state().await;
     let mut without_milestone = project_snapshot(
