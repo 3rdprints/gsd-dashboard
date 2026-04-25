@@ -72,3 +72,53 @@ async fn migrated_schema_survives_pool_reopen() {
     assert!(settings_columns.contains(&"scan_roots_json".to_string()));
     assert!(settings_columns.contains(&"tray_bar_sort".to_string()));
 }
+
+#[tokio::test]
+async fn project_cache_schema_exists_after_reopen() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let db_path = temp_dir.path().join("cache.db");
+
+    drop(migrated_pool(&db_path).await);
+
+    let pool = migrated_pool(&db_path).await;
+    let version = store::migration_version(&pool)
+        .await
+        .expect("migration version should be readable");
+    assert_eq!(version, 2);
+
+    let conn = pool.get().await.expect("connection should be available");
+    let tables = conn
+        .interact(|conn| {
+            let mut statement = conn.prepare(
+                "SELECT name FROM sqlite_master
+                 WHERE type = 'table' AND name IN ('projects', 'phase_plans', 'scan_log')
+                 ORDER BY name",
+            )?;
+            let rows = statement.query_map([], |row| row.get::<_, String>(0))?;
+            rows.collect::<Result<Vec<_>, _>>()
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("table names should be readable");
+
+    assert_eq!(tables, vec!["phase_plans", "projects", "scan_log"]);
+
+    let project_columns = conn
+        .interact(|conn| {
+            let mut statement = conn.prepare("PRAGMA table_info(projects)")?;
+            let rows = statement.query_map([], |row| {
+                Ok((row.get::<_, String>(1)?, row.get::<_, String>(2)?))
+            })?;
+            rows.collect::<Result<Vec<_>, _>>()
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("project columns should be readable");
+
+    assert!(project_columns
+        .iter()
+        .any(|(name, data_type)| name == "current_phase_number" && data_type == "TEXT"));
+    assert!(project_columns
+        .iter()
+        .any(|(name, data_type)| name == "parse_error" && data_type == "TEXT"));
+}
