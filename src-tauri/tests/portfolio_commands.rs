@@ -64,11 +64,20 @@ async fn insert_projects(
     state: &gsd_dashboard::app_state::AppState,
     projects: Vec<StoredProjectSnapshot>,
 ) {
-    let connection = state.pool.get().await.expect("connection should be available");
+    let connection = state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available");
     connection
         .interact(move |connection| {
             for project in projects {
-                project_repo::upsert_project_snapshot(connection, project, Vec::new(), 1_777_100_000)?;
+                project_repo::upsert_project_snapshot(
+                    connection,
+                    project,
+                    Vec::new(),
+                    1_777_100_000,
+                )?;
             }
 
             Ok::<_, gsd_dashboard::error::AppError>(())
@@ -119,8 +128,20 @@ async fn portfolio_sorts_by_activity_descending() {
     insert_projects(
         &state,
         vec![
-            project_snapshot("fallback-newest", "Fallback Newest", "/tmp/fallback", None, 300),
-            project_snapshot("activity-newest", "Activity Newest", "/tmp/activity", Some(500), 100),
+            project_snapshot(
+                "fallback-newest",
+                "Fallback Newest",
+                "/tmp/fallback",
+                None,
+                300,
+            ),
+            project_snapshot(
+                "activity-newest",
+                "Activity Newest",
+                "/tmp/activity",
+                Some(500),
+                100,
+            ),
             project_snapshot("oldest", "Oldest", "/tmp/oldest", Some(200), 900),
         ],
     )
@@ -168,22 +189,36 @@ async fn get_project_returns_detail_with_phase_and_next_command() {
         Some("Portfolio Vertical Slice")
     );
     assert_eq!(detail.milestone_progress_pct, 75.0);
-    assert_eq!(detail.parse_error.as_deref(), Some("STATE.md missing phase"));
+    assert_eq!(
+        detail.parse_error.as_deref(),
+        Some("STATE.md missing phase")
+    );
     assert_eq!(detail.next_command, "/gsd-execute-phase 3");
 }
 
 #[tokio::test]
 async fn portfolio_stats_count_visible_projects_and_active_milestones() {
     let (_temp_dir, state) = test_state().await;
-    let mut without_milestone =
-        project_snapshot("without-milestone", "Without Milestone", "/tmp/no-milestone", None, 200);
+    let mut without_milestone = project_snapshot(
+        "without-milestone",
+        "Without Milestone",
+        "/tmp/no-milestone",
+        None,
+        200,
+    );
     without_milestone.current_milestone_name = None;
     insert_projects(
         &state,
         vec![
             project_snapshot("active-project", "Active Project", "/tmp/active", None, 300),
             without_milestone,
-            project_snapshot("hidden-active", "Hidden Active", "/tmp/hidden-active", None, 400),
+            project_snapshot(
+                "hidden-active",
+                "Hidden Active",
+                "/tmp/hidden-active",
+                None,
+                400,
+            ),
         ],
     )
     .await;
