@@ -10,6 +10,9 @@
     "allow-get-settings",
     "allow-rebuild-cache",
     "allow-scan-projects",
-    "allow-save-settings"
+    "allow-save-settings",
+    "clipboard-manager:allow-write-text",
+    "opener:allow-open-path",
+    "opener:allow-open-url"
   ]
 }
