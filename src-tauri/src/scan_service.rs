@@ -401,15 +401,30 @@ fn stored_phase_plans(
     Ok(snapshot
         .phase_plans
         .into_iter()
-        .map(|plan| StoredPhasePlan {
+        .enumerate()
+        .map(|(index, plan)| {
+            let phase_number = plan.phase.number;
+            let plan_number = plan.plan;
+            let plan_path = format!(
+                "phase-{phase_number}/plan-{}-{}",
+                if plan_number.is_empty() {
+                    "unknown"
+                } else {
+                    plan_number.as_str()
+                },
+                index + 1
+            );
+
+            StoredPhasePlan {
             project_id: project_id.to_string(),
-            phase_number: plan.phase.number,
+            phase_number,
             phase_name: Some(plan.phase.name),
-            plan_number: Some(plan.plan),
-            plan_path: String::new(),
+            plan_number: Some(plan_number),
+            plan_path,
             checklist_json: serde_json::to_string(&plan.checklist)
                 .unwrap_or_else(|_| "[]".to_string()),
             updated_at: 0,
+            }
         })
         .collect())
 }

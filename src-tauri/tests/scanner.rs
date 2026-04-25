@@ -217,6 +217,23 @@ fn scanner_discovers_real_homegit_projects() {
 }
 
 #[tokio::test]
+#[ignore]
+async fn scan_service_scans_real_homegit_projects() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let pool = migrated_pool(&temp_dir.path().join("cache.db")).await;
+    let summary = scan_service::scan_roots(
+        pool,
+        vec![PathBuf::from("/Users/smacdonald/homegit")],
+        PathBuf::from("/Users/smacdonald"),
+        |_| Ok(()),
+    )
+    .await
+    .expect("homegit scan should not fail to start");
+
+    assert!(summary.discovered_count > 0);
+}
+
+#[tokio::test]
 async fn malformed_project_does_not_abort_scan() {
     let temp_dir = tempfile::tempdir().expect("temp dir should be created");
     let home_dir = temp_dir.path();
