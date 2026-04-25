@@ -205,7 +205,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PORT-01 | Phase 3 | Complete |
 | PORT-02 | Phase 4 | Pending |
 | PORT-03 | Phase 3 | Complete |
-| PORT-04 | Phase 3 | Pending |
+| PORT-04 | Phase 3 | Complete |
 | PORT-05 | Phase 5 | Pending |
 | PORT-06 | Phase 3 | Complete |
 | PORT-07 | Phase 3 | Complete |

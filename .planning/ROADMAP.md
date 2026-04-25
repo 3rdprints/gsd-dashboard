@@ -10,7 +10,7 @@
 
 - [x] **Phase 1: Foundation** - Tauri 2 skeleton, WAL-SQLite pool, settings persistence, capabilities, error/events infra, first-run defaults
 - [x] **Phase 2: Planning Parser & Scanner** - Pure-function parsers over ROADMAP/STATE/PLAN/config + gitignore-respecting scanner with guardrails
-- [ ] **Phase 3: Portfolio Vertical Slice** - First visible demo: scan on launch, project cards with progress bars, Settings scan-roots UI, Rebuild Cache
+- [x] **Phase 3: Portfolio Vertical Slice** - First visible demo: scan on launch, project cards with progress bars, Settings scan-roots UI, Rebuild Cache
 - [ ] **Phase 4: Session Indexer** - Claude + Codex JSONL streaming with byte-offset incremental parsing and project attribution
 - [ ] **Phase 5: Project Detail, Global Sessions & Charts** - Drill-in view, milestone timeline, charts, filterable global sessions table, 90-day heatmap
 - [ ] **Phase 6: Tray Icon with Milestone Bars** - Dynamic openusage-style bar graph, tooltip, click-toggle, right-click menu, copy-next-command
@@ -70,7 +70,7 @@ Plans:
 - [x] 03-02-PLAN.md — Add derived-only rebuild cache command and settings-preserving backend coverage
 - [x] 03-03-PLAN.md — Wire clipboard/opener plugins, release capabilities, and safe frontend action wrappers
 - [x] 03-04-PLAN.md — Build routed portfolio, detail, and settings UI vertical slice
-- [ ] 03-05-PLAN.md — Harden validation, security invariant checks, and Phase 3 sign-off
+- [x] 03-05-PLAN.md — Harden validation, security invariant checks, and Phase 3 sign-off
 **UI hint**: yes
 
 ### Phase 4: Session Indexer
@@ -149,7 +149,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | Complete | 2026-04-24 |
 | 2. Planning Parser & Scanner | 4/4 | Complete | 2026-04-25 |
-| 3. Portfolio Vertical Slice | 4/5 | In Progress | - |
+| 3. Portfolio Vertical Slice | 5/5 | Complete | 2026-04-25 |
 | 4. Session Indexer | 0/? | Not started | - |
 | 5. Project Detail, Global Sessions & Charts | 0/? | Not started | - |
 | 6. Tray Icon with Milestone Bars | 0/? | Not started | - |
