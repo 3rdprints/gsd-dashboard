@@ -182,6 +182,70 @@ pub fn load_project_by_root(
         .map_err(AppError::from)
 }
 
+pub fn load_project_by_id(
+    connection: &mut rusqlite::Connection,
+    project_id: &str,
+) -> Result<Option<StoredProjectSnapshot>, AppError> {
+    connection
+        .query_row(
+            "SELECT id,
+                    name,
+                    root_path,
+                    planning_path,
+                    current_milestone_name,
+                    current_milestone_index,
+                    current_phase_number,
+                    current_phase_name,
+                    milestone_progress_pct,
+                    next_command,
+                    parsed_blob,
+                    parse_error,
+                    last_activity_at,
+                    last_scanned_at,
+                    created_at,
+                    updated_at
+             FROM projects
+             WHERE id = ?1",
+            [project_id],
+            read_project_snapshot,
+        )
+        .optional()
+        .map_err(AppError::from)
+}
+
+pub fn list_project_snapshots(
+    connection: &mut rusqlite::Connection,
+) -> Result<Vec<StoredProjectSnapshot>, AppError> {
+    let mut statement = connection
+        .prepare(
+            "SELECT id,
+                    name,
+                    root_path,
+                    planning_path,
+                    current_milestone_name,
+                    current_milestone_index,
+                    current_phase_number,
+                    current_phase_name,
+                    milestone_progress_pct,
+                    next_command,
+                    parsed_blob,
+                    parse_error,
+                    last_activity_at,
+                    last_scanned_at,
+                    created_at,
+                    updated_at
+             FROM projects
+             ORDER BY COALESCE(last_activity_at, last_scanned_at) DESC,
+                      name COLLATE NOCASE ASC",
+        )
+        .map_err(AppError::from)?;
+    let rows = statement
+        .query_map([], read_project_snapshot)
+        .map_err(AppError::from)?;
+
+    rows.collect::<Result<Vec<_>, _>>().map_err(AppError::from)
+}
+
 pub fn load_phase_plans(
     connection: &mut rusqlite::Connection,
     project_id: &str,
