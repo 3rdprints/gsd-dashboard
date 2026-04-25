@@ -10,9 +10,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 import type { ScanEvent, SettingsInput } from "./lib/types";
 
-const { channelInstances, invokeMock } = vi.hoisted(() => ({
+const { channelInstances, invokeMock, openPathMock, openUrlMock, writeTextMock } = vi.hoisted(() => ({
   channelInstances: [] as Array<{ onmessage: ((event: unknown) => void) | null }>,
-  invokeMock: vi.fn()
+  invokeMock: vi.fn(),
+  openPathMock: vi.fn(),
+  openUrlMock: vi.fn(),
+  writeTextMock: vi.fn()
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -24,6 +27,15 @@ vi.mock("@tauri-apps/api/core", () => ({
     }
   },
   invoke: invokeMock
+}));
+
+vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
+  writeText: writeTextMock
+}));
+
+vi.mock("@tauri-apps/plugin-opener", () => ({
+  openPath: openPathMock,
+  openUrl: openUrlMock
 }));
 
 const defaultSettings: SettingsInput = {
@@ -176,6 +188,50 @@ describe("Phase 2 scan IPC plumbing", () => {
     expect(serializedEvents).not.toContain("<task");
     expect(serializedEvents).toContain("projectParseError");
     expect(serializedEvents).toContain("finished");
+  });
+});
+
+describe("Phase 3 safe action wrappers", () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    openPathMock.mockReset();
+    openUrlMock.mockReset();
+    writeTextMock.mockReset();
+  });
+
+  it("copyNextCommand writes clipboard text without backend invoke", async () => {
+    const { copyNextCommand } = await import("./lib/actions");
+
+    writeTextMock.mockResolvedValueOnce(undefined);
+
+    await copyNextCommand("/gsd-next");
+
+    expect(writeTextMock).toHaveBeenCalledWith("/gsd-next");
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
+  it("openProjectInFinder opens the project path directly", async () => {
+    const { openProjectInFinder } = await import("./lib/actions");
+    const rootPath = "/Users/smacdonald/homegit/gsd-dashboard";
+
+    openPathMock.mockResolvedValueOnce(undefined);
+
+    await openProjectInFinder(rootPath);
+
+    expect(openPathMock).toHaveBeenCalledWith(rootPath);
+  });
+
+  it("openProjectInVsCode_preserves_path_separators", async () => {
+    const { openProjectInVsCode } = await import("./lib/actions");
+    const rootPath = "/Users/smacdonald/homegit/gsd-dashboard";
+
+    openUrlMock.mockResolvedValueOnce(undefined);
+
+    await openProjectInVsCode(rootPath);
+
+    expect(openUrlMock).toHaveBeenCalledWith(
+      "vscode://file//Users/smacdonald/homegit/gsd-dashboard"
+    );
   });
 });
 
