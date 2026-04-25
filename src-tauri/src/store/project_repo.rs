@@ -246,6 +246,22 @@ pub fn list_project_snapshots(
     rows.collect::<Result<Vec<_>, _>>().map_err(AppError::from)
 }
 
+pub fn clear_project_cache(connection: &mut rusqlite::Connection) -> Result<(), AppError> {
+    let transaction = connection.transaction().map_err(AppError::from)?;
+
+    transaction
+        .execute("DELETE FROM phase_plans", [])
+        .map_err(AppError::from)?;
+    transaction
+        .execute("DELETE FROM scan_log", [])
+        .map_err(AppError::from)?;
+    transaction
+        .execute("DELETE FROM projects", [])
+        .map_err(AppError::from)?;
+
+    transaction.commit().map_err(AppError::from)
+}
+
 pub fn load_phase_plans(
     connection: &mut rusqlite::Connection,
     project_id: &str,
