@@ -12,6 +12,8 @@
   "dependencies": {
     "@tanstack/react-query": "5.100.1",
     "@tauri-apps/api": "2.10.1",
+    "@tauri-apps/plugin-clipboard-manager": "2.3.2",
+    "@tauri-apps/plugin-opener": "2.5.3",
     "lucide-react": "1.9.0",
     "react": "19.2.5",
     "react-dom": "19.2.5",
