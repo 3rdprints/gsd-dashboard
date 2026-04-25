@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-04-25T15:47:30.921Z"
+last_updated: "2026-04-25T16:14:56.874Z"
 progress:
   total_phases: 9
   completed_phases: 2
   total_plans: 13
-  completed_plans: 11
-  percent: 85
+  completed_plans: 12
+  percent: 92
 ---
 
 # State: GSD Dashboard
@@ -23,20 +23,20 @@ progress:
 ## Current Position
 
 Phase: 03 (portfolio-vertical-slice) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 **Milestone:** v1.0 MVP
 **Phase:** 3
-**Plan:** 4
-**Status:** Ready to execute Phase 03 Plan 04
+**Plan:** 5
+**Status:** Ready to execute Phase 03 Plan 05
 
-**Progress:** [█████████░] 85%
+**Progress:** [█████████░] 92%
 
 ```
 Milestone: [██........] 2/9 phases
 Phase 1:   [██████████] 4/4 plans
 Phase 2:   [██████████] 4/4 plans
-Phase 3:   [██████....] 3/5 plans
-Overall:   [█████████░] 85%
+Phase 3:   [████████..] 4/5 plans
+Overall:   [█████████░] 92%
 ```
 
 ## Next Command
@@ -58,6 +58,7 @@ Overall:   [█████████░] 85%
 - Plan 03-01 duration: 9 min; tasks: 3; files modified: 9
 - Plan 03-02 duration: 6 min; tasks: 3; files modified: 7
 - Plan 03-03 duration: 8 min; tasks: 3; files modified: 7
+- Plan 03-04 duration: 21 min; tasks: 3; files modified: 14
 
 ## Accumulated Context
 
@@ -88,6 +89,8 @@ Overall:   [█████████░] 85%
 - Plan 03-02 registers rebuild_cache in Tauri metadata and default capabilities for release IPC.
 - Plan 03-03 copy/open actions use official Tauri plugins directly from the frontend; no backend invoke or shell/process command path was added.
 - Plan 03-03 release capabilities allow only clipboard text write plus opener path and URL commands for copy/open actions.
+- Plan 03-04 uses React Router BrowserRouter/Routes for the portfolio vertical slice while TanStack Query remains the IPC cache owner.
+- Settings UI saves only settings changes for scan roots and hidden project IDs; hidden/unhide never deletes project cache rows.
 
 ### Todos
 
@@ -112,9 +115,9 @@ Overall:   [█████████░] 85%
 
 ## Session Continuity
 
-**Last session:** 2026-04-25T15:47:30.916Z
+**Last session:** 2026-04-25T16:14:56.847Z
 
-**Next session should:** Continue Phase 03 with `03-04-PLAN.md`.
+**Next session should:** Continue Phase 03 with `03-05-PLAN.md`.
 
 ---
 *State initialized: 2026-04-23*

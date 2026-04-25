@@ -69,7 +69,7 @@ Plans:
 - [x] 03-01-PLAN.md — Add backend portfolio/detail DTO commands and project cache read helpers
 - [x] 03-02-PLAN.md — Add derived-only rebuild cache command and settings-preserving backend coverage
 - [x] 03-03-PLAN.md — Wire clipboard/opener plugins, release capabilities, and safe frontend action wrappers
-- [ ] 03-04-PLAN.md — Build routed portfolio, detail, and settings UI vertical slice
+- [x] 03-04-PLAN.md — Build routed portfolio, detail, and settings UI vertical slice
 - [ ] 03-05-PLAN.md — Harden validation, security invariant checks, and Phase 3 sign-off
 **UI hint**: yes
 
@@ -149,7 +149,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | Complete | 2026-04-24 |
 | 2. Planning Parser & Scanner | 4/4 | Complete | 2026-04-25 |
-| 3. Portfolio Vertical Slice | 3/5 | In Progress | - |
+| 3. Portfolio Vertical Slice | 4/5 | In Progress | - |
 | 4. Session Indexer | 0/? | Not started | - |
 | 5. Project Detail, Global Sessions & Charts | 0/? | Not started | - |
 | 6. Tray Icon with Milestone Bars | 0/? | Not started | - |

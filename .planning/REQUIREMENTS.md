@@ -49,7 +49,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **PORT-01**: Landing view displays one card per non-hidden project, sorted by last activity descending
 - [ ] **PORT-02**: Each project card shows name, current milestone + progress bar, current phase label, relative last activity, and a 7-day session sparkline
 - [x] **PORT-03**: Clicking a card opens the Project Detail view for that project
-- [ ] **PORT-04**: Hovering a card reveals a "Copy next command" action
+- [x] **PORT-04
+**: Hovering a card reveals a "Copy next command" action
 - [ ] **PORT-05**: Landing view shows a 90-day GitHub-style activity heatmap across all projects
 - [x] **PORT-06**: Right rail shows collapsed "Hidden projects" and "Unmatched sessions" sections
 - [x] **PORT-07**: Header stats show total projects tracked, active milestones, sessions today, and tokens today
