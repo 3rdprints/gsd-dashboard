@@ -332,6 +332,23 @@ describe("Phase 2 scan status shell", () => {
     expect(screen.queryByText("Copy next command")).not.toBeInTheDocument();
   });
 
+  it("normalizes snake_case scan summary counts from backend payloads", async () => {
+    renderWithQueryClient(<App />);
+    const scanButton = await screen.findByRole("button", { name: /Scan Projects/ });
+
+    fireEvent.click(scanButton);
+    act(() => {
+      channelInstances[0].onmessage?.({
+        event: "finished",
+        data: { discovered_count: 9, parsed_count: 9, error_count: 0 }
+      });
+    });
+
+    expect((await screen.findAllByText("Scan complete")).length).toBeGreaterThan(0);
+    expect(screen.getByText("9 projects discovered")).toBeInTheDocument();
+    expect(screen.queryByText(/NaN projects discovered/)).not.toBeInTheDocument();
+  });
+
   it("renders compact parse-error status when scanning continues after errors", async () => {
     renderWithQueryClient(<App />);
     const scanButton = await screen.findByRole("button", { name: /Scan Projects/ });

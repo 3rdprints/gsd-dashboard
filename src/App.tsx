@@ -197,16 +197,27 @@ function reduceScanEvent(current: ScanState, event: ScanEvent): ScanState {
   }
 }
 
-function completeScanState(current: ScanState, summary: ScanSummary): ScanState {
-  const errorCount = Math.max(summary.errorCount, current.errorCount);
+type ScanSummaryPayload = ScanSummary & {
+  discovered_count?: number;
+  parsed_count?: number;
+  error_count?: number;
+};
+
+function completeScanState(current: ScanState, summary: ScanSummaryPayload): ScanState {
+  const discoveredCount = readCount(summary.discoveredCount, summary.discovered_count);
+  const errorCount = Math.max(readCount(summary.errorCount, summary.error_count), current.errorCount);
 
   return {
     ...current,
     status: "complete",
-    discoveredCount: Math.max(summary.discoveredCount, current.discoveredCount),
+    discoveredCount: Math.max(discoveredCount, current.discoveredCount),
     errorCount,
     progressText: errorCount > 0 ? "Scan completed with parse errors" : "Scan complete"
   };
+}
+
+function readCount(...values: Array<number | undefined>) {
+  return values.find((value) => Number.isFinite(value)) ?? 0;
 }
 
 function formatHeaderSubtitle(scanState: ScanState) {
