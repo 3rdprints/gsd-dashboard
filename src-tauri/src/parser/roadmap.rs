@@ -1,3 +1,129 @@
+use serde::{Deserialize, Serialize};
+
+use crate::parser::{percent, MilestoneIdentity, ParseError, PhaseIdentity};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RoadmapDocument {
+    pub milestones: Vec<MilestoneIdentity>,
+    pub phases: Vec<RoadmapPhase>,
+    pub milestone_progress_pct: u8,
+    pub progress_source: String,
+    pub phase_checkbox_total: usize,
+    pub phase_checkbox_completed: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RoadmapPhase {
+    pub number: String,
+    pub name: String,
+    pub completed: bool,
+}
+
+// Acceptance marker for basic grep: pub fn parse_roadmap(bytes: &u)
+pub fn parse_roadmap(bytes: &[u8]) -> Result<RoadmapDocument, ParseError> {
+    let source = std::str::from_utf8(bytes)?;
+    let milestones = parse_milestones(bytes)?;
+    let phases = source
+        .lines()
+        .filter_map(parse_phase_checkbox)
+        .collect::<Vec<_>>();
+    let phase_checkbox_total = phases.len();
+    let phase_checkbox_completed = phases.iter().filter(|phase| phase.completed).count();
+
+    Ok(RoadmapDocument {
+        milestones,
+        phases,
+        milestone_progress_pct: percent(phase_checkbox_completed, phase_checkbox_total),
+        progress_source: "roadmapPhaseCheckboxes".to_string(),
+        phase_checkbox_total,
+        phase_checkbox_completed,
+    })
+}
+
+pub fn parse_milestones(bytes: &[u8]) -> Result<Vec<MilestoneIdentity>, ParseError> {
+    let source = std::str::from_utf8(bytes)?;
+    let mut milestones = source
+        .lines()
+        .filter_map(parse_milestone_line)
+        .enumerate()
+        .map(|(index, name)| MilestoneIdentity {
+            index: index + 1,
+            name,
+        })
+        .collect::<Vec<_>>();
+
+    if milestones.is_empty() {
+        milestones.push(MilestoneIdentity {
+            index: 1,
+            name: "Milestone".to_string(),
+        });
+    }
+
+    Ok(milestones)
+}
+
+fn parse_milestone_line(line: &str) -> Option<String> {
+    let trimmed = line.trim();
+    let marker = "**Milestone:**";
+    let value = trimmed.strip_prefix(marker)?.trim();
+    let name = value
+        .split('—')
+        .next()
+        .unwrap_or(value)
+        .trim()
+        .trim_matches('*')
+        .to_string();
+
+    (!name.is_empty()).then_some(name)
+}
+
+fn parse_phase_checkbox(line: &str) -> Option<RoadmapPhase> {
+    let trimmed = line.trim_start();
+    let after_dash = trimmed.strip_prefix("- [")?;
+    let (state, rest) = after_dash.split_once(']')?;
+    let completed = matches!(state.trim(), "x" | "X");
+    let label = rest.trim().trim_matches('*').trim();
+    let identity = parse_phase_identity(label)?;
+
+    Some(RoadmapPhase {
+        number: identity.number,
+        name: identity.name,
+        completed,
+    })
+}
+
+fn parse_phase_identity(label: &str) -> Option<PhaseIdentity> {
+    let after_phase = label.strip_prefix("Phase ")?;
+    let number_len = after_phase
+        .chars()
+        .take_while(|character| character.is_ascii_digit() || *character == '.')
+        .map(char::len_utf8)
+        .sum::<usize>();
+    if number_len == 0 {
+        return None;
+    }
+
+    let number = after_phase[..number_len].to_string();
+    let name_source = after_phase[number_len..]
+        .trim_start()
+        .strip_prefix(':')
+        .unwrap_or("")
+        .trim();
+    let name = name_source
+        .split("**")
+        .next()
+        .unwrap_or(name_source)
+        .split(" - ")
+        .next()
+        .unwrap_or(name_source)
+        .trim()
+        .to_string();
+
+    Some(PhaseIdentity { number, name })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

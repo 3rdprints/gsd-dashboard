@@ -51,6 +51,31 @@ pub struct PlanChecklistItem {
     pub completed: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlanDocument {
+    pub phase: Option<String>,
+    pub plan: Option<String>,
+    pub plan_type: Option<String>,
+    pub tasks: Vec<PlanTask>,
+    pub checklist: Vec<PlanChecklistItem>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlanTask {
+    pub name: String,
+    pub done: Option<String>,
+    pub completed: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProgressSummary {
+    pub percent: u8,
+    pub source: String,
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectConfig {
@@ -138,6 +163,53 @@ impl From<serde_json::Error> for ParseError {
             message: error.to_string(),
         }
     }
+}
+
+pub fn derive_progress(
+    roadmap: &roadmap::RoadmapDocument,
+    plans: &[PlanDocument],
+) -> ProgressSummary {
+    if roadmap.phase_checkbox_total > 0 && roadmap.phase_checkbox_completed > 0 {
+        return ProgressSummary {
+            percent: roadmap.milestone_progress_pct,
+            source: "roadmapPhaseCheckboxes".to_string(),
+        };
+    }
+
+    let total_items = plans
+        .iter()
+        .map(|plan| plan.checklist.len() + plan.tasks.len())
+        .sum::<usize>();
+    let completed_items = plans
+        .iter()
+        .map(|plan| {
+            plan.checklist
+                .iter()
+                .filter(|item| item.completed)
+                .count()
+                + plan.tasks.iter().filter(|task| task.completed).count()
+        })
+        .sum::<usize>();
+
+    if total_items > 0 {
+        return ProgressSummary {
+            percent: percent(completed_items, total_items),
+            source: "planChecklistCompletion".to_string(),
+        };
+    }
+
+    ProgressSummary {
+        percent: roadmap.milestone_progress_pct,
+        source: roadmap.progress_source.clone(),
+    }
+}
+
+fn percent(completed: usize, total: usize) -> u8 {
+    if total == 0 {
+        return 0;
+    }
+
+    ((completed * 100) / total).min(100) as u8
 }
 
 #[cfg(test)]
