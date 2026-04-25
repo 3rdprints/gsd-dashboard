@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host localhost --port 1420 --strictPort",
     "build": "tsc && vite build",
     "test": "vitest run",
     "tauri": "tauri"
