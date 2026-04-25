@@ -172,6 +172,50 @@ fn scanner_deduplicates_symlinked_planning_dirs() {
     assert_eq!(candidates[0].planning_path, project_root.join(".planning"));
 }
 
+#[test]
+fn scanner_skips_unreadable_entries() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let home_dir = temp_dir.path();
+    let scan_root = home_dir.join("workspace");
+    let project_root = scan_root.join("project-a");
+    let unreadable_dir = scan_root.join("unreadable");
+
+    create_planning_dir(&project_root);
+    fs::create_dir_all(&unreadable_dir).expect("unreadable dir should be created");
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+
+        fs::set_permissions(&unreadable_dir, fs::Permissions::from_mode(0o000))
+            .expect("permissions should be restricted");
+    }
+
+    let candidates =
+        discover_planning_dirs(&scan_root, home_dir).expect("unreadable entries should be skipped");
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+
+        fs::set_permissions(&unreadable_dir, fs::Permissions::from_mode(0o755))
+            .expect("permissions should be restored for cleanup");
+    }
+
+    assert_eq!(candidates.len(), 1);
+    assert_eq!(candidates[0].planning_path, project_root.join(".planning"));
+}
+
+#[test]
+#[ignore]
+fn scanner_discovers_real_homegit_projects() {
+    let home_dir = Path::new("/Users/smacdonald");
+    let candidates = discover_planning_dirs(Path::new("/Users/smacdonald/homegit"), home_dir)
+        .expect("homegit scan should not abort");
+
+    assert!(!candidates.is_empty());
+}
+
 #[tokio::test]
 async fn malformed_project_does_not_abort_scan() {
     let temp_dir = tempfile::tempdir().expect("temp dir should be created");
