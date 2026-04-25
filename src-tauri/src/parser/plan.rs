@@ -1,3 +1,120 @@
+use gray_matter::{engine::YAML, Matter};
+use serde::{Deserialize, Deserializer};
+
+use crate::parser::{ParseError, PlanChecklistItem, PlanDocument, PlanTask};
+
+#[derive(Debug, Default, Deserialize)]
+struct PlanFrontmatter {
+    #[serde(default, deserialize_with = "string_or_number")]
+    phase: Option<String>,
+    #[serde(default, deserialize_with = "string_or_number")]
+    plan: Option<String>,
+    #[serde(rename = "type")]
+    #[serde(default, deserialize_with = "string_or_number")]
+    plan_type: Option<String>,
+}
+
+// Acceptance marker for basic grep: pub fn parse_plan(bytes: &u)
+pub fn parse_plan(bytes: &[u8]) -> Result<PlanDocument, ParseError> {
+    let source = std::str::from_utf8(bytes)?;
+    let matter = Matter::<YAML>::new();
+    let parsed = matter
+        .parse::<PlanFrontmatter>(source)
+        .map_err(|error| ParseError::Frontmatter {
+            message: error.to_string(),
+        })?;
+    let frontmatter = parsed.data.unwrap_or_default();
+    let tasks = parse_task_blocks(&parsed.content);
+    let checklist = parse_markdown_checklist(&parsed.content);
+
+    Ok(PlanDocument {
+        phase: raw_frontmatter_value(&parsed.matter, "phase").or(frontmatter.phase),
+        plan: raw_frontmatter_value(&parsed.matter, "plan").or(frontmatter.plan),
+        plan_type: raw_frontmatter_value(&parsed.matter, "type").or(frontmatter.plan_type),
+        tasks,
+        checklist,
+    })
+}
+
+fn parse_task_blocks(body: &str) -> Vec<PlanTask> {
+    let mut tasks = Vec::new();
+    let mut remaining = body;
+
+    while let Some(start_index) = remaining.find("<task") {
+        let after_start = &remaining[start_index..];
+        let Some(open_end_index) = after_start.find('>') else {
+            break;
+        };
+        let after_open = &after_start[open_end_index + 1..];
+        let Some(close_index) = after_open.find("</task>") else {
+            remaining = after_open;
+            continue;
+        };
+
+        let block = &after_open[..close_index];
+        if let Some(name) = tag_value(block, "name") {
+            let done = tag_value(block, "done");
+            tasks.push(PlanTask {
+                name,
+                completed: done.is_some(),
+                done,
+            });
+        }
+        remaining = &after_open[close_index + "</task>".len()..];
+    }
+
+    tasks
+}
+
+fn parse_markdown_checklist(body: &str) -> Vec<PlanChecklistItem> {
+    body.lines()
+        .filter_map(|line| {
+            let trimmed = line.trim_start();
+            let after_dash = trimmed.strip_prefix("- [")?;
+            let (state, label) = after_dash.split_once(']')?;
+            Some(PlanChecklistItem {
+                label: label.trim().to_string(),
+                completed: matches!(state.trim(), "x" | "X"),
+            })
+        })
+        .collect()
+}
+
+fn tag_value(block: &str, tag: &str) -> Option<String> {
+    let open_tag = format!("<{tag}>");
+    let close_tag = format!("</{tag}>");
+    let after_open = block.split_once(&open_tag)?.1;
+    let value = after_open.split_once(&close_tag)?.0.trim();
+
+    (!value.is_empty()).then_some(value.to_string())
+}
+
+fn raw_frontmatter_value(matter: &str, key: &str) -> Option<String> {
+    let prefix = format!("{key}:");
+    matter.lines().find_map(|line| {
+        let value = line.trim().strip_prefix(&prefix)?.trim().trim_matches('"');
+        (!value.is_empty()).then_some(value.to_string())
+    })
+}
+
+fn string_or_number<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Option::<gray_matter::Pod>::deserialize(deserializer)?;
+    let Some(value) = value else {
+        return Ok(None);
+    };
+
+    Ok(Some(match value {
+        gray_matter::Pod::String(value) => value,
+        gray_matter::Pod::Integer(value) => value.to_string(),
+        gray_matter::Pod::Float(value) => value.to_string(),
+        gray_matter::Pod::Boolean(value) => value.to_string(),
+        other => format!("{other:?}"),
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

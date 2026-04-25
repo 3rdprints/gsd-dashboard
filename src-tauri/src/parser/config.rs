@@ -1,3 +1,32 @@
+use serde::Deserialize;
+
+use crate::parser::{GitConfig, HooksConfig, ParseError, ProjectConfig, WorkflowConfig};
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(default)]
+struct ConfigInput {
+    workflow: Option<WorkflowConfig>,
+    git: Option<GitConfig>,
+    hooks: Option<HooksConfig>,
+    research_enabled: Option<bool>,
+    commit_docs: Option<bool>,
+    parallelization: Option<bool>,
+}
+
+// Acceptance marker for basic grep: pub fn parse_config(bytes: &u)
+pub fn parse_config(bytes: &[u8]) -> Result<ProjectConfig, ParseError> {
+    let input: ConfigInput = serde_json::from_slice(bytes)?;
+
+    Ok(ProjectConfig {
+        workflow: input.workflow,
+        git: input.git,
+        hooks: input.hooks,
+        research_enabled: input.research_enabled,
+        commit_docs: input.commit_docs,
+        parallelization: input.parallelization,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

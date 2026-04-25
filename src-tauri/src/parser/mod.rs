@@ -79,37 +79,54 @@ pub struct ProgressSummary {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectConfig {
+    #[serde(default)]
     pub workflow: Option<WorkflowConfig>,
+    #[serde(default)]
     pub git: Option<GitConfig>,
+    #[serde(default)]
     pub hooks: Option<HooksConfig>,
+    #[serde(default)]
     pub research_enabled: Option<bool>,
+    #[serde(default)]
     pub commit_docs: Option<bool>,
+    #[serde(default)]
     pub parallelization: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WorkflowConfig {
+    #[serde(default)]
     pub research: Option<bool>,
+    #[serde(default)]
     pub plan_check: Option<bool>,
+    #[serde(default)]
     pub verifier: Option<bool>,
+    #[serde(default, alias = "auto_advance")]
     pub auto_advance: Option<bool>,
+    #[serde(default, alias = "use_worktrees")]
     pub use_worktrees: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GitConfig {
+    #[serde(default, alias = "branching_strategy")]
     pub branching_strategy: Option<String>,
+    #[serde(default, alias = "phase_branch_template")]
     pub phase_branch_template: Option<String>,
+    #[serde(default, alias = "milestone_branch_template")]
     pub milestone_branch_template: Option<String>,
+    #[serde(default, alias = "quick_branch_template")]
     pub quick_branch_template: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HooksConfig {
+    #[serde(default, alias = "context_warnings")]
     pub context_warnings: Option<bool>,
+    #[serde(default, alias = "workflow_guard")]
     pub workflow_guard: Option<bool>,
 }
 
