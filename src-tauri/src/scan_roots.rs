@@ -24,7 +24,7 @@ pub fn validate_scan_root(candidate: &Path, home: &Path) -> Result<(), AppError>
     Ok(())
 }
 
-fn normalize_scan_root(candidate: &Path, home: &Path) -> PathBuf {
+pub fn normalize_scan_root(candidate: &Path, home: &Path) -> PathBuf {
     let raw = candidate.to_string_lossy();
 
     if raw == "~" {

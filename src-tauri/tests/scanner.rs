@@ -445,3 +445,35 @@ async fn scan_command_streams_progress() {
         );
     }
 }
+
+#[tokio::test]
+async fn scan_command_expands_tilde_scan_roots() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let home_dir = temp_dir.path().to_path_buf();
+    let scan_root = home_dir.join("homegit");
+    let project_root = scan_root.join("good-project");
+    let state = test_app_state(home_dir, &scan_root).await;
+    write_valid_planning_project(&project_root, "Good Project");
+
+    gsd_dashboard::settings::save(
+        &state.pool,
+        &state.home_dir,
+        gsd_dashboard::settings::SettingsInput {
+            scan_roots: vec!["~/homegit".to_string()],
+            hidden_project_ids: Vec::new(),
+            autostart_enabled: false,
+            tray_bar_max_projects: 8,
+            tray_bar_sort: gsd_dashboard::settings::TrayBarSort::RecentActivity,
+        },
+    )
+    .await
+    .expect("tilde scan root should save");
+
+    let summary = scan_projects_for_app(&state, |_| Ok(()))
+        .await
+        .expect("tilde scan root should scan");
+
+    assert_eq!(summary.discovered_count, 1);
+    assert_eq!(summary.parsed_count, 1);
+    assert_eq!(summary.error_count, 0);
+}

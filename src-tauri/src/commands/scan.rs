@@ -3,8 +3,8 @@ use std::path::PathBuf;
 use tauri::{ipc::Channel, State};
 
 use crate::{
-    app_state::AppState, error::AppError, events::ScanEvent, scan_service, scanner::ScanSummary,
-    settings,
+    app_state::AppState, error::AppError, events::ScanEvent, scan_roots, scan_service,
+    scanner::ScanSummary, settings,
 };
 
 #[tauri::command]
@@ -26,7 +26,7 @@ pub async fn scan_projects_for_app(
     let roots = app_settings
         .scan_roots
         .into_iter()
-        .map(PathBuf::from)
+        .map(|root| scan_roots::normalize_scan_root(&PathBuf::from(root), &state.home_dir))
         .collect::<Vec<_>>();
 
     scan_service::scan_roots(state.pool.clone(), roots, state.home_dir.clone(), on_event).await

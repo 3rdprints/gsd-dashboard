@@ -362,6 +362,29 @@ describe("Phase 2 scan status shell", () => {
     );
     expect(screen.getByText("ListingGuru · .planning/ROADMAP.md")).toBeInTheDocument();
   });
+
+  it("shows scan command failures separately from parse errors", async () => {
+    invokeMock.mockImplementation((command: string) => {
+      const baseResponse = baseCommandResponse(command, 2);
+      if (baseResponse) return baseResponse;
+
+      if (command === "scan_projects") {
+        return Promise.reject({ kind: "invalidScanRoot", message: "scan root is invalid" });
+      }
+
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+    renderWithQueryClient(<App />);
+    const scanButton = await screen.findByRole("button", { name: /Scan Projects/ });
+
+    fireEvent.click(scanButton);
+
+    expect((await screen.findAllByText("Scan failed")).length).toBeGreaterThan(0);
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Scan could not start. Check that the configured scan root exists and is allowed."
+    );
+    expect(screen.queryByText("0 projects discovered · 1 parse errors")).not.toBeInTheDocument();
+  });
 });
 
 function renderWithQueryClient(ui: React.ReactElement) {

@@ -6,7 +6,7 @@ import { ScanRootsEditor } from "./components/ScanRootsEditor";
 import { scanProjects } from "./lib/ipc";
 import type { ScanEvent, ScanSummary } from "./lib/types";
 
-type ScanRunStatus = "ready" | "scanning" | "complete";
+type ScanRunStatus = "ready" | "scanning" | "complete" | "failed";
 
 type ParseErrorSummary = {
   projectName: string;
@@ -33,6 +33,7 @@ export function App() {
   const [scanState, setScanState] = useState<ScanState>(initialScanState);
   const isScanning = scanState.status === "scanning";
   const scanCompletedWithErrors = scanState.status === "complete" && scanState.errorCount > 0;
+  const scanFailed = scanState.status === "failed";
   const headerSubtitle = formatHeaderSubtitle(scanState);
 
   async function handleScanProjects() {
@@ -48,9 +49,8 @@ export function App() {
     } catch {
       setScanState((current) => ({
         ...current,
-        status: "complete",
-        progressText: "Scan completed with parse errors",
-        errorCount: Math.max(current.errorCount, 1)
+        status: "failed",
+        progressText: "Scan failed"
       }));
     }
   }
@@ -89,7 +89,7 @@ export function App() {
 
         <section className="scan-status" aria-labelledby="scan-status-title">
           <div className="panel-heading">
-            {scanCompletedWithErrors ? (
+            {scanFailed || scanCompletedWithErrors ? (
               <AlertTriangle aria-hidden="true" size={20} strokeWidth={2} />
             ) : scanState.status === "complete" ? (
               <CheckCircle2 aria-hidden="true" size={20} strokeWidth={2} />
@@ -101,7 +101,9 @@ export function App() {
             <div>
               <p className="label-text">Scan status</p>
               <h2 id="scan-status-title">
-                {scanCompletedWithErrors
+                {scanFailed
+                  ? "Scan failed"
+                  : scanCompletedWithErrors
                   ? "Scan completed with parse errors"
                   : scanState.status === "complete"
                     ? "Scan complete"
@@ -122,7 +124,11 @@ export function App() {
             <p aria-live="polite">{scanState.progressText}</p>
           </div>
 
-          {scanState.firstParseError ? (
+          {scanFailed ? (
+            <div className="parse-error-alert" role="alert">
+              <p>Scan could not start. Check that the configured scan root exists and is allowed.</p>
+            </div>
+          ) : scanState.firstParseError ? (
             <div className="parse-error-alert" role="alert">
               <p>
                 Some planning files could not be parsed. Scanning continued; open the scan details
@@ -206,6 +212,10 @@ function completeScanState(current: ScanState, summary: ScanSummary): ScanState 
 function formatHeaderSubtitle(scanState: ScanState) {
   if (scanState.status === "scanning") {
     return "Scanning projects";
+  }
+
+  if (scanState.status === "failed") {
+    return "Scan failed";
   }
 
   if (scanState.status === "complete" || scanState.discoveredCount > 0) {
