@@ -1,0 +1,147 @@
+import { useState } from "react";
+import { Database, Eye, Loader2 } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import { ScanRootsEditor } from "../components/ScanRootsEditor";
+import {
+  completeScanState,
+  initialScanState,
+  reduceScanEvent,
+  ScanProgressPanel
+} from "../components/ScanProgressPanel";
+import { getPortfolio, getSettings, rebuildCache } from "../lib/ipc";
+import {
+  createSaveSettingsMutationOptions,
+  portfolioQueryKey,
+  settingsQueryKey
+} from "../lib/queryClient";
+
+const REBUILD_CONFIRMATION =
+  "Rebuild cache: This clears the derived project cache and runs a full rescan. Source `.planning/` files will not be changed.";
+
+export function SettingsPage() {
+  const queryClient = useQueryClient();
+  const settings = useQuery({ queryKey: settingsQueryKey, queryFn: getSettings });
+  const portfolio = useQuery({ queryKey: portfolioQueryKey, queryFn: getPortfolio });
+  const saveSettings = useMutation(createSaveSettingsMutationOptions(queryClient));
+  const [scanState, setScanState] = useState(initialScanState);
+  const [confirmedRebuild, setConfirmedRebuild] = useState(false);
+  const isRebuilding = scanState.status === "scanning";
+
+  async function handleUnhide(projectId: string) {
+    if (!settings.data) return;
+
+    await saveSettings.mutateAsync({
+      ...settings.data,
+      hiddenProjectIds: settings.data.hiddenProjectIds.filter((id) => id !== projectId)
+    });
+  }
+
+  async function handleRebuild() {
+    if (!confirmedRebuild || isRebuilding) return;
+
+    setScanState({
+      ...initialScanState,
+      status: "scanning",
+      progressText: "Walking scan roots"
+    });
+
+    try {
+      const summary = await rebuildCache((event) => {
+        setScanState((current) => reduceScanEvent(current, event));
+      });
+      setScanState((current) => completeScanState(current, summary));
+      await queryClient.invalidateQueries({ queryKey: portfolioQueryKey });
+    } catch {
+      setScanState((current) => ({
+        ...current,
+        status: "failed",
+        progressText: "Scan failed"
+      }));
+    }
+  }
+
+  return (
+    <div className="page-stack">
+      <div className="app-header">
+        <header>
+          <h1>Settings</h1>
+          <p>Scan roots and cache controls</p>
+        </header>
+      </div>
+
+      <ScanRootsEditor title="Scan roots" />
+
+      <section className="settings-panel" aria-labelledby="hidden-projects-title">
+        <div className="panel-heading">
+          <Eye aria-hidden="true" size={20} strokeWidth={2} />
+          <div>
+            <p className="label-text">Portfolio visibility</p>
+            <h2 id="hidden-projects-title">Hidden projects</h2>
+          </div>
+        </div>
+
+        {portfolio.data && portfolio.data.hiddenProjects.length > 0 ? (
+          <ul className="settings-list">
+            {portfolio.data.hiddenProjects.map((project) => (
+              <li key={project.id}>
+                <span>{project.name}</span>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => handleUnhide(project.id)}
+                  disabled={saveSettings.isPending}
+                >
+                  Unhide Project
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="muted-copy">No hidden projects</p>
+        )}
+      </section>
+
+      <section className="settings-panel" aria-labelledby="rebuild-cache-title">
+        <div className="panel-heading">
+          <Database aria-hidden="true" size={20} strokeWidth={2} />
+          <div>
+            <p className="label-text">Derived cache</p>
+            <h2 id="rebuild-cache-title">Rebuild Cache</h2>
+          </div>
+        </div>
+        <p className="confirmation-copy">{REBUILD_CONFIRMATION}</p>
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={confirmedRebuild}
+            onChange={(event) => setConfirmedRebuild(event.target.checked)}
+          />
+          Confirm rebuild cache
+        </label>
+        <button type="button" onClick={handleRebuild} disabled={!confirmedRebuild || isRebuilding}>
+          {isRebuilding ? (
+            <Loader2 aria-hidden="true" size={16} strokeWidth={2} />
+          ) : (
+            <Database aria-hidden="true" size={16} strokeWidth={2} />
+          )}
+          Rebuild Cache
+        </button>
+      </section>
+
+      <ScanProgressPanel state={scanState} />
+
+      <section className="settings-panel" aria-labelledby="indexing-title">
+        <h2 id="indexing-title">Indexing</h2>
+        <label className="checkbox-row disabled-row">
+          <input type="checkbox" disabled />
+          Index tool usage
+        </label>
+        <label className="checkbox-row disabled-row">
+          <input type="checkbox" disabled />
+          Index message content
+        </label>
+      </section>
+    </div>
+  );
+}

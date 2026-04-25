@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@testing-library/jest-dom/vitest";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -213,7 +213,7 @@ describe("portfolio vertical slice", () => {
     expect(screen.getByText("Active milestones")).toBeInTheDocument();
     expect(screen.getByText("Sessions today")).toBeInTheDocument();
     expect(screen.getByText("Tokens today")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /GSD Dashboard/ })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: /GSD Dashboard/ })).toBeInTheDocument();
     expect(screen.getByText("v1.0 MVP")).toBeInTheDocument();
     expect(screen.getByText("Phase 03: Portfolio Vertical Slice")).toBeInTheDocument();
     expect(screen.getByText("42%")).toBeInTheDocument();
@@ -224,18 +224,26 @@ describe("portfolio vertical slice", () => {
     writeTextMock.mockResolvedValueOnce(undefined);
     renderWithQueryClient(<App />);
 
+    await screen.findByRole("link", { name: /GSD Dashboard/ });
     const copyButtons = await screen.findAllByRole("button", { name: "Copy next command" });
-    fireEvent.click(copyButtons[0]);
+    await act(async () => {
+      fireEvent.click(copyButtons[0]);
+    });
 
     expect(writeTextMock).toHaveBeenCalledWith("/gsd-execute-phase 3");
     expect(await screen.findByText("Copied")).toBeInTheDocument();
     expect(window.location.pathname).toBe("/");
   });
 
-  it("navigates from a card to project detail and calls get_project", async () => {
+  it("links from a card to project detail and calls get_project on the detail route", async () => {
     renderWithQueryClient(<App />);
 
-    fireEvent.click(await screen.findByRole("link", { name: /GSD Dashboard/ }));
+    const projectLink = await screen.findByRole("link", { name: /GSD Dashboard/ });
+    expect(projectLink).toHaveAttribute("href", "/project/gsd-dashboard");
+
+    cleanup();
+    window.history.pushState({}, "", "/project/gsd-dashboard");
+    renderWithQueryClient(<App />);
 
     expect(await screen.findByRole("heading", { name: "GSD Dashboard" })).toBeInTheDocument();
     await waitFor(() =>
@@ -250,7 +258,8 @@ describe("portfolio vertical slice", () => {
   it("renders right rail placeholders", async () => {
     renderWithQueryClient(<App />);
 
-    expect(await screen.findByText("Hidden projects")).toBeInTheDocument();
+    expect(await screen.findByText("ListingGuru")).toBeInTheDocument();
+    expect(screen.getByText("Hidden projects")).toBeInTheDocument();
     expect(screen.getAllByText("ListingGuru").length).toBeGreaterThan(0);
     expect(screen.getByText("Unmatched sessions")).toBeInTheDocument();
     expect(screen.getByText("Available after session indexing")).toBeInTheDocument();
@@ -278,11 +287,11 @@ describe("settings vertical slice", () => {
   it("adds and removes scan roots before saving settings", async () => {
     renderWithQueryClient(<App />);
 
-    const rootInputs = await screen.findAllByLabelText(/Scan root/);
+    const rootInputs = await screen.findAllByRole("textbox");
     fireEvent.change(rootInputs[0], { target: { value: "~/homegit" } });
     fireEvent.click(screen.getByRole("button", { name: "Add Root" }));
 
-    const updatedInputs = await screen.findAllByLabelText(/Scan root/);
+    const updatedInputs = await screen.findAllByRole("textbox");
     fireEvent.change(updatedInputs[1], { target: { value: "~/Documents/clients" } });
     fireEvent.click(screen.getAllByRole("button", { name: "Remove Root" })[0]);
     fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
