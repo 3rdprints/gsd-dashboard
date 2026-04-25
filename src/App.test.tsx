@@ -26,6 +26,14 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: invokeMock
 }));
 
+const defaultSettings: SettingsInput = {
+  scanRoots: ["~/Documents"],
+  hiddenProjectIds: [],
+  autostartEnabled: false,
+  trayBarMaxProjects: 8,
+  trayBarSort: "recent_activity"
+};
+
 describe("Phase 1 IPC plumbing", () => {
   beforeEach(() => {
     channelInstances.length = 0;
@@ -173,32 +181,8 @@ describe("Phase 2 scan IPC plumbing", () => {
 
 describe("Phase 1 shell", () => {
   beforeEach(() => {
-    channelInstances.length = 0;
-    invokeMock.mockReset();
-    invokeMock.mockImplementation((command: string) => {
-      if (command === "get_boot_status") {
-        return Promise.resolve({
-          appDataDir: "/tmp/gsd-dashboard",
-          cachePath: "/tmp/gsd-dashboard/cache.db",
-          cacheReady: true,
-          walEnabled: true,
-          migrationsApplied: 1,
-          settingsInitialized: true
-        });
-      }
-
-      if (command === "get_settings") {
-        return Promise.resolve({
-          scanRoots: ["~/Documents"],
-          hiddenProjectIds: [],
-          autostartEnabled: false,
-          trayBarMaxProjects: 8,
-          trayBarSort: "recent_activity"
-        });
-      }
-
-      return Promise.reject(new Error(`Unexpected command: ${command}`));
-    });
+    resetMocks();
+    mockBaseCommands(1);
   });
 
   it("renders boot, cache, settings, and empty dashboard states", async () => {
@@ -239,41 +223,7 @@ describe("Phase 1 shell", () => {
   });
 
   it("shows the backend broad-root error for slash and keeps the rejected value", async () => {
-    invokeMock.mockImplementation((command: string) => {
-      if (command === "get_boot_status") {
-        return Promise.resolve({
-          appDataDir: "/tmp/gsd-dashboard",
-          cachePath: "/tmp/gsd-dashboard/cache.db",
-          cacheReady: true,
-          walEnabled: true,
-          migrationsApplied: 1,
-          settingsInitialized: true
-        });
-      }
-
-      if (command === "get_settings") {
-        return Promise.resolve({
-          scanRoots: ["~/Documents"],
-          hiddenProjectIds: [],
-          autostartEnabled: false,
-          trayBarMaxProjects: 8,
-          trayBarSort: "recent_activity"
-        });
-      }
-
-      if (command === "save_settings") {
-        return Promise.reject({
-          kind: "invalidScanRoot",
-          message:
-            "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace.",
-          path: "/",
-          reason:
-            "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace."
-        });
-      }
-
-      return Promise.reject(new Error(`Unexpected command: ${command}`));
-    });
+    mockInvalidScanRoot("/");
     renderWithQueryClient(<App />);
     const rootInput = await screen.findByLabelText("Default scan root");
     await waitFor(() => expect(rootInput).toHaveValue("~/Documents"));
@@ -294,41 +244,7 @@ describe("Phase 1 shell", () => {
   it("shows the backend broad-root error for the bare home path", async () => {
     const homePath = "/Users/smacdonald";
 
-    invokeMock.mockImplementation((command: string) => {
-      if (command === "get_boot_status") {
-        return Promise.resolve({
-          appDataDir: "/tmp/gsd-dashboard",
-          cachePath: "/tmp/gsd-dashboard/cache.db",
-          cacheReady: true,
-          walEnabled: true,
-          migrationsApplied: 1,
-          settingsInitialized: true
-        });
-      }
-
-      if (command === "get_settings") {
-        return Promise.resolve({
-          scanRoots: ["~/Documents"],
-          hiddenProjectIds: [],
-          autostartEnabled: false,
-          trayBarMaxProjects: 8,
-          trayBarSort: "recent_activity"
-        });
-      }
-
-      if (command === "save_settings") {
-        return Promise.reject({
-          kind: "invalidScanRoot",
-          message:
-            "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace.",
-          path: homePath,
-          reason:
-            "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace."
-        });
-      }
-
-      return Promise.reject(new Error(`Unexpected command: ${command}`));
-    });
+    mockInvalidScanRoot(homePath);
     renderWithQueryClient(<App />);
     const rootInput = await screen.findByLabelText("Default scan root");
     await waitFor(() => expect(rootInput).toHaveValue("~/Documents"));
@@ -349,40 +265,8 @@ describe("Phase 1 shell", () => {
 
 describe("Phase 2 scan status shell", () => {
   beforeEach(() => {
-    channelInstances.length = 0;
-    invokeMock.mockReset();
-    invokeMock.mockImplementation((command: string) => {
-      if (command === "get_boot_status") {
-        return Promise.resolve({
-          appDataDir: "/tmp/gsd-dashboard",
-          cachePath: "/tmp/gsd-dashboard/cache.db",
-          cacheReady: true,
-          walEnabled: true,
-          migrationsApplied: 2,
-          settingsInitialized: true
-        });
-      }
-
-      if (command === "get_settings") {
-        return Promise.resolve({
-          scanRoots: ["~/Documents"],
-          hiddenProjectIds: [],
-          autostartEnabled: false,
-          trayBarMaxProjects: 8,
-          trayBarSort: "recent_activity"
-        });
-      }
-
-      if (command === "scan_projects") {
-        return Promise.resolve({
-          discoveredCount: 0,
-          parsedCount: 0,
-          errorCount: 0
-        });
-      }
-
-      return Promise.reject(new Error(`Unexpected command: ${command}`));
-    });
+    resetMocks();
+    mockBaseCommands(2, true);
   });
 
   it("renders the ready scan CTA and Phase 2 empty-state copy", async () => {
@@ -401,26 +285,8 @@ describe("Phase 2 scan status shell", () => {
     let resolveScan: ((summary: { discoveredCount: number; parsedCount: number; errorCount: number }) => void) | null =
       null;
     invokeMock.mockImplementation((command: string) => {
-      if (command === "get_boot_status") {
-        return Promise.resolve({
-          appDataDir: "/tmp/gsd-dashboard",
-          cachePath: "/tmp/gsd-dashboard/cache.db",
-          cacheReady: true,
-          walEnabled: true,
-          migrationsApplied: 2,
-          settingsInitialized: true
-        });
-      }
-
-      if (command === "get_settings") {
-        return Promise.resolve({
-          scanRoots: ["~/Documents"],
-          hiddenProjectIds: [],
-          autostartEnabled: false,
-          trayBarMaxProjects: 8,
-          trayBarSort: "recent_activity"
-        });
-      }
+      const baseResponse = baseCommandResponse(command, 2);
+      if (baseResponse) return baseResponse;
 
       if (command === "scan_projects") {
         return new Promise((resolve) => {
@@ -509,4 +375,56 @@ function renderWithQueryClient(ui: React.ReactElement) {
   render(<QueryClientProvider client={testQueryClient}>{ui}</QueryClientProvider>);
 
   return testQueryClient;
+}
+
+function resetMocks() {
+  channelInstances.length = 0;
+  invokeMock.mockReset();
+}
+
+function mockBaseCommands(migrationsApplied: number, includeScan = false) {
+  invokeMock.mockImplementation((command: string) => {
+    const baseResponse = baseCommandResponse(command, migrationsApplied);
+    if (baseResponse) return baseResponse;
+
+    if (includeScan && command === "scan_projects") {
+      return Promise.resolve({ discoveredCount: 0, parsedCount: 0, errorCount: 0 });
+    }
+
+    return Promise.reject(new Error(`Unexpected command: ${command}`));
+  });
+}
+
+function baseCommandResponse(command: string, migrationsApplied: number) {
+  if (command === "get_boot_status") {
+    return Promise.resolve({
+      appDataDir: "/tmp/gsd-dashboard",
+      cachePath: "/tmp/gsd-dashboard/cache.db",
+      cacheReady: true,
+      walEnabled: true,
+      migrationsApplied,
+      settingsInitialized: true
+    });
+  }
+
+  if (command === "get_settings") {
+    return Promise.resolve(defaultSettings);
+  }
+
+  return null;
+}
+
+function mockInvalidScanRoot(path: string) {
+  const message =
+    "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace.";
+
+  invokeMock.mockImplementation((command: string) => {
+    const baseResponse = baseCommandResponse(command, 1);
+    if (baseResponse) return baseResponse;
+    if (command === "save_settings") {
+      return Promise.reject({ kind: "invalidScanRoot", message, path, reason: message });
+    }
+
+    return Promise.reject(new Error(`Unexpected command: ${command}`));
+  });
 }
