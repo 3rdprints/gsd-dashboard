@@ -8,18 +8,27 @@ import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "./App";
-import type { SettingsInput } from "./lib/types";
+import type { ScanEvent, SettingsInput } from "./lib/types";
 
-const { invokeMock } = vi.hoisted(() => ({
+const { channelInstances, invokeMock } = vi.hoisted(() => ({
+  channelInstances: [] as Array<{ onmessage: ((event: unknown) => void) | null }>,
   invokeMock: vi.fn()
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
+  Channel: class TestChannel<T> {
+    onmessage: ((event: T) => void) | null = null;
+
+    constructor() {
+      channelInstances.push(this as { onmessage: ((event: unknown) => void) | null });
+    }
+  },
   invoke: invokeMock
 }));
 
 describe("Phase 1 IPC plumbing", () => {
   beforeEach(() => {
+    channelInstances.length = 0;
     invokeMock.mockReset();
   });
 
@@ -78,8 +87,93 @@ describe("Phase 1 IPC plumbing", () => {
   });
 });
 
+describe("Phase 2 scan IPC plumbing", () => {
+  beforeEach(() => {
+    channelInstances.length = 0;
+    invokeMock.mockReset();
+  });
+
+  it("calls the exact scan command name with a typed event channel", async () => {
+    const { scanProjects } = await import("./lib/ipc");
+    const onEvent = vi.fn();
+    const summary = {
+      discoveredCount: 1,
+      parsedCount: 1,
+      errorCount: 0
+    };
+
+    invokeMock.mockResolvedValue(summary);
+
+    await expect(scanProjects(onEvent)).resolves.toEqual(summary);
+
+    expect(channelInstances).toHaveLength(1);
+    expect(invokeMock).toHaveBeenCalledWith("scan_projects", {
+      onEvent: channelInstances[0]
+    });
+
+    const event: ScanEvent = {
+      event: "projectFound",
+      data: {
+        projectId: "deckpilot-web",
+        projectName: "DeckPilot",
+        rootPath: "/Users/smacdonald/homegit/deckpilot-web"
+      }
+    };
+    channelInstances[0].onmessage?.(event);
+
+    expect(onEvent).toHaveBeenCalledWith(event);
+  });
+
+  it("keeps scan event fixtures metadata-only without raw planning document bodies", () => {
+    const events: ScanEvent[] = [
+      { event: "started", data: { rootCount: 1 } },
+      { event: "rootStarted", data: { rootPath: "/Users/smacdonald/homegit" } },
+      {
+        event: "projectFound",
+        data: {
+          projectId: "deckpilot-web",
+          projectName: "DeckPilot",
+          rootPath: "/Users/smacdonald/homegit/deckpilot-web"
+        }
+      },
+      {
+        event: "projectParsed",
+        data: {
+          projectId: "deckpilot-web",
+          projectName: "DeckPilot"
+        }
+      },
+      {
+        event: "projectParseError",
+        data: {
+          projectId: "listingguru",
+          projectName: "ListingGuru",
+          filePath: ".planning/ROADMAP.md",
+          message: "frontmatter could not be parsed"
+        }
+      },
+      {
+        event: "finished",
+        data: {
+          discoveredCount: 2,
+          parsedCount: 1,
+          errorCount: 1
+        }
+      }
+    ];
+
+    const serializedEvents = JSON.stringify(events);
+
+    expect(serializedEvents).not.toContain("# Roadmap");
+    expect(serializedEvents).not.toContain("<task");
+    expect(serializedEvents).toContain("projectParseError");
+    expect(serializedEvents).toContain("finished");
+  });
+});
+
 describe("Phase 1 shell", () => {
   beforeEach(() => {
+    channelInstances.length = 0;
     invokeMock.mockReset();
     invokeMock.mockImplementation((command: string) => {
       if (command === "get_boot_status") {
