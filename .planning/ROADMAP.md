@@ -64,13 +64,14 @@ Plans:
   3. From Settings the user can add or remove scan-root directories and see the portfolio update without restarting; the user can hide or unhide individual projects and hidden ones disappear from the portfolio while remaining discoverable via a right-rail / unmatched-sessions panel.
   4. "Rebuild cache" in Settings drops the derived cache and runs a full rescan with visible progress, without requiring an app restart.
   5. Header stats show total projects tracked, active milestones, sessions today (zero until Phase 4), and tokens today; Phase 2 and Phase 3 settings toggles are visible but disabled.
-**Plans**: 5 plans
+**Plans**: 6 plans
 Plans:
 - [x] 03-01-PLAN.md — Add backend portfolio/detail DTO commands and project cache read helpers
 - [x] 03-02-PLAN.md — Add derived-only rebuild cache command and settings-preserving backend coverage
 - [x] 03-03-PLAN.md — Wire clipboard/opener plugins, release capabilities, and safe frontend action wrappers
 - [x] 03-04-PLAN.md — Build routed portfolio, detail, and settings UI vertical slice
 - [x] 03-05-PLAN.md — Harden validation, security invariant checks, and Phase 3 sign-off
+- [x] 03-06-PLAN.md — Close visible-project hide action and clipboard feedback gaps
 **UI hint**: yes
 
 ### Phase 4: Session Indexer
