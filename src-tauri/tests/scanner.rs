@@ -1,7 +1,14 @@
-use std::{fs, path::Path};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    sync::{Arc, Mutex},
+};
 
 use gsd_dashboard::{
+    app_state::{AppState, BootStatus},
+    commands::scan::scan_projects_for_app,
     error::AppError,
+    events::ScanEvent,
     scan_service,
     scanner::discover_planning_dirs,
     store::{self, project_repo},
@@ -17,6 +24,41 @@ async fn migrated_pool(db_path: &Path) -> deadpool_sqlite::Pool {
         .await
         .expect("migrations should run");
     pool
+}
+
+async fn test_app_state(home_dir: PathBuf, scan_root: &Path) -> AppState {
+    let app_data_dir = home_dir.join("app-data");
+    let cache_path = app_data_dir.join("cache.db");
+    fs::create_dir_all(&app_data_dir).expect("app data dir should be created");
+    let pool = migrated_pool(&cache_path).await;
+    gsd_dashboard::settings::save(
+        &pool,
+        &home_dir,
+        gsd_dashboard::settings::SettingsInput {
+            scan_roots: vec![scan_root.display().to_string()],
+            hidden_project_ids: Vec::new(),
+            autostart_enabled: false,
+            tray_bar_max_projects: 8,
+            tray_bar_sort: gsd_dashboard::settings::TrayBarSort::RecentActivity,
+        },
+    )
+    .await
+    .expect("settings should be saved");
+
+    AppState::new(
+        pool,
+        home_dir,
+        app_data_dir.clone(),
+        cache_path.clone(),
+        BootStatus {
+            app_data_dir: app_data_dir.display().to_string(),
+            cache_path: cache_path.display().to_string(),
+            cache_ready: true,
+            wal_enabled: true,
+            migrations_applied: 2,
+            settings_initialized: true,
+        },
+    )
 }
 
 fn write_valid_planning_project(project_root: &Path, project_name: &str) {
@@ -246,6 +288,61 @@ fn scanner_remains_discovery_only() {
         assert!(
             !scanner_source.contains(pattern),
             "scanner.rs should not contain {pattern}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn scan_command_streams_progress() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let home_dir = temp_dir.path().to_path_buf();
+    let scan_root = home_dir.join("workspace");
+    let project_root = scan_root.join("good-project");
+    write_valid_planning_project(&project_root, "Good Project");
+    let state = test_app_state(home_dir, &scan_root).await;
+    let events = Arc::new(Mutex::new(Vec::new()));
+    let recorded_events = Arc::clone(&events);
+
+    let summary = scan_projects_for_app(&state, move |event| {
+        recorded_events
+            .lock()
+            .expect("events lock should not be poisoned")
+            .push(event);
+        Ok(())
+    })
+    .await
+    .expect("scan command helper should complete");
+
+    let events = events.lock().expect("events should be readable").clone();
+    let event_names = events
+        .iter()
+        .map(|event| match event {
+            ScanEvent::Started { .. } => "started",
+            ScanEvent::RootStarted { .. } => "rootStarted",
+            ScanEvent::ProjectFound { .. } => "projectFound",
+            ScanEvent::ProjectParsed { .. } => "projectParsed",
+            ScanEvent::ProjectParseError { .. } => "projectParseError",
+            ScanEvent::Finished { .. } => "finished",
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(summary.discovered_count, 1);
+    assert_eq!(
+        event_names,
+        vec![
+            "started",
+            "rootStarted",
+            "projectFound",
+            "projectParsed",
+            "finished"
+        ]
+    );
+
+    let serialized_events = serde_json::to_string(&events).expect("events should serialize");
+    for forbidden in ["# Roadmap", "# State", "<task", r#""workflow":"#] {
+        assert!(
+            !serialized_events.contains(forbidden),
+            "serialized scan events should not contain raw body marker {forbidden}"
         );
     }
 }
