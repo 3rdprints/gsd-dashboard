@@ -347,6 +347,147 @@ describe("Phase 1 shell", () => {
   });
 });
 
+describe("Phase 2 scan status shell", () => {
+  beforeEach(() => {
+    channelInstances.length = 0;
+    invokeMock.mockReset();
+    invokeMock.mockImplementation((command: string) => {
+      if (command === "get_boot_status") {
+        return Promise.resolve({
+          appDataDir: "/tmp/gsd-dashboard",
+          cachePath: "/tmp/gsd-dashboard/cache.db",
+          cacheReady: true,
+          walEnabled: true,
+          migrationsApplied: 2,
+          settingsInitialized: true
+        });
+      }
+
+      if (command === "get_settings") {
+        return Promise.resolve({
+          scanRoots: ["~/Documents"],
+          hiddenProjectIds: [],
+          autostartEnabled: false,
+          trayBarMaxProjects: 8,
+          trayBarSort: "recent_activity"
+        });
+      }
+
+      if (command === "scan_projects") {
+        return Promise.resolve({
+          discoveredCount: 0,
+          parsedCount: 0,
+          errorCount: 0
+        });
+      }
+
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+  });
+
+  it("renders the ready scan CTA and Phase 2 empty-state copy", async () => {
+    renderWithQueryClient(<App />);
+
+    expect(await screen.findByRole("button", { name: /Scan Projects/ })).toBeInTheDocument();
+    expect(screen.getByText("Ready to scan")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "GSD Dashboard is ready to scan your configured roots. Start a scan to discover projects with `.planning/` directories."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("disables the scan CTA and announces active scan progress", async () => {
+    let resolveScan: ((summary: { discoveredCount: number; parsedCount: number; errorCount: number }) => void) | null =
+      null;
+    invokeMock.mockImplementation((command: string) => {
+      if (command === "get_boot_status") {
+        return Promise.resolve({
+          appDataDir: "/tmp/gsd-dashboard",
+          cachePath: "/tmp/gsd-dashboard/cache.db",
+          cacheReady: true,
+          walEnabled: true,
+          migrationsApplied: 2,
+          settingsInitialized: true
+        });
+      }
+
+      if (command === "get_settings") {
+        return Promise.resolve({
+          scanRoots: ["~/Documents"],
+          hiddenProjectIds: [],
+          autostartEnabled: false,
+          trayBarMaxProjects: 8,
+          trayBarSort: "recent_activity"
+        });
+      }
+
+      if (command === "scan_projects") {
+        return new Promise((resolve) => {
+          resolveScan = resolve;
+        });
+      }
+
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+    renderWithQueryClient(<App />);
+    const scanButton = await screen.findByRole("button", { name: /Scan Projects/ });
+
+    fireEvent.click(scanButton);
+    channelInstances[0].onmessage?.({ event: "started", data: { rootCount: 1 } });
+
+    expect(scanButton).toBeDisabled();
+    expect(await screen.findByText("Scanning projects")).toBeInTheDocument();
+    expect(screen.getByText("Walking scan roots")).toHaveAttribute("aria-live", "polite");
+
+    resolveScan?.({ discoveredCount: 0, parsedCount: 0, errorCount: 0 });
+  });
+
+  it("shows completed scan counts without adding Phase 3 surfaces", async () => {
+    renderWithQueryClient(<App />);
+    const scanButton = await screen.findByRole("button", { name: /Scan Projects/ });
+
+    fireEvent.click(scanButton);
+    channelInstances[0].onmessage?.({
+      event: "finished",
+      data: { discoveredCount: 3, parsedCount: 3, errorCount: 0 }
+    });
+
+    expect(await screen.findByText("Scan complete")).toBeInTheDocument();
+    expect(screen.getByText("3 projects discovered")).toBeInTheDocument();
+    expect(screen.queryByText("Project Detail")).not.toBeInTheDocument();
+    expect(screen.queryByText("Rebuild cache")).not.toBeInTheDocument();
+    expect(screen.queryByText("Copy next command")).not.toBeInTheDocument();
+  });
+
+  it("renders compact parse-error status when scanning continues after errors", async () => {
+    renderWithQueryClient(<App />);
+    const scanButton = await screen.findByRole("button", { name: /Scan Projects/ });
+
+    fireEvent.click(scanButton);
+    channelInstances[0].onmessage?.({
+      event: "projectParseError",
+      data: {
+        projectId: "listingguru",
+        projectName: "ListingGuru",
+        filePath: ".planning/ROADMAP.md",
+        message: "frontmatter could not be parsed"
+      }
+    });
+    channelInstances[0].onmessage?.({
+      event: "finished",
+      data: { discoveredCount: 2, parsedCount: 1, errorCount: 1 }
+    });
+
+    expect(await screen.findByText("Scan completed with parse errors")).toBeInTheDocument();
+    expect(screen.getByText("2 projects discovered · 1 parse errors")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Some planning files could not be parsed. Scanning continued; open the scan details to review the affected project and file."
+    );
+    expect(screen.getByText("ListingGuru · .planning/ROADMAP.md")).toBeInTheDocument();
+  });
+});
+
 function renderWithQueryClient(ui: React.ReactElement) {
   const testQueryClient = new QueryClient({
     defaultOptions: {
