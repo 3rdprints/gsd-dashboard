@@ -5,6 +5,7 @@ pub mod error;
 pub mod events;
 pub mod parser;
 pub mod scan_roots;
+pub mod scan_service;
 pub mod scanner;
 pub mod settings;
 pub mod store;

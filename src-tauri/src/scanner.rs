@@ -38,7 +38,10 @@ pub fn discover_planning_dirs(
         .build()
     {
         let entry = entry.map_err(AppError::io)?;
-        if !entry.file_type().is_some_and(|file_type| file_type.is_dir()) {
+        if !entry
+            .file_type()
+            .is_some_and(|file_type| file_type.is_dir())
+        {
             continue;
         }
 

@@ -102,8 +102,8 @@ fn scanner_rejects_bare_home_root() {
     let temp_dir = tempfile::tempdir().expect("temp dir should be created");
     let home_dir = temp_dir.path();
 
-    let error = discover_planning_dirs(home_dir, home_dir)
-        .expect_err("bare home root should be rejected");
+    let error =
+        discover_planning_dirs(home_dir, home_dir).expect_err("bare home root should be rejected");
 
     assert!(matches!(error, AppError::InvalidScanRoot { .. }));
 }
@@ -147,9 +147,12 @@ async fn malformed_project_does_not_abort_scan() {
     )
     .expect("malformed config should be written");
 
-    let summary = scan_service::scan_roots(pool.clone(), vec![scan_root], home_dir.to_path_buf(), |_| {
-        Ok(())
-    })
+    let summary = scan_service::scan_roots(
+        pool.clone(),
+        vec![scan_root],
+        home_dir.to_path_buf(),
+        |_| Ok(()),
+    )
     .await
     .expect("scan should continue after per-project parse errors");
 
@@ -198,9 +201,14 @@ async fn scanner_records_parse_error_in_scan_log() {
     )
     .expect("malformed config should be written");
 
-    scan_service::scan_roots(pool.clone(), vec![scan_root], home_dir.to_path_buf(), |_| Ok(()))
-        .await
-        .expect("scan should record parse error");
+    scan_service::scan_roots(
+        pool.clone(),
+        vec![scan_root],
+        home_dir.to_path_buf(),
+        |_| Ok(()),
+    )
+    .await
+    .expect("scan should record parse error");
 
     let connection = pool.get().await.expect("connection should be available");
     connection
