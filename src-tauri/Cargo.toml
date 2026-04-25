@@ -18,6 +18,9 @@ rusqlite = { version = "0.38.0", features = ["bundled"] }
 rusqlite_migration = "2.4.0"
 deadpool-sqlite = "0.13.0"
 dirs = "6.0.0"
+gray_matter = "0.3.2"
+ignore = "0.4.25"
+pulldown-cmark = "0.13.3"
 
 [dev-dependencies]
 tauri = { version = "2.10.3", features = ["test"] }

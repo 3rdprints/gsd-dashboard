@@ -1,3 +1,145 @@
+pub mod config;
+pub mod plan;
+pub mod roadmap;
+pub mod state;
+
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectSnapshot {
+    pub project_id: String,
+    pub project_name: String,
+    pub root_path: String,
+    pub planning_path: String,
+    pub current_milestone: Option<MilestoneIdentity>,
+    pub current_phase: Option<PhaseIdentity>,
+    pub milestone_progress_pct: u8,
+    pub phase_plans: Vec<PhasePlan>,
+    pub next_command: String,
+    pub config: Option<ProjectConfig>,
+    pub parse_issues: Vec<ParseIssue>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MilestoneIdentity {
+    pub index: usize,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PhaseIdentity {
+    pub number: String,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PhasePlan {
+    pub phase: PhaseIdentity,
+    pub plan: String,
+    pub plan_type: String,
+    pub checklist: Vec<PlanChecklistItem>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlanChecklistItem {
+    pub label: String,
+    pub completed: bool,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectConfig {
+    pub workflow: Option<WorkflowConfig>,
+    pub git: Option<GitConfig>,
+    pub hooks: Option<HooksConfig>,
+    pub research_enabled: Option<bool>,
+    pub commit_docs: Option<bool>,
+    pub parallelization: Option<bool>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowConfig {
+    pub research: Option<bool>,
+    pub plan_check: Option<bool>,
+    pub verifier: Option<bool>,
+    pub auto_advance: Option<bool>,
+    pub use_worktrees: Option<bool>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitConfig {
+    pub branching_strategy: Option<String>,
+    pub phase_branch_template: Option<String>,
+    pub milestone_branch_template: Option<String>,
+    pub quick_branch_template: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HooksConfig {
+    pub context_warnings: Option<bool>,
+    pub workflow_guard: Option<bool>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ParseIssue {
+    pub file_path: String,
+    pub kind: String,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum ParseError {
+    #[error("input is not valid UTF-8: {message}")]
+    InvalidUtf8 { message: String },
+    #[error("frontmatter could not be parsed: {message}")]
+    Frontmatter { message: String },
+    #[error("JSON could not be parsed: {message}")]
+    Json { message: String },
+}
+
+impl ParseError {
+    pub fn issue(&self, file_path: impl Into<String>) -> ParseIssue {
+        ParseIssue {
+            file_path: file_path.into(),
+            kind: self.kind().to_string(),
+            message: self.to_string(),
+        }
+    }
+
+    fn kind(&self) -> &'static str {
+        match self {
+            Self::InvalidUtf8 { .. } => "invalidUtf8",
+            Self::Frontmatter { .. } => "frontmatter",
+            Self::Json { .. } => "json",
+        }
+    }
+}
+
+impl From<std::str::Utf8Error> for ParseError {
+    fn from(error: std::str::Utf8Error) -> Self {
+        Self::InvalidUtf8 {
+            message: error.to_string(),
+        }
+    }
+}
+
+impl From<serde_json::Error> for ParseError {
+    fn from(error: serde_json::Error) -> Self {
+        Self::Json {
+            message: error.to_string(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
