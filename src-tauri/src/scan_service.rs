@@ -7,6 +7,7 @@ use deadpool_sqlite::Pool;
 
 use crate::{
     error::AppError,
+    events::ScanEvent,
     parser::{
         self, config::parse_config, plan::parse_plan, roadmap, roadmap::parse_roadmap,
         state::parse_state, ParseIssue, PhaseIdentity, PlanDocument, ProjectSnapshot,
@@ -15,50 +16,20 @@ use crate::{
     store::project_repo::{self, StoredPhasePlan, StoredProjectSnapshot},
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ScanProgressEvent {
-    Started {
-        root_count: usize,
-    },
-    RootStarted {
-        root_path: String,
-    },
-    ProjectFound {
-        project_id: String,
-        project_name: String,
-        root_path: String,
-    },
-    ProjectParsed {
-        project_id: String,
-        project_name: String,
-    },
-    ProjectParseError {
-        project_id: String,
-        project_name: String,
-        file_path: String,
-        message: String,
-    },
-    Finished {
-        discovered_count: usize,
-        parsed_count: usize,
-        error_count: usize,
-    },
-}
-
 pub async fn scan_roots(
     pool: Pool,
     roots: Vec<PathBuf>,
     home_dir: PathBuf,
-    on_event: impl Fn(ScanProgressEvent) -> Result<(), AppError> + Send + Sync + 'static,
+    on_event: impl Fn(ScanEvent) -> Result<(), AppError> + Send + Sync + 'static,
 ) -> Result<ScanSummary, AppError> {
-    on_event(ScanProgressEvent::Started {
+    on_event(ScanEvent::Started {
         root_count: roots.len(),
     })?;
 
     let mut summary = ScanSummary::default();
 
     for root in roots {
-        on_event(ScanProgressEvent::RootStarted {
+        on_event(ScanEvent::RootStarted {
             root_path: root.display().to_string(),
         })?;
 
@@ -74,7 +45,7 @@ pub async fn scan_roots(
             summary.discovered_count += 1;
 
             let identity = infer_project_identity(&candidate);
-            on_event(ScanProgressEvent::ProjectFound {
+            on_event(ScanEvent::ProjectFound {
                 project_id: identity.id.clone(),
                 project_name: identity.name.clone(),
                 root_path: candidate.project_root.display().to_string(),
@@ -87,7 +58,7 @@ pub async fn scan_roots(
 
             if has_errors {
                 summary.error_count += 1;
-                on_event(ScanProgressEvent::ProjectParseError {
+                on_event(ScanEvent::ProjectParseError {
                     project_id: identity.id,
                     project_name: identity.name,
                     file_path: candidate.planning_path.display().to_string(),
@@ -95,7 +66,7 @@ pub async fn scan_roots(
                 })?;
             } else {
                 summary.parsed_count += 1;
-                on_event(ScanProgressEvent::ProjectParsed {
+                on_event(ScanEvent::ProjectParsed {
                     project_id: identity.id,
                     project_name: identity.name,
                 })?;
@@ -103,7 +74,7 @@ pub async fn scan_roots(
         }
     }
 
-    on_event(ScanProgressEvent::Finished {
+    on_event(ScanEvent::Finished {
         discovered_count: summary.discovered_count,
         parsed_count: summary.parsed_count,
         error_count: summary.error_count,

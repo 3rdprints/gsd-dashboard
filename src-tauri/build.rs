@@ -3,6 +3,7 @@ fn main() {
         tauri_build::AppManifest::new().commands(&[
             "get_boot_status",
             "get_settings",
+            "scan_projects",
             "save_settings",
         ]),
     ))

@@ -1,11 +1,12 @@
 {
   "identifier": "default",
-  "description": "Release-strict default capability for the main dashboard window.",
+  "description": "Release-strict default capability for the main dashboard window, including scan_projects.",
   "windows": ["main"],
   "permissions": [
     "core:default",
     "allow-get-boot-status",
     "allow-get-settings",
+    "allow-scan-projects",
     "allow-save-settings"
   ]
 }

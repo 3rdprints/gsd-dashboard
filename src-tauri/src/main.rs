@@ -11,6 +11,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            gsd_dashboard::commands::scan::scan_projects,
             gsd_dashboard::commands::settings::get_boot_status,
             gsd_dashboard::commands::settings::get_settings,
             gsd_dashboard::commands::settings::save_settings

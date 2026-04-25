@@ -4,6 +4,7 @@ use std::{
 };
 
 use ignore::WalkBuilder;
+use serde::Serialize;
 
 use crate::{error::AppError, scan_roots::validate_scan_root};
 
@@ -13,7 +14,8 @@ pub struct PlanningProjectCandidate {
     pub planning_path: PathBuf,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ScanSummary {
     pub discovered_count: usize,
     pub parsed_count: usize,
