@@ -150,8 +150,8 @@ type: execute
     .expect("plan should be written");
 }
 
-async fn load_settings(pool: &deadpool_sqlite::Pool) -> AppSettings {
-    gsd_dashboard::settings::load_or_initialize(pool, Path::new("/tmp"))
+async fn load_settings(state: &AppState) -> AppSettings {
+    gsd_dashboard::settings::load_or_initialize(&state.pool, &state.home_dir)
         .await
         .expect("settings should load")
 }
@@ -239,7 +239,7 @@ async fn rebuild_cache_preserves_settings_and_emits_scan_events() {
     let project_root = scan_root.join("good-project");
     write_valid_planning_project(&project_root, "Good Project");
     let state = test_app_state(home_dir, &scan_root).await;
-    let before_settings = load_settings(&state.pool).await;
+    let before_settings = load_settings(&state).await;
     let events = Arc::new(Mutex::new(Vec::new()));
     let recorded_events = Arc::clone(&events);
 
@@ -253,7 +253,7 @@ async fn rebuild_cache_preserves_settings_and_emits_scan_events() {
     .await
     .expect("rebuild should scan configured roots");
 
-    let after_settings = load_settings(&state.pool).await;
+    let after_settings = load_settings(&state).await;
     let events = events.lock().expect("events should be readable").clone();
 
     assert_eq!(summary.discovered_count, 1);

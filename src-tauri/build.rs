@@ -5,6 +5,7 @@ fn main() {
             "get_project",
             "get_boot_status",
             "get_settings",
+            "rebuild_cache",
             "scan_projects",
             "save_settings",
         ]),
