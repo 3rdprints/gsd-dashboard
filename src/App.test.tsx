@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@testing-library/jest-dom/vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -212,7 +212,7 @@ describe("Phase 1 shell", () => {
     expect(screen.getAllByText("No projects scanned yet").length).toBeGreaterThan(0);
     expect(
       screen.getByText(
-        "GSD Dashboard is initialized with ~/Documents as the default scan root. Project discovery starts in the next phase."
+        "GSD Dashboard is ready to scan your configured roots. Start a scan to discover projects with `.planning/` directories."
       )
     ).toBeInTheDocument();
   });
@@ -389,7 +389,7 @@ describe("Phase 2 scan status shell", () => {
     renderWithQueryClient(<App />);
 
     expect(await screen.findByRole("button", { name: /Scan Projects/ })).toBeInTheDocument();
-    expect(screen.getByText("Ready to scan")).toBeInTheDocument();
+    expect(screen.getAllByText("Ready to scan").length).toBeGreaterThan(0);
     expect(
       screen.getByText(
         "GSD Dashboard is ready to scan your configured roots. Start a scan to discover projects with `.planning/` directories."
@@ -434,13 +434,17 @@ describe("Phase 2 scan status shell", () => {
     const scanButton = await screen.findByRole("button", { name: /Scan Projects/ });
 
     fireEvent.click(scanButton);
-    channelInstances[0].onmessage?.({ event: "started", data: { rootCount: 1 } });
+    act(() => {
+      channelInstances[0].onmessage?.({ event: "started", data: { rootCount: 1 } });
+    });
 
     expect(scanButton).toBeDisabled();
-    expect(await screen.findByText("Scanning projects")).toBeInTheDocument();
+    expect((await screen.findAllByText("Scanning projects")).length).toBeGreaterThan(0);
     expect(screen.getByText("Walking scan roots")).toHaveAttribute("aria-live", "polite");
 
-    resolveScan?.({ discoveredCount: 0, parsedCount: 0, errorCount: 0 });
+    act(() => {
+      resolveScan?.({ discoveredCount: 0, parsedCount: 0, errorCount: 0 });
+    });
   });
 
   it("shows completed scan counts without adding Phase 3 surfaces", async () => {
@@ -448,12 +452,14 @@ describe("Phase 2 scan status shell", () => {
     const scanButton = await screen.findByRole("button", { name: /Scan Projects/ });
 
     fireEvent.click(scanButton);
-    channelInstances[0].onmessage?.({
-      event: "finished",
-      data: { discoveredCount: 3, parsedCount: 3, errorCount: 0 }
+    act(() => {
+      channelInstances[0].onmessage?.({
+        event: "finished",
+        data: { discoveredCount: 3, parsedCount: 3, errorCount: 0 }
+      });
     });
 
-    expect(await screen.findByText("Scan complete")).toBeInTheDocument();
+    expect((await screen.findAllByText("Scan complete")).length).toBeGreaterThan(0);
     expect(screen.getByText("3 projects discovered")).toBeInTheDocument();
     expect(screen.queryByText("Project Detail")).not.toBeInTheDocument();
     expect(screen.queryByText("Rebuild cache")).not.toBeInTheDocument();
@@ -465,21 +471,25 @@ describe("Phase 2 scan status shell", () => {
     const scanButton = await screen.findByRole("button", { name: /Scan Projects/ });
 
     fireEvent.click(scanButton);
-    channelInstances[0].onmessage?.({
-      event: "projectParseError",
-      data: {
-        projectId: "listingguru",
-        projectName: "ListingGuru",
-        filePath: ".planning/ROADMAP.md",
-        message: "frontmatter could not be parsed"
-      }
-    });
-    channelInstances[0].onmessage?.({
-      event: "finished",
-      data: { discoveredCount: 2, parsedCount: 1, errorCount: 1 }
+    act(() => {
+      channelInstances[0].onmessage?.({
+        event: "projectParseError",
+        data: {
+          projectId: "listingguru",
+          projectName: "ListingGuru",
+          filePath: ".planning/ROADMAP.md",
+          message: "frontmatter could not be parsed"
+        }
+      });
+      channelInstances[0].onmessage?.({
+        event: "finished",
+        data: { discoveredCount: 2, parsedCount: 1, errorCount: 1 }
+      });
     });
 
-    expect(await screen.findByText("Scan completed with parse errors")).toBeInTheDocument();
+    expect((await screen.findAllByText("Scan completed with parse errors")).length).toBeGreaterThan(
+      0
+    );
     expect(screen.getByText("2 projects discovered · 1 parse errors")).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Some planning files could not be parsed. Scanning continued; open the scan details to review the affected project and file."
