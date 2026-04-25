@@ -18,23 +18,47 @@ struct PlanFrontmatter {
 pub fn parse_plan(bytes: &[u8]) -> Result<PlanDocument, ParseError> {
     let source = std::str::from_utf8(bytes)?;
     let matter = Matter::<YAML>::new();
-    let parsed =
-        matter
-            .parse::<PlanFrontmatter>(source)
-            .map_err(|error| ParseError::Frontmatter {
-                message: error.to_string(),
-            })?;
-    let frontmatter = parsed.data.unwrap_or_default();
-    let tasks = parse_task_blocks(&parsed.content);
-    let checklist = parse_markdown_checklist(&parsed.content);
+    let (matter_source, content_source, frontmatter) = match matter.parse::<PlanFrontmatter>(source)
+    {
+        Ok(parsed) => (
+            parsed.matter,
+            parsed.content,
+            parsed.data.unwrap_or_default(),
+        ),
+        Err(_) => {
+            let (matter_source, content_source) = split_frontmatter(source);
+            (matter_source, content_source, PlanFrontmatter::default())
+        }
+    };
+    let tasks = parse_task_blocks(&content_source);
+    let checklist = parse_markdown_checklist(&content_source);
 
     Ok(PlanDocument {
-        phase: raw_frontmatter_value(&parsed.matter, "phase").or(frontmatter.phase),
-        plan: raw_frontmatter_value(&parsed.matter, "plan").or(frontmatter.plan),
-        plan_type: raw_frontmatter_value(&parsed.matter, "type").or(frontmatter.plan_type),
+        phase: raw_frontmatter_value(&matter_source, "phase").or(frontmatter.phase),
+        plan: raw_frontmatter_value(&matter_source, "plan").or(frontmatter.plan),
+        plan_type: raw_frontmatter_value(&matter_source, "type").or(frontmatter.plan_type),
         tasks,
         checklist,
     })
+}
+
+fn split_frontmatter(source: &str) -> (String, String) {
+    let Some(after_open) = source.strip_prefix("---") else {
+        return (String::new(), source.to_string());
+    };
+    let after_open = after_open.strip_prefix('\n').unwrap_or(after_open);
+    let Some(close_index) = after_open.find("\n---") else {
+        return (String::new(), source.to_string());
+    };
+
+    let matter = after_open[..close_index].to_string();
+    let content_start = close_index + "\n---".len();
+    let content = after_open[content_start..]
+        .strip_prefix('\n')
+        .unwrap_or(&after_open[content_start..])
+        .to_string();
+
+    (matter, content)
 }
 
 fn parse_task_blocks(body: &str) -> Vec<PlanTask> {

@@ -27,7 +27,7 @@ pub fn parse_roadmap(bytes: &[u8]) -> Result<RoadmapDocument, ParseError> {
     let milestones = parse_milestones(bytes)?;
     let phases = source
         .lines()
-        .filter_map(parse_phase_checkbox)
+        .filter_map(|line| parse_phase_checkbox(line).or_else(|| parse_phase_heading(line)))
         .collect::<Vec<_>>();
     let phase_checkbox_total = phases.len();
     let phase_checkbox_completed = phases.iter().filter(|phase| phase.completed).count();
@@ -91,6 +91,17 @@ fn parse_phase_checkbox(line: &str) -> Option<RoadmapPhase> {
         number: identity.number,
         name: identity.name,
         completed,
+    })
+}
+
+fn parse_phase_heading(line: &str) -> Option<RoadmapPhase> {
+    let label = line.trim_start().trim_start_matches('#').trim();
+    let identity = parse_phase_identity(label)?;
+
+    Some(RoadmapPhase {
+        number: identity.number,
+        name: identity.name,
+        completed: false,
     })
 }
 

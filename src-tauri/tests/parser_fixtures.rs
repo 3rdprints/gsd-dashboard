@@ -151,7 +151,9 @@ fn collect_plan_paths(planning_path: &Path) -> Result<Vec<PathBuf>, String> {
 }
 
 fn collect_plan_paths_recursive(path: &Path, plan_paths: &mut Vec<PathBuf>) -> Result<(), String> {
-    for entry in fs::read_dir(path).map_err(|error| format!("{} read failed: {error}", path.display()))? {
+    for entry in
+        fs::read_dir(path).map_err(|error| format!("{} read failed: {error}", path.display()))?
+    {
         let entry = entry.map_err(|error| format!("{} entry failed: {error}", path.display()))?;
         let entry_path = entry.path();
         let file_type = entry
