@@ -31,6 +31,7 @@ export function ScanProgressPanel({ state }: ScanProgressPanelProps) {
   const isScanning = state.status === "scanning";
   const completedWithErrors = state.status === "complete" && state.errorCount > 0;
   const failed = state.status === "failed";
+  const progressPercent = isScanning ? 55 : state.status === "complete" ? 100 : 0;
 
   return (
     <section className="scan-status" aria-labelledby="scan-status-title">
@@ -61,10 +62,17 @@ export function ScanProgressPanel({ state }: ScanProgressPanelProps) {
       </div>
 
       <div className="scan-progress">
-        <div className="scan-progress-track" aria-hidden="true">
+        <div
+          className="scan-progress-track"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={progressPercent}
+          aria-valuetext={state.progressText}
+        >
           <div
             className="scan-progress-fill"
-            style={{ width: isScanning ? "55%" : state.status === "complete" ? "100%" : "0%" }}
+            style={{ width: `${progressPercent}%` }}
           />
         </div>
         <p aria-live="polite">{state.progressText}</p>

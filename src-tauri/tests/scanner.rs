@@ -151,6 +151,7 @@ fn scanner_rejects_bare_home_root() {
 }
 
 #[test]
+#[cfg(unix)]
 fn scanner_deduplicates_symlinked_planning_dirs() {
     let temp_dir = tempfile::tempdir().expect("temp dir should be created");
     let home_dir = temp_dir.path();
@@ -159,11 +160,8 @@ fn scanner_deduplicates_symlinked_planning_dirs() {
 
     create_planning_dir(&project_root);
 
-    #[cfg(unix)]
-    {
-        std::os::unix::fs::symlink(&project_root, scan_root.join("project-link"))
-            .expect("project symlink should be created");
-    }
+    std::os::unix::fs::symlink(&project_root, scan_root.join("project-link"))
+        .expect("project symlink should be created");
 
     let candidates =
         discover_planning_dirs(&scan_root, home_dir).expect("scan root should be discoverable");
@@ -173,6 +171,7 @@ fn scanner_deduplicates_symlinked_planning_dirs() {
 }
 
 #[test]
+#[cfg(unix)]
 fn scanner_skips_unreadable_entries() {
     let temp_dir = tempfile::tempdir().expect("temp dir should be created");
     let home_dir = temp_dir.path();
@@ -183,24 +182,16 @@ fn scanner_skips_unreadable_entries() {
     create_planning_dir(&project_root);
     fs::create_dir_all(&unreadable_dir).expect("unreadable dir should be created");
 
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
+    use std::os::unix::fs::PermissionsExt;
 
-        fs::set_permissions(&unreadable_dir, fs::Permissions::from_mode(0o000))
-            .expect("permissions should be restricted");
-    }
+    fs::set_permissions(&unreadable_dir, fs::Permissions::from_mode(0o000))
+        .expect("permissions should be restricted");
 
     let candidates =
         discover_planning_dirs(&scan_root, home_dir).expect("unreadable entries should be skipped");
 
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-
-        fs::set_permissions(&unreadable_dir, fs::Permissions::from_mode(0o755))
-            .expect("permissions should be restored for cleanup");
-    }
+    fs::set_permissions(&unreadable_dir, fs::Permissions::from_mode(0o755))
+        .expect("permissions should be restored for cleanup");
 
     assert_eq!(candidates.len(), 1);
     assert_eq!(candidates[0].planning_path, project_root.join(".planning"));
@@ -209,9 +200,12 @@ fn scanner_skips_unreadable_entries() {
 #[test]
 #[ignore]
 fn scanner_discovers_real_homegit_projects() {
-    let home_dir = Path::new("/Users/smacdonald");
-    let candidates = discover_planning_dirs(Path::new("/Users/smacdonald/homegit"), home_dir)
-        .expect("homegit scan should not abort");
+    let Some((home_dir, scan_root)) = manual_workstation_scan_paths() else {
+        eprintln!("set GSD_DASHBOARD_MANUAL_HOME and GSD_DASHBOARD_MANUAL_SCAN_ROOT to run");
+        return;
+    };
+    let candidates = discover_planning_dirs(&scan_root, &home_dir)
+        .expect("manual workstation scan should not abort");
 
     assert!(!candidates.is_empty());
 }
@@ -221,16 +215,22 @@ fn scanner_discovers_real_homegit_projects() {
 async fn scan_service_scans_real_homegit_projects() {
     let temp_dir = tempfile::tempdir().expect("temp dir should be created");
     let pool = migrated_pool(&temp_dir.path().join("cache.db")).await;
-    let summary = scan_service::scan_roots(
-        pool,
-        vec![PathBuf::from("/Users/smacdonald/homegit")],
-        PathBuf::from("/Users/smacdonald"),
-        |_| Ok(()),
-    )
-    .await
-    .expect("homegit scan should not fail to start");
+    let Some((home_dir, scan_root)) = manual_workstation_scan_paths() else {
+        eprintln!("set GSD_DASHBOARD_MANUAL_HOME and GSD_DASHBOARD_MANUAL_SCAN_ROOT to run");
+        return;
+    };
+    let summary = scan_service::scan_roots(pool, vec![scan_root], home_dir, |_| Ok(()))
+        .await
+        .expect("homegit scan should not fail to start");
 
     assert!(summary.discovered_count > 0);
+}
+
+fn manual_workstation_scan_paths() -> Option<(PathBuf, PathBuf)> {
+    let home_dir = std::env::var_os("GSD_DASHBOARD_MANUAL_HOME").map(PathBuf::from)?;
+    let scan_root = std::env::var_os("GSD_DASHBOARD_MANUAL_SCAN_ROOT").map(PathBuf::from)?;
+
+    Some((home_dir, scan_root))
 }
 
 #[tokio::test]

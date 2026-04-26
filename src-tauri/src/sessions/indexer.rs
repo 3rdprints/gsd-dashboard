@@ -183,7 +183,6 @@ pub fn stream_session_file(
 
     finalize_accumulator(source, path, &mut accumulator);
 
-    let file_size = metadata.len() as i64;
     Ok((
         accumulator,
         StreamFileStatus::Complete {

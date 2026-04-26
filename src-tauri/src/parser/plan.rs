@@ -1,4 +1,5 @@
 use gray_matter::{engine::YAML, Matter};
+use pulldown_cmark::{Event, Options, Parser, Tag, TagEnd};
 use serde::{Deserialize, Deserializer};
 
 use crate::parser::{ParseError, PlanChecklistItem, PlanDocument, PlanTask};
@@ -65,7 +66,7 @@ fn parse_task_blocks(body: &str) -> Vec<PlanTask> {
     let mut tasks = Vec::new();
     let mut remaining = body;
 
-    while let Some(start_index) = remaining.find("<task") {
+    while let Some(start_index) = find_next_task_opener(remaining) {
         let after_start = &remaining[start_index..];
         let Some(open_end_index) = after_start.find('>') else {
             break;
@@ -91,27 +92,65 @@ fn parse_task_blocks(body: &str) -> Vec<PlanTask> {
     tasks
 }
 
-fn parse_markdown_checklist(body: &str) -> Vec<PlanChecklistItem> {
-    body.lines()
-        .filter_map(|line| {
-            let trimmed = line.trim_start();
-            let after_dash = trimmed.strip_prefix("- [")?;
-            let (state, label) = after_dash.split_once(']')?;
-            let completed = match state {
-                "x" | "X" => true,
-                " " => false,
-                _ => return None,
-            };
-            if !label.chars().next().is_some_and(char::is_whitespace) {
-                return None;
-            }
+fn find_next_task_opener(source: &str) -> Option<usize> {
+    let mut search_start = 0;
 
-            Some(PlanChecklistItem {
-                label: label.trim().to_string(),
-                completed,
-            })
-        })
-        .collect()
+    while let Some(relative_index) = source[search_start..].find("<task") {
+        let start_index = search_start + relative_index;
+        let after_tag = source[start_index + "<task".len()..].chars().next();
+
+        if after_tag.is_some_and(|character| character == '>' || character.is_ascii_whitespace()) {
+            return Some(start_index);
+        }
+
+        search_start = start_index + "<task".len();
+    }
+
+    None
+}
+
+fn parse_markdown_checklist(body: &str) -> Vec<PlanChecklistItem> {
+    let parser = Parser::new_ext(body, Options::ENABLE_TASKLISTS);
+    let mut checklist = Vec::new();
+    let mut in_item = false;
+    let mut current_completed = None;
+    let mut current_label = String::new();
+
+    for event in parser {
+        match event {
+            Event::Start(Tag::Item) => {
+                in_item = true;
+                current_completed = None;
+                current_label.clear();
+            }
+            Event::End(TagEnd::Item) => {
+                if let Some(completed) = current_completed {
+                    let label = current_label.trim();
+                    if !label.is_empty() {
+                        checklist.push(PlanChecklistItem {
+                            label: label.to_string(),
+                            completed,
+                        });
+                    }
+                }
+                in_item = false;
+                current_completed = None;
+                current_label.clear();
+            }
+            Event::TaskListMarker(completed) if in_item => {
+                current_completed = Some(completed);
+            }
+            Event::Text(text) | Event::Code(text) if in_item && current_completed.is_some() => {
+                current_label.push_str(&text);
+            }
+            Event::SoftBreak | Event::HardBreak if in_item && current_completed.is_some() => {
+                current_label.push(' ');
+            }
+            _ => {}
+        }
+    }
+
+    checklist
 }
 
 fn tag_value(block: &str, tag: &str) -> Option<String> {
@@ -208,5 +247,21 @@ type: execute
         assert_eq!(plan.checklist.len(), 1);
         assert_eq!(plan.checklist[0].label, "Real checklist item");
         assert!(!plan.checklist[0].completed);
+    }
+
+    #[test]
+    fn task_parser_ignores_tasks_container_tag() {
+        let plan = parse_plan(
+            br#"<tasks>
+<task type="auto">
+  <name>Task 1</name>
+</task>
+</tasks>
+"#,
+        )
+        .unwrap();
+
+        assert_eq!(plan.tasks.len(), 1);
+        assert_eq!(plan.tasks[0].name, "Task 1");
     }
 }

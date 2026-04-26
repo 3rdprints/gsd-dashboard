@@ -262,6 +262,12 @@ input:focus-visible {
   color: #4B5563;
 }
 
+.project-card-error {
+  color: #DC2626;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .parse-badge {
   height: 24px;
   display: inline-flex;

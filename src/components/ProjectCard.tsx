@@ -15,10 +15,12 @@ type ProjectCardProps = {
 
 export function ProjectCard({ project, onHideProject, hideDisabled = false }: ProjectCardProps) {
   const [copied, setCopied] = useState(false);
+  const [hideError, setHideError] = useState(false);
   const phaseLabel =
     project.currentPhaseNumber && project.currentPhaseName
       ? `Phase ${project.currentPhaseNumber}: ${project.currentPhaseName}`
       : "Phase not available";
+  const progressPct = Math.max(0, Math.min(100, Math.round(project.milestoneProgressPct)));
 
   async function handleCopy(event: MouseEvent<HTMLButtonElement>) {
     event.preventDefault();
@@ -36,7 +38,12 @@ export function ProjectCard({ project, onHideProject, hideDisabled = false }: Pr
   async function handleHide(event: MouseEvent<HTMLButtonElement>) {
     event.preventDefault();
     event.stopPropagation();
-    await onHideProject(project.id);
+    setHideError(false);
+    try {
+      await onHideProject(project.id);
+    } catch {
+      setHideError(true);
+    }
   }
 
   return (
@@ -58,10 +65,10 @@ export function ProjectCard({ project, onHideProject, hideDisabled = false }: Pr
           <div className="scan-progress-track" aria-hidden="true">
             <div
               className="scan-progress-fill"
-              style={{ width: `${Math.round(project.milestoneProgressPct)}%` }}
+              style={{ width: `${progressPct}%` }}
             />
           </div>
-          <span>{Math.round(project.milestoneProgressPct)}%</span>
+          <span>{progressPct}%</span>
         </div>
 
         <SessionSparkline project={project} />
@@ -80,6 +87,11 @@ export function ProjectCard({ project, onHideProject, hideDisabled = false }: Pr
         <EyeOff aria-hidden="true" size={16} strokeWidth={2} />
         Hide Project
       </button>
+      {hideError ? (
+        <p className="project-card-error" role="alert">
+          Could not hide project
+        </p>
+      ) : null}
     </article>
   );
 }
