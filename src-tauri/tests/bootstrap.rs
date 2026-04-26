@@ -58,7 +58,7 @@ async fn bootstrap_paths_create_cache_and_ready_boot_status() {
             cache_path: state.cache_path.display().to_string(),
             cache_ready: true,
             wal_enabled: true,
-            migrations_applied: 2,
+            migrations_applied: 3,
             settings_initialized: true,
         }
     );
@@ -86,6 +86,6 @@ fn tauri_setup_manages_app_state_before_commands_run() {
     let state = app.state::<AppState>();
     assert!(state.boot_status.cache_ready);
     assert!(state.boot_status.wal_enabled);
-    assert_eq!(state.boot_status.migrations_applied, 2);
+    assert_eq!(state.boot_status.migrations_applied, 3);
     assert!(state.boot_status.settings_initialized);
 }

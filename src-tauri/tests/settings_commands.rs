@@ -36,7 +36,7 @@ async fn get_boot_status_returns_cache_ready_state() {
 
     assert!(status.cache_ready);
     assert!(status.wal_enabled);
-    assert_eq!(status.migrations_applied, 2);
+    assert_eq!(status.migrations_applied, 3);
     assert!(status.settings_initialized);
 }
 
