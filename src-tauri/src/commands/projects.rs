@@ -6,9 +6,12 @@ use tauri::State;
 use crate::{
     app_state::AppState,
     error::AppError,
+    sessions::{self, repo::UnmatchedSessionSummary, SessionSource},
     settings,
     store::project_repo::{self, StoredProjectSnapshot},
 };
+
+const DAY_MS: i64 = 86_400_000;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -43,6 +46,15 @@ pub struct PortfolioProjectCardDto {
     pub parse_error: Option<String>,
     pub last_activity_at: Option<i64>,
     pub last_scanned_at: i64,
+    pub session_sparkline_7d: Vec<SessionSparklineDayDto>,
+    pub sessions_last_7d: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionSparklineDayDto {
+    pub date: String,
+    pub count: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -59,6 +71,18 @@ pub struct HiddenProjectDto {
 pub struct UnmatchedSessionsDto {
     pub count: u64,
     pub label: String,
+    pub claude_count: i64,
+    pub codex_count: i64,
+    pub recent: Vec<RecentUnmatchedSessionDto>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecentUnmatchedSessionDto {
+    pub id: String,
+    pub source: String,
+    pub source_path: String,
+    pub started_at: Option<i64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -114,23 +138,71 @@ pub async fn get_portfolio_for_app(state: &AppState) -> Result<PortfolioDto, App
         }
     }
 
+    let visible_project_ids = projects
+        .iter()
+        .map(|project| project.id.clone())
+        .collect::<Vec<_>>();
+    let now_ms = current_epoch_ms();
+    let today_start_ms = now_ms - (now_ms % DAY_MS);
+    let seven_days_start_ms = today_start_ms - (6 * DAY_MS);
+    let session_summary = connection
+        .interact(move |connection| {
+            sessions::repo::load_portfolio_session_summary(
+                connection,
+                &visible_project_ids,
+                today_start_ms,
+                seven_days_start_ms,
+            )
+        })
+        .await
+        .map_err(AppError::store)??;
+
+    for project in &mut projects {
+        let buckets = session_summary
+            .sparkline_by_project
+            .get(&project.id)
+            .copied()
+            .unwrap_or([0; 7]);
+        project.sessions_last_7d = buckets.iter().sum();
+        project.session_sparkline_7d = buckets
+            .iter()
+            .enumerate()
+            .map(|(index, count)| SessionSparklineDayDto {
+                date: (seven_days_start_ms + (index as i64 * DAY_MS)).to_string(),
+                count: *count,
+            })
+            .collect();
+    }
+
     let stats = PortfolioStatsDto {
         projects_tracked: projects.len(),
         active_milestones: projects
             .iter()
             .filter(|project| project.current_milestone_name.is_some())
             .count(),
-        sessions_today: 0,
-        tokens_today: 0,
+        sessions_today: session_summary.sessions_today.max(0) as u64,
+        tokens_today: session_summary.tokens_today.max(0) as u64,
     };
+    let unmatched_count = session_summary.unmatched_count.max(0) as u64;
 
     Ok(PortfolioDto {
         stats,
         projects,
         hidden_projects,
         unmatched_sessions: UnmatchedSessionsDto {
-            count: 0,
-            label: "Available after session indexing".to_string(),
+            count: unmatched_count,
+            label: if unmatched_count == 0 {
+                "No unmatched sessions".to_string()
+            } else {
+                format!("{unmatched_count} unmatched sessions")
+            },
+            claude_count: session_summary.unmatched_claude_count,
+            codex_count: session_summary.unmatched_codex_count,
+            recent: session_summary
+                .recent_unmatched
+                .into_iter()
+                .map(RecentUnmatchedSessionDto::from)
+                .collect(),
         },
     })
 }
@@ -165,8 +237,31 @@ impl From<StoredProjectSnapshot> for PortfolioProjectCardDto {
             parse_error: snapshot.parse_error,
             last_activity_at: snapshot.last_activity_at,
             last_scanned_at: snapshot.last_scanned_at,
+            session_sparkline_7d: Vec::new(),
+            sessions_last_7d: 0,
         }
     }
+}
+
+impl From<UnmatchedSessionSummary> for RecentUnmatchedSessionDto {
+    fn from(session: UnmatchedSessionSummary) -> Self {
+        Self {
+            id: session.id,
+            source: match session.source {
+                SessionSource::Claude => "claude".to_string(),
+                SessionSource::Codex => "codex".to_string(),
+            },
+            source_path: session.source_path,
+            started_at: session.started_at,
+        }
+    }
+}
+
+fn current_epoch_ms() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_millis() as i64)
+        .unwrap_or(0)
 }
 
 impl From<StoredProjectSnapshot> for HiddenProjectDto {
