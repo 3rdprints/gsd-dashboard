@@ -403,7 +403,9 @@ async fn index_sessions_for_app_persists_cumulative_metadata_after_append() {
         &claude_path,
         format!(
             "{}{}",
-            fs::read_to_string(fixture_path("claude-basic")).expect("fixture should read"),
+            fs::read_to_string(fixture_path("claude-basic"))
+                .expect("fixture should read")
+                .replace("\"input_tokens\":50", "\"input_tokens\":99"),
             "{\"type\":\"assistant\",\"timestamp\":\"2024-05-27T12:01:00Z\",\"cwd\":\"/tmp/gsd-dashboard-fixture\",\"sessionId\":\"claude-session-1\",\"message\":{\"usage\":{\"input_tokens\":10,\"output_tokens\":5}}}\n"
         ),
     )

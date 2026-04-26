@@ -120,6 +120,36 @@ pub fn load_index_state(
         .map_err(AppError::from)
 }
 
+pub fn load_indexed_session(
+    connection: &mut rusqlite::Connection,
+    session_id: &str,
+) -> Result<Option<IndexedSession>, AppError> {
+    connection
+        .query_row(
+            "SELECT id,
+                    source,
+                    source_path,
+                    source_session_id,
+                    project_id,
+                    cwd,
+                    started_at,
+                    ended_at,
+                    duration_ms,
+                    message_count,
+                    tokens_in,
+                    tokens_out,
+                    model,
+                    attribution_method,
+                    index_error
+             FROM sessions
+             WHERE id = ?1",
+            [session_id],
+            read_indexed_session,
+        )
+        .optional()
+        .map_err(AppError::from)
+}
+
 pub fn save_index_state(
     transaction: &rusqlite::Transaction<'_>,
     state: &SessionIndexState,

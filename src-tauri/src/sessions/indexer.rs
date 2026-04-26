@@ -13,9 +13,11 @@ use crate::{
     error::AppError,
     events::SessionIndexEvent,
     sessions::{
-        claude::parse_claude_record, codex::parse_codex_record, matcher::match_project,
-        repo::persist_indexed_file_result, IndexedSession, ProjectRoot, SessionIndexState,
-        SessionParseAccumulator, SessionSource,
+        claude::parse_claude_record,
+        codex::parse_codex_record,
+        matcher::match_project,
+        repo::{load_indexed_session, persist_indexed_file_result},
+        IndexedSession, ProjectRoot, SessionIndexState, SessionParseAccumulator, SessionSource,
     },
     store::project_repo,
 };
@@ -270,6 +272,17 @@ async fn load_previous_index_state(
         .map_err(AppError::store)?
 }
 
+async fn load_previous_session(
+    pool: &Pool,
+    session_id: String,
+) -> Result<Option<IndexedSession>, AppError> {
+    let connection = pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(move |connection| load_indexed_session(connection, &session_id))
+        .await
+        .map_err(AppError::store)?
+}
+
 async fn load_unmatched_count(pool: &Pool) -> Result<usize, AppError> {
     let connection = pool.get().await.map_err(AppError::store)?;
     connection
@@ -299,14 +312,10 @@ async fn index_session_file(
         .as_ref()
         .map(|state| state.last_parsed_byte_offset)
         .unwrap_or(0);
-    let current_file_size = std::fs::metadata(&source_path).map_err(AppError::io)?.len() as i64;
-    let parser_state = previous_state
-        .as_ref()
-        .filter(|state| state.last_parsed_byte_offset == current_file_size)
-        .cloned();
     let (mut accumulator, status) = tokio::task::spawn_blocking({
         let source_path = source_path.clone();
-        move || stream_session_file(source, &source_path, parser_state.as_ref())
+        let previous_state = previous_state.clone();
+        move || stream_session_file(source, &source_path, previous_state.as_ref())
     })
     .await
     .map_err(AppError::io)??;
@@ -321,6 +330,14 @@ async fn index_session_file(
     let should_persist_session =
         committed_offset > previous_offset && accumulator.session.message_count > 0;
     let sessions = if should_persist_session {
+        if previous_offset > 0 {
+            if let Some(previous_session) =
+                load_previous_session(pool, accumulator.session.id.clone()).await?
+            {
+                accumulator.session =
+                    merge_incremental_session(previous_session, accumulator.session);
+            }
+        }
         match_project(&mut accumulator.session, known_projects);
         vec![accumulator.session]
     } else {
@@ -379,6 +396,58 @@ fn current_unix_seconds() -> i64 {
         .elapsed()
         .map(|duration| duration.as_secs() as i64)
         .unwrap_or(0)
+}
+
+fn merge_incremental_session(
+    previous_session: IndexedSession,
+    delta_session: IndexedSession,
+) -> IndexedSession {
+    let started_at = min_option(previous_session.started_at, delta_session.started_at);
+    let ended_at = max_option(previous_session.ended_at, delta_session.ended_at);
+
+    IndexedSession {
+        id: delta_session.id,
+        source: delta_session.source,
+        source_path: delta_session.source_path,
+        source_session_id: delta_session
+            .source_session_id
+            .or(previous_session.source_session_id),
+        project_id: previous_session.project_id,
+        cwd: delta_session.cwd.or(previous_session.cwd),
+        started_at,
+        ended_at,
+        duration_ms: started_at.zip(ended_at).map(|(start, end)| end - start),
+        message_count: previous_session.message_count + delta_session.message_count,
+        tokens_in: sum_options(previous_session.tokens_in, delta_session.tokens_in),
+        tokens_out: sum_options(previous_session.tokens_out, delta_session.tokens_out),
+        model: delta_session.model.or(previous_session.model),
+        attribution_method: previous_session.attribution_method,
+        index_error: delta_session.index_error.or(previous_session.index_error),
+    }
+}
+
+fn min_option(left: Option<i64>, right: Option<i64>) -> Option<i64> {
+    match (left, right) {
+        (Some(left), Some(right)) => Some(left.min(right)),
+        (Some(value), None) | (None, Some(value)) => Some(value),
+        (None, None) => None,
+    }
+}
+
+fn max_option(left: Option<i64>, right: Option<i64>) -> Option<i64> {
+    match (left, right) {
+        (Some(left), Some(right)) => Some(left.max(right)),
+        (Some(value), None) | (None, Some(value)) => Some(value),
+        (None, None) => None,
+    }
+}
+
+fn sum_options(left: Option<i64>, right: Option<i64>) -> Option<i64> {
+    match (left, right) {
+        (Some(left), Some(right)) => Some(left + right),
+        (Some(value), None) | (None, Some(value)) => Some(value),
+        (None, None) => None,
+    }
 }
 
 fn empty_session(source: SessionSource, source_path: String) -> IndexedSession {
