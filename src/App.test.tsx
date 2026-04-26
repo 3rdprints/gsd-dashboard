@@ -8,7 +8,7 @@ import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "./App";
-import type { PortfolioDto, ProjectDetail, ScanEvent, SettingsInput } from "./lib/types";
+import type { PortfolioDto, ProjectDetail, ScanEvent, SessionIndexEvent, SettingsInput } from "./lib/types";
 
 const { channelInstances, invokeMock, openUrlMock, revealItemInDirMock, writeTextMock } = vi.hoisted(() => ({
   channelInstances: [] as Array<{ onmessage: ((event: unknown) => void) | null }>,
@@ -66,7 +66,17 @@ const portfolio: PortfolioDto = {
       nextCommand: "/gsd-execute-phase 3",
       parseError: null,
       lastActivityAt: 1_777_132_245,
-      lastScannedAt: 1_777_132_245
+      lastScannedAt: 1_777_132_245,
+      sessionSparkline7d: [
+        { date: "2026-04-20", count: 0 },
+        { date: "2026-04-21", count: 0 },
+        { date: "2026-04-22", count: 0 },
+        { date: "2026-04-23", count: 0 },
+        { date: "2026-04-24", count: 0 },
+        { date: "2026-04-25", count: 0 },
+        { date: "2026-04-26", count: 0 }
+      ],
+      sessionsLast7d: 0
     },
     {
       id: "deckpilot",
@@ -80,7 +90,17 @@ const portfolio: PortfolioDto = {
       nextCommand: "/gsd-next",
       parseError: "ROADMAP frontmatter could not be parsed",
       lastActivityAt: null,
-      lastScannedAt: 1_777_132_200
+      lastScannedAt: 1_777_132_200,
+      sessionSparkline7d: [
+        { date: "2026-04-20", count: 0 },
+        { date: "2026-04-21", count: 0 },
+        { date: "2026-04-22", count: 0 },
+        { date: "2026-04-23", count: 0 },
+        { date: "2026-04-24", count: 0 },
+        { date: "2026-04-25", count: 0 },
+        { date: "2026-04-26", count: 0 }
+      ],
+      sessionsLast7d: 0
     }
   ],
   hiddenProjects: [
@@ -92,7 +112,10 @@ const portfolio: PortfolioDto = {
   ],
   unmatchedSessions: {
     count: 0,
-    label: "Available after session indexing"
+    label: "No unmatched sessions",
+    claudeCount: 0,
+    codexCount: 0,
+    recent: []
   }
 };
 
@@ -105,7 +128,7 @@ describe("IPC plumbing", () => {
   });
 
   it("calls the exact command names for boot, settings, portfolio, detail, scan, and rebuild", async () => {
-    const { getBootStatus, getPortfolio, getProject, getSettings, rebuildCache, saveSettings, scanProjects } =
+    const { getBootStatus, getPortfolio, getProject, getSettings, indexSessions, rebuildCache, saveSettings, scanProjects } =
       await import("./lib/ipc");
 
     invokeMock.mockResolvedValue({});
@@ -117,6 +140,7 @@ describe("IPC plumbing", () => {
     await getProject("gsd-dashboard");
     await scanProjects(vi.fn());
     await rebuildCache(vi.fn());
+    await indexSessions(vi.fn());
 
     expect(invokeMock).toHaveBeenNthCalledWith(1, "get_boot_status");
     expect(invokeMock).toHaveBeenNthCalledWith(2, "get_settings");
@@ -128,6 +152,9 @@ describe("IPC plumbing", () => {
     });
     expect(invokeMock).toHaveBeenNthCalledWith(7, "rebuild_cache", {
       onEvent: channelInstances[1]
+    });
+    expect(invokeMock).toHaveBeenNthCalledWith(8, "index_sessions", {
+      onEvent: channelInstances[2]
     });
   });
 
@@ -183,6 +210,62 @@ describe("portfolio vertical slice", () => {
     expect(screen.getByText("Phase 03: Portfolio Vertical Slice")).toBeInTheDocument();
     expect(screen.getByText("42%")).toBeInTheDocument();
     expect(screen.getByText("Parse error")).toBeInTheDocument();
+  });
+
+  it("triggers session indexing with nonblocking progress and portfolio invalidation", async () => {
+    let indexCompleted = false;
+    invokeMock.mockImplementation((command: string, args?: Record<string, unknown>) => {
+      if (command === "get_boot_status") {
+        return Promise.resolve({
+          appDataDir: "/tmp",
+          cachePath: "/tmp/cache.db",
+          cacheReady: true,
+          walEnabled: true,
+          migrationsApplied: 3,
+          settingsInitialized: true
+        });
+      }
+      if (command === "get_settings") return Promise.resolve(defaultSettings);
+      if (command === "get_portfolio") {
+        return Promise.resolve(
+          indexCompleted
+            ? { ...portfolio, stats: { ...portfolio.stats, sessionsToday: 3, tokensToday: 2400 } }
+            : portfolio
+        );
+      }
+      if (command === "scan_projects") {
+        return Promise.resolve({ discoveredCount: 2, parsedCount: 2, errorCount: 0 });
+      }
+      if (command === "index_sessions") {
+        const event = (args as { onEvent: { onmessage: ((event: SessionIndexEvent) => void) | null } }).onEvent;
+        act(() => {
+          event.onmessage?.({
+            event: "fileIndexed",
+            data: {
+              source: "claude",
+              sourcePath: "/tmp/live.jsonl",
+              sessionsIndexed: 1,
+              unmatchedCount: 0,
+              status: "livePartial",
+              message: "Live session still writing"
+            }
+          });
+        });
+        indexCompleted = true;
+        return Promise.resolve({ filesIndexed: 1, sessionsIndexed: 1, unmatchedCount: 0, errorCount: 0 });
+      }
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+    renderWithQueryClient(<App />);
+
+    await screen.findByRole("link", { name: /GSD Dashboard/ });
+    fireEvent.click(screen.getByRole("button", { name: "Index Sessions" }));
+
+    expect(screen.getByRole("button", { name: "Index Sessions" })).toBeDisabled();
+    expect(await screen.findByText("Indexing sessions")).toBeInTheDocument();
+    expect(await screen.findByText("Live session still writing")).toBeInTheDocument();
+    expect(await screen.findByText("Session index updated")).toBeInTheDocument();
+    expect(await screen.findByText("2.4k")).toBeInTheDocument();
   });
 
   it("renders No projects found empty state when portfolio has no cards", async () => {
@@ -303,7 +386,7 @@ describe("portfolio vertical slice", () => {
     expect(screen.getByText("Hidden projects")).toBeInTheDocument();
     expect(screen.getAllByText("ListingGuru").length).toBeGreaterThan(0);
     expect(screen.getByText("Unmatched sessions")).toBeInTheDocument();
-    expect(screen.getByText("Available after session indexing")).toBeInTheDocument();
+    expect(screen.getByText("No unmatched sessions")).toBeInTheDocument();
   });
 });
 
@@ -456,6 +539,18 @@ function mockCommands(
         });
       });
       return Promise.resolve({ discoveredCount: 2, parsedCount: 2, errorCount: 0 });
+    }
+
+    if (command === "index_sessions") {
+      const event = (args as { onEvent: { onmessage: ((event: SessionIndexEvent) => void) | null } })
+        .onEvent;
+      act(() => {
+        event.onmessage?.({
+          event: "finished",
+          data: { filesIndexed: 1, sessionsIndexed: 0, unmatchedCount: 0, errorCount: 0 }
+        });
+      });
+      return Promise.resolve({ filesIndexed: 1, sessionsIndexed: 0, unmatchedCount: 0, errorCount: 0 });
     }
 
     return Promise.reject(new Error(`Unexpected command: ${command}`));
