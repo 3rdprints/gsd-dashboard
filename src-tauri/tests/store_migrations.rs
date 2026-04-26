@@ -84,7 +84,7 @@ async fn project_cache_schema_exists_after_reopen() {
     let version = store::migration_version(&pool)
         .await
         .expect("migration version should be readable");
-    assert_eq!(version, 2);
+    assert_eq!(version, 3);
 
     let conn = pool.get().await.expect("connection should be available");
     let tables = conn
