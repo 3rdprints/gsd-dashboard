@@ -1,10 +1,14 @@
+import { useEffect } from "react";
 import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
 
+import { registerAppListeners } from "./lib/appListeners";
 import { PortfolioPage } from "./routes/PortfolioPage";
 import { ProjectDetailPage } from "./routes/ProjectDetailPage";
 import { SettingsPage } from "./routes/SettingsPage";
 
 export function App() {
+  useEffect(() => registerAppListeners(), []);
+
   return (
     <BrowserRouter>
       <main className="app-shell">

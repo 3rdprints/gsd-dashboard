@@ -1,8 +1,8 @@
 use gsd_dashboard::{
     bootstrap,
-    commands::projects::{get_portfolio_for_app, get_project_for_app},
-    settings::{self, SettingsInput, TrayBarSort},
+    commands::projects::{get_portfolio_for_app_at, get_project_for_app},
     sessions::{repo as session_repo, IndexedSession, SessionIndexState, SessionSource},
+    settings::{self, SettingsInput, TrayBarSort},
     store::project_repo::{self, StoredProjectSnapshot},
 };
 
@@ -91,11 +91,15 @@ async fn insert_projects(
 }
 
 fn today_start_ms() -> i64 {
-    let now_ms = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .expect("system time should be after unix epoch")
-        .as_millis() as i64;
+    today_start_ms_for(deterministic_now_ms())
+}
+
+fn today_start_ms_for(now_ms: i64) -> i64 {
     now_ms - (now_ms % DAY_MS)
+}
+
+fn deterministic_now_ms() -> i64 {
+    1_777_132_245_000
 }
 
 fn indexed_session(
@@ -179,7 +183,7 @@ async fn portfolio_filters_hidden_projects() {
     .await;
     save_hidden_projects(&state, vec!["hidden-project"]).await;
 
-    let portfolio = get_portfolio_for_app(&state)
+    let portfolio = get_portfolio_for_app_at(&state, deterministic_now_ms())
         .await
         .expect("portfolio should load");
 
@@ -214,7 +218,7 @@ async fn portfolio_sorts_by_activity_descending() {
     )
     .await;
 
-    let portfolio = get_portfolio_for_app(&state)
+    let portfolio = get_portfolio_for_app_at(&state, deterministic_now_ms())
         .await
         .expect("portfolio should load");
     let ids = portfolio
@@ -302,7 +306,7 @@ async fn portfolio_stats_count_visible_projects_and_active_milestones() {
     .await;
     save_hidden_projects(&state, vec!["hidden-active"]).await;
 
-    let portfolio = get_portfolio_for_app(&state)
+    let portfolio = get_portfolio_for_app_at(&state, deterministic_now_ms())
         .await
         .expect("portfolio should load");
 
@@ -340,7 +344,7 @@ async fn portfolio_stats_use_indexed_sessions() {
     )
     .await;
 
-    let portfolio = get_portfolio_for_app(&state)
+    let portfolio = get_portfolio_for_app_at(&state, deterministic_now_ms())
         .await
         .expect("portfolio should load");
 
@@ -388,7 +392,7 @@ async fn portfolio_cards_include_seven_day_sparklines() {
     )
     .await;
 
-    let portfolio = get_portfolio_for_app(&state)
+    let portfolio = get_portfolio_for_app_at(&state, deterministic_now_ms())
         .await
         .expect("portfolio should load");
     let project = &portfolio.projects[0];
@@ -427,7 +431,7 @@ async fn portfolio_unmatched_summary_uses_session_rows() {
     )
     .await;
 
-    let portfolio = get_portfolio_for_app(&state)
+    let portfolio = get_portfolio_for_app_at(&state, deterministic_now_ms())
         .await
         .expect("portfolio should load");
 

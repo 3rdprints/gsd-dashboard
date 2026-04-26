@@ -42,14 +42,11 @@ fn match_encoded_claude_path<'a>(
     known_projects: &'a [ProjectRoot],
 ) -> Option<&'a ProjectRoot> {
     let encoded_project_dir = encoded_claude_project_dir(source_path)?;
-    let decoded_candidate = decode_claude_project_dir(encoded_project_dir);
 
-    known_projects.iter().find(|project| {
-        encode_known_root_for_claude(&project.root_path) == encoded_project_dir
-            || decoded_candidate
-                .as_deref()
-                .is_some_and(|candidate| roots_overlap(candidate, &project.root_path))
-    })
+    known_projects
+        .iter()
+        .filter(|project| encoded_roots_overlap(encoded_project_dir, &project.root_path))
+        .max_by_key(|project| project.root_path.len())
 }
 
 fn encoded_claude_project_dir(source_path: &str) -> Option<&str> {
@@ -63,20 +60,17 @@ fn encoded_claude_project_dir(source_path: &str) -> Option<&str> {
         .filter(|part| !part.is_empty())
 }
 
-fn decode_claude_project_dir(encoded: &str) -> Option<String> {
-    encoded
-        .strip_prefix('-')
-        .map(|absolute| format!("/{}", absolute.replace('-', "/")))
-}
-
 fn encode_known_root_for_claude(root_path: &str) -> String {
     root_path.replace('/', "-")
 }
 
-fn roots_overlap(candidate: &str, known_root: &str) -> bool {
-    let candidate = Path::new(candidate);
-    let known_root = Path::new(known_root);
-    candidate == known_root
-        || candidate.starts_with(known_root)
-        || known_root.starts_with(candidate)
+fn encoded_roots_overlap(encoded_project_dir: &str, known_root: &str) -> bool {
+    let encoded_known_root = encode_known_root_for_claude(known_root);
+    encoded_project_dir == encoded_known_root
+        || encoded_project_dir
+            .strip_prefix(&encoded_known_root)
+            .is_some_and(|rest| rest.starts_with('-'))
+        || encoded_known_root
+            .strip_prefix(encoded_project_dir)
+            .is_some_and(|rest| rest.starts_with('-'))
 }

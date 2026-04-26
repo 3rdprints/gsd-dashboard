@@ -103,7 +103,11 @@ fn parse_next_command(body: &str) -> Option<String> {
             continue;
         }
 
-        if (in_fence || trimmed.starts_with('/')) && !trimmed.is_empty() {
+        if in_fence && trimmed.starts_with('/') {
+            return Some(trimmed.to_string());
+        }
+
+        if !in_fence && trimmed.starts_with('/') {
             return Some(trimmed.to_string());
         }
     }

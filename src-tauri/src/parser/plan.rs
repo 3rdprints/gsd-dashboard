@@ -117,7 +117,7 @@ fn tag_value(block: &str, tag: &str) -> Option<String> {
 fn raw_frontmatter_value(matter: &str, key: &str) -> Option<String> {
     let prefix = format!("{key}:");
     matter.lines().find_map(|line| {
-        let value = line.trim().strip_prefix(&prefix)?.trim().trim_matches('"');
+        let value = line.strip_prefix(&prefix)?.trim().trim_matches('"');
         (!value.is_empty()).then_some(value.to_string())
     })
 }

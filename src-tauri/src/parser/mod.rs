@@ -186,7 +186,7 @@ pub fn derive_progress(
     roadmap: &roadmap::RoadmapDocument,
     plans: &[PlanDocument],
 ) -> ProgressSummary {
-    if roadmap.phase_checkbox_total > 0 && roadmap.phase_checkbox_completed > 0 {
+    if roadmap.phase_checkbox_total > 0 {
         return ProgressSummary {
             percent: roadmap.milestone_progress_pct,
             source: "roadmapPhaseCheckboxes".to_string(),

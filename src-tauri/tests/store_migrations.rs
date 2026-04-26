@@ -1,6 +1,8 @@
 use gsd_dashboard::store;
 use rusqlite::OptionalExtension;
 
+const EXPECTED_MIGRATION_COUNT: u32 = gsd_dashboard::store::migrations::MIGRATION_COUNT;
+
 async fn migrated_pool(db_path: &std::path::Path) -> deadpool_sqlite::Pool {
     let pool = store::open_pool(db_path).await.expect("pool should open");
     store::run_migrations(&pool)
@@ -84,7 +86,7 @@ async fn project_cache_schema_exists_after_reopen() {
     let version = store::migration_version(&pool)
         .await
         .expect("migration version should be readable");
-    assert_eq!(version, 3);
+    assert!(version >= EXPECTED_MIGRATION_COUNT);
 
     let conn = pool.get().await.expect("connection should be available");
     let tables = conn

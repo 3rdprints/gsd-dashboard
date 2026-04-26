@@ -30,7 +30,6 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
   useEffect(() => {
     if (settings.data && scanRootDrafts.length === 0) {
       setScanRootDrafts(settings.data.scanRoots.length > 0 ? settings.data.scanRoots : [""]);
-      setHasSavedSettings(true);
     }
   }, [scanRootDrafts.length, settings.data]);
 

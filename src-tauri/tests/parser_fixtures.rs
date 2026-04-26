@@ -71,9 +71,7 @@ fn parse_fixture_without_panicking(project_name: &'static str) -> FixtureParseRe
 }
 
 fn parse_fixture(project_name: &'static str) -> Result<FixtureParseResult, String> {
-    let planning_path = PathBuf::from("/Users/smacdonald/homegit")
-        .join(project_name)
-        .join(".planning");
+    let planning_path = fixture_base_path().join(project_name).join(".planning");
     let roadmap_bytes = fs::read(planning_path.join("ROADMAP.md"))
         .map_err(|error| format!("ROADMAP.md missing: {error}"))?;
     let roadmap = roadmap::parse_roadmap(&roadmap_bytes)
@@ -127,6 +125,18 @@ fn parse_fixture(project_name: &'static str) -> Result<FixtureParseResult, Strin
             .iter()
             .any(|phase| phase.number.contains('.')),
     })
+}
+
+fn fixture_base_path() -> PathBuf {
+    std::env::var_os("GSD_DASHBOARD_FIXTURE_BASE")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .and_then(Path::parent)
+                .map(Path::to_path_buf)
+                .unwrap_or_else(|| PathBuf::from("."))
+        })
 }
 
 fn read_optional(path: PathBuf) -> Result<Option<Vec<u8>>, String> {

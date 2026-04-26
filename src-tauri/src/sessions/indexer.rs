@@ -2,7 +2,7 @@ use std::{
     fs::File,
     io::{BufRead, BufReader, Seek},
     path::{Path, PathBuf},
-    time::UNIX_EPOCH,
+    time::{SystemTime, UNIX_EPOCH},
 };
 
 use deadpool_sqlite::Pool;
@@ -392,8 +392,8 @@ fn build_index_state(
 }
 
 fn current_unix_seconds() -> i64 {
-    UNIX_EPOCH
-        .elapsed()
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_secs() as i64)
         .unwrap_or(0)
 }

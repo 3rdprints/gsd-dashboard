@@ -40,6 +40,10 @@ fn fixture_path(name: &str) -> &'static str {
             env!("CARGO_MANIFEST_DIR"),
             "/fixtures/sessions/codex-basic.jsonl"
         ),
+        "codex-sparse" => concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/fixtures/sessions/codex-sparse.jsonl"
+        ),
         _ => panic!("unknown fixture"),
     }
 }
@@ -215,6 +219,26 @@ fn codex_session_fixture_extracts_best_effort_metadata() {
 }
 
 #[test]
+fn codex_sparse_session_fixture_uses_optional_field_fallbacks() {
+    let source_path = fixture_path("codex-sparse");
+    let (accumulator, status) =
+        stream_session_file(SessionSource::Codex, Path::new(source_path), None)
+            .expect("codex sparse fixture should stream");
+
+    assert!(matches!(status, StreamFileStatus::Complete { .. }));
+    assert_eq!(
+        accumulator.session.source_session_id.as_deref(),
+        Some("codex-session-sparse")
+    );
+    assert_eq!(
+        accumulator.session.cwd.as_deref(),
+        Some("/tmp/gsd-dashboard-fixture")
+    );
+    assert_eq!(accumulator.session.tokens_in, Some(21));
+    assert_eq!(accumulator.session.tokens_out, Some(8));
+}
+
+#[test]
 fn partial_trailing_line_keeps_offset_before_partial() {
     let source_path = fixture_path("claude-partial");
     let bytes = fs::read(source_path).expect("fixture should be readable");
@@ -275,6 +299,29 @@ fn claude_path_fallback_decodes_directory_encoding_against_known_roots() {
         id: "gsd-dashboard".to_string(),
         root_path: "/Users/smacdonald/homegit/gsd-dashboard".to_string(),
     }];
+    let mut session = empty_session(
+        SessionSource::Claude,
+        "~/.claude/projects/-Users-smacdonald-homegit-gsd-dashboard/claude-session-1.jsonl",
+    );
+
+    match_project(&mut session, &known_projects);
+
+    assert_eq!(session.project_id.as_deref(), Some("gsd-dashboard"));
+    assert_eq!(session.attribution_method, "claude_path");
+}
+
+#[test]
+fn claude_path_fallback_prefers_most_specific_encoded_root() {
+    let known_projects = vec![
+        ProjectRoot {
+            id: "homegit".to_string(),
+            root_path: "/Users/smacdonald/homegit".to_string(),
+        },
+        ProjectRoot {
+            id: "gsd-dashboard".to_string(),
+            root_path: "/Users/smacdonald/homegit/gsd-dashboard".to_string(),
+        },
+    ];
     let mut session = empty_session(
         SessionSource::Claude,
         "~/.claude/projects/-Users-smacdonald-homegit-gsd-dashboard/claude-session-1.jsonl",

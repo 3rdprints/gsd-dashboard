@@ -10,6 +10,6 @@ export async function openProjectInFinder(rootPath: string): Promise<void> {
 }
 
 export async function openProjectInVsCode(rootPath: string): Promise<void> {
-  const encodedPath = rootPath.split("/").map(encodeURIComponent).join("/");
+  const encodedPath = rootPath.replace(/\\/g, "/").split("/").map(encodeURIComponent).join("/");
   await openUrl(`vscode://file/${encodedPath}`);
 }

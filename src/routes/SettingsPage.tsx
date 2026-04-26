@@ -26,7 +26,31 @@ export function SettingsPage() {
   const saveSettings = useMutation(createSaveSettingsMutationOptions(queryClient));
   const [scanState, setScanState] = useState(initialScanState);
   const [confirmedRebuild, setConfirmedRebuild] = useState(false);
-  const isRebuilding = scanState.status === "scanning";
+  const rebuildCacheMutation = useMutation({
+    mutationFn: () =>
+      rebuildCache((event) => {
+        setScanState((current) => reduceScanEvent(current, event));
+      }),
+    onMutate: () => {
+      setScanState({
+        ...initialScanState,
+        status: "scanning",
+        progressText: "Walking scan roots"
+      });
+    },
+    onSuccess: async (summary) => {
+      setScanState((current) => completeScanState(current, summary));
+      await queryClient.invalidateQueries({ queryKey: portfolioQueryKey });
+    },
+    onError: () => {
+      setScanState((current) => ({
+        ...current,
+        status: "failed",
+        progressText: "Scan failed"
+      }));
+    }
+  });
+  const isRebuilding = scanState.status === "scanning" || rebuildCacheMutation.isPending;
 
   async function handleUnhide(projectId: string) {
     if (!settings.data) return;
@@ -37,28 +61,10 @@ export function SettingsPage() {
     });
   }
 
-  async function handleRebuild() {
+  function handleRebuild() {
     if (!confirmedRebuild || isRebuilding) return;
 
-    setScanState({
-      ...initialScanState,
-      status: "scanning",
-      progressText: "Walking scan roots"
-    });
-
-    try {
-      const summary = await rebuildCache((event) => {
-        setScanState((current) => reduceScanEvent(current, event));
-      });
-      setScanState((current) => completeScanState(current, summary));
-      await queryClient.invalidateQueries({ queryKey: portfolioQueryKey });
-    } catch {
-      setScanState((current) => ({
-        ...current,
-        status: "failed",
-        progressText: "Scan failed"
-      }));
-    }
+    rebuildCacheMutation.mutate();
   }
 
   return (

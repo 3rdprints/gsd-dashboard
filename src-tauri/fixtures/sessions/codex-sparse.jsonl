@@ -1,0 +1,2 @@
+{"type":"session_meta","timestamp":"2024-05-27T13:00:00Z","cwd":"/tmp/gsd-dashboard-fixture","id":"codex-session-sparse"}
+{"type":"response","payload":{"id":"codex-session-sparse","token_usage":{"tokens_in":21,"completion_tokens":8}}}

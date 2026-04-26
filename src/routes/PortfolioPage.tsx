@@ -36,6 +36,54 @@ export function PortfolioPage() {
   const settings = useQuery({ queryKey: settingsQueryKey, queryFn: getSettings });
   const portfolio = useQuery({ queryKey: portfolioQueryKey, queryFn: getPortfolio });
   const saveSettings = useMutation(createSaveSettingsMutationOptions(queryClient));
+  const scanProjectsMutation = useMutation({
+    mutationFn: () =>
+      scanProjects((event) => {
+        setScanState((current) => reduceScanEvent(current, event));
+      }),
+    onMutate: () => {
+      setScanState({
+        ...initialScanState,
+        status: "scanning",
+        progressText: "Walking scan roots"
+      });
+    },
+    onSuccess: async (summary) => {
+      setScanState((current) => completeScanState(current, summary));
+      await queryClient.invalidateQueries({ queryKey: portfolioQueryKey });
+    },
+    onError: () => {
+      setScanState((current) => ({
+        ...current,
+        status: "failed",
+        progressText: "Scan failed"
+      }));
+    }
+  });
+  const indexSessionsMutation = useMutation({
+    mutationFn: () =>
+      indexSessions((event) => {
+        setSessionIndexState((current) => reduceSessionIndexEvent(current, event));
+      }),
+    onMutate: () => {
+      setSessionIndexState({
+        ...initialSessionIndexState,
+        status: "indexing",
+        progressText: "Indexing sessions"
+      });
+    },
+    onSuccess: async (summary) => {
+      setSessionIndexState((current) => completeSessionIndexState(current, summary));
+      await queryClient.invalidateQueries({ queryKey: portfolioQueryKey });
+    },
+    onError: () => {
+      setSessionIndexState((current) => ({
+        ...current,
+        status: "failed",
+        progressText: "Some session files could not be indexed"
+      }));
+    }
+  });
 
   useEffect(() => {
     if (initialScanStarted.current || !bootStatus.data || !settings.data) {
@@ -46,26 +94,8 @@ export function PortfolioPage() {
     void runScan();
   }, [bootStatus.data, settings.data]);
 
-  async function runScan() {
-    setScanState({
-      ...initialScanState,
-      status: "scanning",
-      progressText: "Walking scan roots"
-    });
-
-    try {
-      const summary = await scanProjects((event) => {
-        setScanState((current) => reduceScanEvent(current, event));
-      });
-      setScanState((current) => completeScanState(current, summary));
-      await queryClient.invalidateQueries({ queryKey: portfolioQueryKey });
-    } catch {
-      setScanState((current) => ({
-        ...current,
-        status: "failed",
-        progressText: "Scan failed"
-      }));
-    }
+  function runScan() {
+    scanProjectsMutation.mutate();
   }
 
   async function handleHideProject(projectId: string) {
@@ -81,26 +111,8 @@ export function PortfolioPage() {
     });
   }
 
-  async function runSessionIndex() {
-    setSessionIndexState({
-      ...initialSessionIndexState,
-      status: "indexing",
-      progressText: "Indexing sessions"
-    });
-
-    try {
-      const summary = await indexSessions((event) => {
-        setSessionIndexState((current) => reduceSessionIndexEvent(current, event));
-      });
-      setSessionIndexState((current) => completeSessionIndexState(current, summary));
-      await queryClient.invalidateQueries({ queryKey: portfolioQueryKey });
-    } catch {
-      setSessionIndexState((current) => ({
-        ...current,
-        status: "failed",
-        progressText: "Some session files could not be indexed"
-      }));
-    }
+  function runSessionIndex() {
+    indexSessionsMutation.mutate();
   }
 
   return (

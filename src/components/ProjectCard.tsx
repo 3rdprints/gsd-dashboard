@@ -2,6 +2,7 @@ import { MouseEvent, useState } from "react";
 import { flushSync } from "react-dom";
 import { ClipboardCopy, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { copyNextCommand } from "../lib/actions";
 import type { PortfolioProjectCard } from "../lib/types";
@@ -91,6 +92,10 @@ export function ProjectCard({ project, onHideProject, hideDisabled = false }: Pr
 function SessionSparkline({ project }: { project: PortfolioProjectCard }) {
   const maxCount = Math.max(1, ...project.sessionSparkline7d.map((day) => day.count));
   const accessibleText = `${project.sessionsLast7d} sessions in the last 7 days`;
+  const sparklineData = project.sessionSparkline7d.map((day) => ({
+    date: day.date,
+    count: day.count
+  }));
 
   return (
     <div className="session-sparkline-row">
@@ -101,13 +106,20 @@ function SessionSparkline({ project }: { project: PortfolioProjectCard }) {
         <p className="sr-only">{accessibleText}</p>
       </div>
       <div className="session-sparkline" aria-label={accessibleText}>
-        {project.sessionSparkline7d.map((day) => (
-          <span
-            key={day.date}
-            className={day.count > 0 ? "session-sparkline-bar is-active" : "session-sparkline-bar"}
-            style={{ height: `${Math.max(4, Math.round((day.count / maxCount) * 24))}px` }}
-          />
-        ))}
+        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+          <BarChart data={sparklineData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+            <XAxis dataKey="date" hide />
+            <YAxis hide domain={[0, maxCount]} />
+            <Tooltip cursor={false} content={() => null} />
+            <Bar
+              dataKey="count"
+              fill="#2563EB"
+              isAnimationActive={false}
+              minPointSize={4}
+              radius={[2, 2, 0, 0]}
+            />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );

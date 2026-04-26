@@ -116,6 +116,13 @@ pub async fn get_project(
 }
 
 pub async fn get_portfolio_for_app(state: &AppState) -> Result<PortfolioDto, AppError> {
+    get_portfolio_for_app_at(state, current_epoch_ms()).await
+}
+
+pub async fn get_portfolio_for_app_at(
+    state: &AppState,
+    now_ms: i64,
+) -> Result<PortfolioDto, AppError> {
     let app_settings = settings::load_or_initialize(&state.pool, &state.home_dir).await?;
     let hidden_project_ids = app_settings
         .hidden_project_ids
@@ -142,7 +149,6 @@ pub async fn get_portfolio_for_app(state: &AppState) -> Result<PortfolioDto, App
         .iter()
         .map(|project| project.id.clone())
         .collect::<Vec<_>>();
-    let now_ms = current_epoch_ms();
     let today_start_ms = now_ms - (now_ms % DAY_MS);
     let seven_days_start_ms = today_start_ms - (6 * DAY_MS);
     let session_summary = connection
@@ -260,7 +266,7 @@ impl From<UnmatchedSessionSummary> for RecentUnmatchedSessionDto {
 fn current_epoch_ms() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .map(|duration| duration.as_millis() as i64)
+        .map(|duration| duration.as_millis().try_into().unwrap_or(0))
         .unwrap_or(0)
 }
 

@@ -44,7 +44,11 @@ pub async fn scan_roots(
         for candidate in candidates {
             summary.discovered_count += 1;
 
-            let identity = infer_project_identity(&candidate);
+            let identity_candidate = candidate.clone();
+            let identity =
+                tokio::task::spawn_blocking(move || infer_project_identity(&identity_candidate))
+                    .await
+                    .map_err(AppError::io)?;
             on_event(ScanEvent::ProjectFound {
                 project_id: identity.id.clone(),
                 project_name: identity.name.clone(),
@@ -120,7 +124,7 @@ fn parse_candidate_files(candidate: &PlanningProjectCandidate) -> Result<Project
         })
         .ok();
 
-    let milestones = read_optional(&milestones_path)?
+    let milestones = read_optional_or_issue(&milestones_path, &mut parse_issues)
         .map(|bytes| {
             roadmap::parse_milestones(&bytes)
                 .map_err(|error| error.issue(display_path(&milestones_path)))
@@ -133,7 +137,7 @@ fn parse_candidate_files(candidate: &PlanningProjectCandidate) -> Result<Project
         .flatten()
         .unwrap_or_default();
 
-    let state = read_optional(&state_path)?
+    let state = read_optional_or_issue(&state_path, &mut parse_issues)
         .map(|bytes| parse_state(&bytes).map_err(|error| error.issue(display_path(&state_path))))
         .transpose()
         .map_err(|issue| {
@@ -142,7 +146,7 @@ fn parse_candidate_files(candidate: &PlanningProjectCandidate) -> Result<Project
         .ok()
         .flatten();
 
-    let config = read_optional(&config_path)?
+    let config = read_optional_or_issue(&config_path, &mut parse_issues)
         .map(|bytes| parse_config(&bytes).map_err(|error| error.issue(display_path(&config_path))))
         .transpose()
         .map_err(|issue| {
@@ -207,93 +211,76 @@ fn parse_plan_files(
         return Ok(plans);
     }
 
-    let phase_entries = match std::fs::read_dir(&phases_path) {
+    collect_plan_files_recursive(&phases_path, parse_issues, &mut plans);
+    Ok(plans)
+}
+
+fn collect_plan_files_recursive(
+    directory: &Path,
+    parse_issues: &mut Vec<ParseIssue>,
+    plans: &mut Vec<PlanDocument>,
+) {
+    let entries = match std::fs::read_dir(directory) {
         Ok(entries) => entries,
         Err(error) => {
             parse_issues.push(ParseIssue {
-                file_path: display_path(&phases_path),
+                file_path: display_path(directory),
                 kind: "io".to_string(),
                 message: error.to_string(),
             });
-            return Ok(plans);
+            return;
         }
     };
 
-    for phase_entry in phase_entries {
-        let phase_entry = match phase_entry {
+    for entry in entries {
+        let entry = match entry {
             Ok(entry) => entry,
             Err(error) => {
                 parse_issues.push(ParseIssue {
-                    file_path: display_path(&phases_path),
+                    file_path: display_path(directory),
                     kind: "io".to_string(),
                     message: error.to_string(),
                 });
                 continue;
             }
         };
-        let file_type = match phase_entry.file_type() {
+        let entry_path = entry.path();
+        let file_type = match entry.file_type() {
             Ok(file_type) => file_type,
             Err(error) => {
                 parse_issues.push(ParseIssue {
-                    file_path: display_path(&phase_entry.path()),
+                    file_path: display_path(&entry_path),
                     kind: "io".to_string(),
                     message: error.to_string(),
                 });
                 continue;
             }
         };
-        if !file_type.is_dir() {
+        if file_type.is_dir() {
+            collect_plan_files_recursive(&entry_path, parse_issues, plans);
             continue;
         }
 
-        let plan_entries = match std::fs::read_dir(phase_entry.path()) {
-            Ok(entries) => entries,
-            Err(error) => {
-                parse_issues.push(ParseIssue {
-                    file_path: display_path(&phase_entry.path()),
-                    kind: "io".to_string(),
-                    message: error.to_string(),
-                });
-                continue;
-            }
-        };
+        let is_plan = entry_path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name.ends_with("-PLAN.md"));
+        if !is_plan {
+            continue;
+        }
 
-        for plan_entry in plan_entries {
-            let plan_entry = match plan_entry {
-                Ok(entry) => entry,
-                Err(error) => {
-                    parse_issues.push(ParseIssue {
-                        file_path: display_path(&phase_entry.path()),
-                        kind: "io".to_string(),
-                        message: error.to_string(),
-                    });
-                    continue;
-                }
-            };
-            let plan_path = plan_entry.path();
-            let is_plan = plan_path
-                .file_name()
-                .and_then(|name| name.to_str())
-                .is_some_and(|name| name.ends_with("-PLAN.md"));
-            if !is_plan {
-                continue;
-            }
-
-            match std::fs::read(&plan_path) {
-                Ok(bytes) => match parse_plan(&bytes) {
-                    Ok(plan) => plans.push(plan),
-                    Err(error) => parse_issues.push(error.issue(display_path(&plan_path))),
-                },
-                Err(error) => parse_issues.push(ParseIssue {
-                    file_path: display_path(&plan_path),
-                    kind: "io".to_string(),
-                    message: error.to_string(),
-                }),
-            }
+        match std::fs::read(&entry_path) {
+            Ok(bytes) => match parse_plan(&bytes) {
+                Ok(plan) => plans.push(plan),
+                Err(error) => parse_issues.push(error.issue(display_path(&entry_path))),
+            },
+            Err(error) => parse_issues.push(ParseIssue {
+                file_path: display_path(&entry_path),
+                kind: "io".to_string(),
+                message: error.to_string(),
+            }),
         }
     }
-
-    Ok(plans)
 }
 
 fn read_required(path: &Path) -> Result<Vec<u8>, ParseIssue> {
@@ -312,6 +299,20 @@ fn read_optional(path: &Path) -> Result<Option<Vec<u8>>, AppError> {
     }
 }
 
+fn read_optional_or_issue(path: &Path, parse_issues: &mut Vec<ParseIssue>) -> Option<Vec<u8>> {
+    match read_optional(path) {
+        Ok(bytes) => bytes,
+        Err(error) => {
+            parse_issues.push(ParseIssue {
+                file_path: display_path(path),
+                kind: "io".to_string(),
+                message: error.to_string(),
+            });
+            None
+        }
+    }
+}
+
 async fn persist_project_scan(
     pool: &Pool,
     candidate: &PlanningProjectCandidate,
@@ -320,6 +321,7 @@ async fn persist_project_scan(
 ) -> Result<(), AppError> {
     let now = unix_timestamp();
     let first_issue = project_scan.parse_issues.first().cloned();
+    let scan_log_issues = project_scan.parse_issues.clone();
     let errors_json = serde_json::to_string(&project_scan.parse_issues)?;
     let stored_snapshot = stored_snapshot(project_scan.snapshot, first_issue.as_ref(), now)?;
     let phase_plans = stored_phase_plans(&stored_snapshot.id, &stored_snapshot.parsed_blob)?;
@@ -332,17 +334,17 @@ async fn persist_project_scan(
         .interact(move |connection| {
             project_repo::upsert_project_snapshot(connection, stored_snapshot, phase_plans, now)?;
 
-            if let Some(issue) = first_issue {
+            for issue in scan_log_issues {
                 project_repo::append_scan_log(
                     connection,
                     project_repo::StoredScanLogEntry {
-                        project_id: Some(project_id),
-                        root_path: Some(root_path),
-                        planning_path: Some(planning_path),
+                        project_id: Some(project_id.clone()),
+                        root_path: Some(root_path.clone()),
+                        planning_path: Some(planning_path.clone()),
                         file_path: Some(issue.file_path),
                         status: "parseError".to_string(),
                         message: Some(issue.message),
-                        errors_json,
+                        errors_json: errors_json.clone(),
                         created_at: 0,
                     },
                     now,
@@ -416,14 +418,14 @@ fn stored_phase_plans(
             );
 
             StoredPhasePlan {
-            project_id: project_id.to_string(),
-            phase_number,
-            phase_name: Some(plan.phase.name),
-            plan_number: Some(plan_number),
-            plan_path,
-            checklist_json: serde_json::to_string(&plan.checklist)
-                .unwrap_or_else(|_| "[]".to_string()),
-            updated_at: 0,
+                project_id: project_id.to_string(),
+                phase_number,
+                phase_name: Some(plan.phase.name),
+                plan_number: Some(plan_number),
+                plan_path,
+                checklist_json: serde_json::to_string(&plan.checklist)
+                    .unwrap_or_else(|_| "[]".to_string()),
+                updated_at: 0,
             }
         })
         .collect())

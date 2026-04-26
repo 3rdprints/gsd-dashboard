@@ -38,6 +38,16 @@ export function ProjectDetailPage() {
     return <section className="settings-panel">Loading project</section>;
   }
 
+  if (project.isError) {
+    return (
+      <section className="settings-panel" role="alert">
+        <h1>Project failed to load</h1>
+        <p>Check the project cache and try again.</p>
+        <Link to="/">Back to Portfolio</Link>
+      </section>
+    );
+  }
+
   if (!project.data) {
     return (
       <section className="settings-panel">

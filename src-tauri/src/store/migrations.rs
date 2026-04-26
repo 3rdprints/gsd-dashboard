@@ -114,6 +114,7 @@ const MIGRATION_SLICE: &[M<'_>] = &[
         ON sessions(started_at);",
     ),
 ];
+pub const MIGRATION_COUNT: u32 = MIGRATION_SLICE.len() as u32;
 const MIGRATIONS: Migrations<'_> = Migrations::from_slice(MIGRATION_SLICE);
 
 pub fn run(connection: &mut Connection) -> Result<(), rusqlite_migration::Error> {

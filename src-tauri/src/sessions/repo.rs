@@ -418,7 +418,9 @@ fn path_matches_root(path: &str, root: &str) -> bool {
 
 fn claude_source_path_matches_root(source_path: &str, root: &str) -> bool {
     let encoded_root = root.replace('/', "-");
-    source_path.contains(&encoded_root)
+    source_path
+        .split('/')
+        .any(|segment| segment == encoded_root)
 }
 
 fn read_index_state(row: &rusqlite::Row<'_>) -> rusqlite::Result<SessionIndexState> {

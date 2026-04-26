@@ -7,9 +7,10 @@ import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 import type { PortfolioDto, ProjectDetail, ScanEvent, SessionIndexEvent, SettingsInput } from "./lib/types";
-const { channelInstances, invokeMock, openUrlMock, revealItemInDirMock, writeTextMock } = vi.hoisted(() => ({
+const { channelInstances, invokeMock, listenMock, openUrlMock, revealItemInDirMock, writeTextMock } = vi.hoisted(() => ({
   channelInstances: [] as Array<{ onmessage: ((event: unknown) => void) | null }>,
   invokeMock: vi.fn(),
+  listenMock: vi.fn(() => Promise.resolve(vi.fn())),
   openUrlMock: vi.fn(),
   revealItemInDirMock: vi.fn(),
   writeTextMock: vi.fn()
@@ -26,10 +27,19 @@ vi.mock("@tauri-apps/api/core", () => ({
 vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
   writeText: writeTextMock
 }));
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: listenMock
+}));
 vi.mock("@tauri-apps/plugin-opener", () => ({
   openUrl: openUrlMock,
   revealItemInDir: revealItemInDirMock
 }));
+class TestResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+globalThis.ResizeObserver = TestResizeObserver as typeof ResizeObserver;
 const defaultSettings: SettingsInput = {
   scanRoots: ["~/Documents"],
   hiddenProjectIds: ["listingguru"],
@@ -240,7 +250,7 @@ describe("portfolio vertical slice", () => {
     expect(await screen.findByText("Indexing sessions")).toBeInTheDocument();
     expect(await screen.findByText("Live session still writing")).toBeInTheDocument();
     expect(await screen.findByText("Session index updated")).toBeInTheDocument();
-    expect(await screen.findByText("2.4k")).toBeInTheDocument();
+    expect(await screen.findByText("2.4K")).toBeInTheDocument();
   });
   it("renders No projects found empty state when portfolio has no cards", async () => {
     mockCommands({

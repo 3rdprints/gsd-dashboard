@@ -89,7 +89,7 @@ export function reduceSessionIndexEvent(
   switch (event.event) {
     case "started":
       return {
-        ...current,
+        ...initialSessionIndexState,
         status: "indexing",
         progressText: "Indexing sessions"
       };
@@ -131,11 +131,8 @@ export function completeSessionIndexState(
   return {
     ...current,
     status: "complete",
-    filesProcessed: Math.max(readCount(summary.filesProcessed, summary.files_processed), current.filesProcessed),
-    sessionsPersisted: Math.max(
-      readCount(summary.sessionsPersisted, summary.sessions_persisted),
-      current.sessionsPersisted
-    ),
+    filesProcessed: readCount(summary.filesProcessed, summary.files_processed),
+    sessionsPersisted: readCount(summary.sessionsPersisted, summary.sessions_persisted),
     unmatchedCount: readCount(summary.unmatchedCount, summary.unmatched_count),
     errorCount,
     progressText: errorCount > 0 ? "Some session files could not be indexed" : "Session index updated"

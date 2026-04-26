@@ -92,6 +92,11 @@ export function ScanProgressPanel({ state }: ScanProgressPanelProps) {
 export function reduceScanEvent(current: ScanState, event: ScanEvent): ScanState {
   switch (event.event) {
     case "started":
+      return {
+        ...initialScanState,
+        status: "scanning",
+        progressText: "Walking scan roots"
+      };
     case "rootStarted":
       return {
         ...current,
@@ -136,13 +141,14 @@ type ScanSummaryPayload = ScanSummary & {
 
 export function completeScanState(current: ScanState, summary: ScanSummaryPayload): ScanState {
   const discoveredCount = readCount(summary.discoveredCount, summary.discovered_count);
-  const errorCount = Math.max(readCount(summary.errorCount, summary.error_count), current.errorCount);
+  const errorCount = readCount(summary.errorCount, summary.error_count);
 
   return {
     ...current,
     status: "complete",
-    discoveredCount: Math.max(discoveredCount, current.discoveredCount),
+    discoveredCount,
     errorCount,
+    firstParseError: errorCount > 0 ? current.firstParseError : null,
     progressText: errorCount > 0 ? "Scan completed with parse errors" : "Scan complete"
   };
 }

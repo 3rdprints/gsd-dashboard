@@ -27,8 +27,12 @@ pub fn parse_codex_record(value: &Value, accumulator: &mut SessionParseAccumulat
     }
 
     if accumulator.session.cwd.is_none() {
-        accumulator.session.cwd =
-            json_string(session_meta.and_then(|metadata| metadata.get("cwd")));
+        accumulator.session.cwd = json_string(
+            session_meta
+                .and_then(|metadata| metadata.get("cwd"))
+                .or_else(|| payload.and_then(|payload| payload.get("cwd")))
+                .or_else(|| value.get("cwd")),
+        );
     }
     if accumulator.session.source_session_id.is_none() {
         accumulator.session.source_session_id = json_string(
@@ -53,8 +57,10 @@ pub fn parse_codex_record(value: &Value, accumulator: &mut SessionParseAccumulat
     }
 
     if let Some(payload) = payload {
-        add_usage(payload.get("usage"), accumulator);
-        add_usage(payload.get("token_usage"), accumulator);
+        add_usage(
+            payload.get("usage").or_else(|| payload.get("token_usage")),
+            accumulator,
+        );
     }
 }
 
