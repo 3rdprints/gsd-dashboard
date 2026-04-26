@@ -208,7 +208,7 @@ input:focus-visible {
 
 .project-card,
 .project-card-skeleton {
-  min-height: 156px;
+  min-height: 184px;
   box-sizing: border-box;
   position: relative;
   display: grid;
@@ -293,6 +293,50 @@ input:focus-visible {
   font-size: 14px;
 }
 
+.session-sparkline-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.session-sparkline-label {
+  margin: 0;
+  color: #4B5563;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.session-sparkline {
+  width: 56px;
+  height: 24px;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  align-items: end;
+  gap: 4px;
+}
+
+.session-sparkline-bar {
+  width: 4px;
+  min-height: 4px;
+  border-radius: 2px;
+  background: #E5E7EB;
+}
+
+.session-sparkline-bar.is-active {
+  background: #2563EB;
+}
+
+.sr-only {
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
 .card-copy-action {
   width: max-content;
   min-width: 44px;
@@ -332,6 +376,29 @@ input:focus-visible {
 .empty-state p {
   margin: 0;
   color: #4B5563;
+}
+
+.unmatched-source-mix {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 16px;
+}
+
+.unmatched-source-mix span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  padding: 0 8px;
+  color: #4B5563;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.unmatched-session-list {
+  margin-top: 8px;
 }
 
 .rail-list,

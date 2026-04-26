@@ -68,6 +68,8 @@ export function ProjectCard({ project, onHideProject, hideDisabled = false }: Pr
           <span>{Math.round(project.milestoneProgressPct)}%</span>
         </div>
 
+        <SessionSparkline project={project} />
+
         <div className="project-card-meta">
           <span>{phaseLabel}</span>
           <span>{formatRelativeActivity(project.lastActivityAt ?? project.lastScannedAt)}</span>
@@ -83,6 +85,31 @@ export function ProjectCard({ project, onHideProject, hideDisabled = false }: Pr
         Hide Project
       </button>
     </article>
+  );
+}
+
+function SessionSparkline({ project }: { project: PortfolioProjectCard }) {
+  const maxCount = Math.max(1, ...project.sessionSparkline7d.map((day) => day.count));
+  const accessibleText = `${project.sessionsLast7d} sessions in the last 7 days`;
+
+  return (
+    <div className="session-sparkline-row">
+      <div>
+        <p className="session-sparkline-label">
+          {project.sessionsLast7d > 0 ? "7d sessions" : "No sessions in 7d"}
+        </p>
+        <p className="sr-only">{accessibleText}</p>
+      </div>
+      <div className="session-sparkline" aria-label={accessibleText}>
+        {project.sessionSparkline7d.map((day) => (
+          <span
+            key={day.date}
+            className={day.count > 0 ? "session-sparkline-bar is-active" : "session-sparkline-bar"}
+            style={{ height: `${Math.max(4, Math.round((day.count / maxCount) * 24))}px` }}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
