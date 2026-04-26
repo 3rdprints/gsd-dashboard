@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: ready_to_execute
-last_updated: "2026-04-26T11:25:19.769Z"
+status: executing
+last_updated: "2026-04-26T12:02:46.716Z"
 progress:
   total_phases: 9
   completed_phases: 3
   total_plans: 18
-  completed_plans: 14
-  percent: 78
+  completed_plans: 15
+  percent: 83
 ---
 
 # State: GSD Dashboard
@@ -22,33 +22,34 @@ progress:
 
 ## Current Position
 
-Phase: 04 (session-indexer) — READY TO EXECUTE
-Plan: Not started
+Phase: 04 (session-indexer) — EXECUTING
+Plan: 2 of 4
 **Milestone:** v1.0 MVP
 **Phase:** 4
-**Plan:** Not started
-**Status:** Ready to execute
+**Plan:** 04-02 next
+**Status:** Executing Phase 04
 
-**Progress:** [███.......] 33%
+**Progress:** [████████░░] 83%
 
 ```
 Milestone: [███.......] 3/9 phases
 Phase 1:   [██████████] 4/4 plans
 Phase 2:   [██████████] 4/4 plans
 Phase 3:   [██████████] 6/6 plans
+Phase 4:   [███.......] 1/4 plans
 Overall:   [███.......] 33%
 ```
 
 ## Next Command
 
 ```
-/gsd-plan-phase 4
+/gsd-execute-phase 4
 ```
 
 ## Performance Metrics
 
 - Phases completed: 3 / 9
-- Plans completed: 14
+- Plans completed: 15
 - Avg plan duration: 12.0 min
 - Nodes retried: 0
 - Plan 01-01 duration: 21 min; tasks: 3; files modified: 18
@@ -61,6 +62,7 @@ Overall:   [███.......] 33%
 - Plan 03-04 duration: 21 min; tasks: 3; files modified: 14
 - Plan 03-05 duration: 9 min; tasks: 3; files modified: 4
 - Plan 03-06 duration: 9 min; tasks: 3; files modified: 4
+- Plan 04-01 duration: 7 min; tasks: 3; files modified: 6
 
 ## Accumulated Context
 
@@ -97,6 +99,9 @@ Overall:   [███.......] 33%
 - Phase 3 validation treats broad spawn grep matches on tokio::task::spawn_blocking as false positives and verifies shell/process execution with narrower gates.
 - Clipboard copied feedback is shown only after copyNextCommand resolves successfully
 - Visible hide action uses settings.hiddenProjectIds with TanStack Query invalidation instead of local portfolio filtering
+- Session rows store only metadata columns; prompt, transcript, content, tool-call JSON, and FTS columns remain absent.
+- Per-file indexing state advances in the same transaction as session upserts.
+- Unmatched sessions remain first-class rows with nullable project_id and can be rematched after project cache rebuilds.
 
 ### Todos
 
@@ -121,9 +126,9 @@ Overall:   [███.......] 33%
 
 ## Session Continuity
 
-**Last session:** 2026-04-25T19:26:06.622Z
+**Last session:** 2026-04-26T12:02:46.479Z
 
-**Next session should:** Plan Phase 04 with `/gsd-plan-phase 4`.
+**Next session should:** Execute Phase 04 Plan 02 with `/gsd-execute-phase 4`.
 
 ---
 *State initialized: 2026-04-23*

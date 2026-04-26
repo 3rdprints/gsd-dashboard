@@ -42,7 +42,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **SESS-03**: Indexer tolerates partially-written JSONL files (live Claude sessions) without marking them corrupt; tracks byte offsets for incremental parsing
 - [ ] **SESS-04**: Indexer attributes Claude sessions to projects by reversing the `.claude/projects` directory-name encoding
 - [ ] **SESS-05**: Indexer attributes Codex sessions to projects via parsed `cwd` when available; unmatched sessions surface in a "Global" bucket
-- [ ] **SESS-06**: Sessions are persisted to SQLite with indexes supporting portfolio, detail, and global-sessions queries
+- [x] **SESS-06**: Sessions are persisted to SQLite with indexes supporting portfolio, detail, and global-sessions queries
 
 ### Portfolio View
 
