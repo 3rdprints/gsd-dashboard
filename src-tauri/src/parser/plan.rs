@@ -97,9 +97,18 @@ fn parse_markdown_checklist(body: &str) -> Vec<PlanChecklistItem> {
             let trimmed = line.trim_start();
             let after_dash = trimmed.strip_prefix("- [")?;
             let (state, label) = after_dash.split_once(']')?;
+            let completed = match state {
+                "x" | "X" => true,
+                " " => false,
+                _ => return None,
+            };
+            if !label.chars().next().is_some_and(char::is_whitespace) {
+                return None;
+            }
+
             Some(PlanChecklistItem {
                 label: label.trim().to_string(),
-                completed: matches!(state.trim(), "x" | "X"),
+                completed,
             })
         })
         .collect()
@@ -178,5 +187,26 @@ type: execute
         assert_eq!(plan.checklist.len(), 2);
         assert!(plan.checklist[0].completed);
         assert!(!plan.checklist[1].completed);
+    }
+
+    #[test]
+    fn ignores_markdown_links_that_look_like_checklists() {
+        let plan = parse_plan(
+            br#"---
+phase: 02-planning-parser-scanner
+plan: 01
+type: execute
+---
+
+- [docs](README.md)
+- [ ] Real checklist item
+- [maybe] not a checkbox
+"#,
+        )
+        .unwrap();
+
+        assert_eq!(plan.checklist.len(), 1);
+        assert_eq!(plan.checklist[0].label, "Real checklist item");
+        assert!(!plan.checklist[0].completed);
     }
 }

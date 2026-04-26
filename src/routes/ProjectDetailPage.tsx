@@ -61,6 +61,7 @@ export function ProjectDetailPage() {
     project.data.currentPhaseNumber && project.data.currentPhaseName
       ? `Phase ${project.data.currentPhaseNumber}: ${project.data.currentPhaseName}`
       : "Phase not available";
+  const progressPct = Math.max(0, Math.min(100, Math.round(project.data.milestoneProgressPct)));
 
   return (
     <div className="page-stack">
@@ -119,10 +120,10 @@ export function ProjectDetailPage() {
               <div className="scan-progress-track" aria-hidden="true">
                 <div
                   className="scan-progress-fill"
-                  style={{ width: `${Math.round(project.data.milestoneProgressPct)}%` }}
+                  style={{ width: `${progressPct}%` }}
                 />
               </div>
-              <span>{Math.round(project.data.milestoneProgressPct)}%</span>
+              <span>{progressPct}%</span>
             </div>
           </div>
         </div>

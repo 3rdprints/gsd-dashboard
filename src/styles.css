@@ -53,11 +53,6 @@ body {
   background: #F7F8FA;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
 button,
 input,
 textarea,
@@ -88,8 +83,15 @@ input:focus-visible {
   margin-bottom: 24px;
 }
 
+.project-card-link {
+  color: inherit;
+  text-decoration: none;
+}
+
 .app-nav a,
 .back-link {
+  color: inherit;
+  text-decoration: none;
   min-height: 40px;
   display: inline-flex;
   align-items: center;

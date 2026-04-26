@@ -290,6 +290,65 @@ async fn malformed_project_does_not_abort_scan() {
 }
 
 #[tokio::test]
+async fn state_milestone_index_resolves_against_roadmap() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let home_dir = temp_dir.path();
+    let scan_root = home_dir.join("workspace");
+    let project_root = scan_root.join("multi-milestone-project");
+    let planning_dir = project_root.join(".planning");
+    let pool = migrated_pool(&temp_dir.path().join("cache.db")).await;
+
+    write_valid_planning_project(&project_root, "Multi Milestone Project");
+    fs::write(
+        planning_dir.join("ROADMAP.md"),
+        r#"# Roadmap
+
+**Milestone:** v0.9 Setup
+**Milestone:** v1.0 MVP
+
+- [ ] **Phase 1: Foundation**
+"#,
+    )
+    .expect("roadmap should be written");
+    fs::write(
+        planning_dir.join("STATE.md"),
+        r#"## Current Position
+
+**Milestone:** v1.0 MVP
+**Phase:** 1 (Foundation)
+"#,
+    )
+    .expect("state should be written");
+
+    scan_service::scan_roots(
+        pool.clone(),
+        vec![scan_root],
+        home_dir.to_path_buf(),
+        |_| Ok(()),
+    )
+    .await
+    .expect("scan should parse project");
+
+    let connection = pool.get().await.expect("connection should be available");
+    connection
+        .interact(move |connection| {
+            let project = project_repo::load_project_by_root(
+                connection,
+                project_root.to_string_lossy().as_ref(),
+            )?
+            .expect("project should be persisted");
+
+            assert_eq!(project.current_milestone_name.as_deref(), Some("v1.0 MVP"));
+            assert_eq!(project.current_milestone_index, Some(2));
+
+            Ok::<_, AppError>(())
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("project should load");
+}
+
+#[tokio::test]
 async fn scanner_records_parse_error_in_scan_log() {
     let temp_dir = tempfile::tempdir().expect("temp dir should be created");
     let home_dir = temp_dir.path();

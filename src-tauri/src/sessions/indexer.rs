@@ -117,9 +117,15 @@ pub fn stream_session_file(
     let source_path = path.display().to_string();
     let mut file = File::open(path).map_err(AppError::io)?;
     let metadata = file.metadata().map_err(AppError::io)?;
-    let starting_offset = state
-        .map(|state| state.last_parsed_byte_offset.max(0) as u64)
-        .unwrap_or(0);
+    let file_size = metadata.len() as i64;
+    let starting_offset = match state {
+        Some(state)
+            if state.last_parsed_byte_offset >= 0 && file_size >= state.last_parsed_byte_offset =>
+        {
+            state.last_parsed_byte_offset as u64
+        }
+        _ => 0,
+    };
 
     file.seek(std::io::SeekFrom::Start(starting_offset))
         .map_err(AppError::io)?;
@@ -312,25 +318,29 @@ async fn index_session_file(
         .as_ref()
         .map(|state| state.last_parsed_byte_offset)
         .unwrap_or(0);
-    let (mut accumulator, status) = tokio::task::spawn_blocking({
+    let (mut accumulator, status, file_state) = tokio::task::spawn_blocking({
         let source_path = source_path.clone();
         let previous_state = previous_state.clone();
-        move || stream_session_file(source, &source_path, previous_state.as_ref())
+        move || {
+            let (accumulator, status) =
+                stream_session_file(source, &source_path, previous_state.as_ref())?;
+            let committed_offset = committed_offset_from_status(&status);
+            let live_partial = matches!(status, StreamFileStatus::LivePartial { .. });
+            let file_state =
+                build_index_state(source, &source_path, committed_offset, live_partial)?;
+
+            Ok::<_, AppError>((accumulator, status, file_state))
+        }
     })
     .await
     .map_err(AppError::io)??;
-    let committed_offset = match &status {
-        StreamFileStatus::Complete { committed_offset } => *committed_offset,
-        StreamFileStatus::LivePartial {
-            committed_offset, ..
-        } => *committed_offset,
-    };
+    let committed_offset = committed_offset_from_status(&status);
     let live_partial = matches!(status, StreamFileStatus::LivePartial { .. });
-    let file_state = build_index_state(source, &source_path, committed_offset, live_partial)?;
-    let should_persist_session =
-        committed_offset > previous_offset && accumulator.session.message_count > 0;
+    let offset_was_reset = previous_offset > file_state.file_size;
+    let should_persist_session = (offset_was_reset || committed_offset > previous_offset)
+        && accumulator.session.message_count > 0;
     let sessions = if should_persist_session {
-        if previous_offset > 0 {
+        if previous_offset > 0 && !offset_was_reset {
             if let Some(previous_session) =
                 load_previous_session(pool, accumulator.session.id.clone()).await?
             {
@@ -365,6 +375,15 @@ async fn index_session_file(
         sessions_persisted,
         live_partial,
     })
+}
+
+fn committed_offset_from_status(status: &StreamFileStatus) -> i64 {
+    match status {
+        StreamFileStatus::Complete { committed_offset } => *committed_offset,
+        StreamFileStatus::LivePartial {
+            committed_offset, ..
+        } => *committed_offset,
+    }
 }
 
 fn build_index_state(

@@ -369,6 +369,39 @@ fn incremental_state_starts_at_previous_committed_offset() {
     );
 }
 
+#[test]
+fn truncated_file_resets_incremental_offset_to_zero() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let session_path = temp_dir.path().join("rewritten.jsonl");
+    let rewritten = "{\"type\":\"user\",\"timestamp\":\"2024-05-27T12:00:00Z\",\"cwd\":\"/tmp/rewritten\",\"sessionId\":\"rewritten-session\"}\n";
+    fs::write(&session_path, rewritten).expect("rewritten session should be written");
+    let previous_state = SessionIndexState {
+        source_path: session_path.display().to_string(),
+        source: SessionSource::Claude,
+        file_size: 10_000,
+        file_mtime: None,
+        last_parsed_byte_offset: 10_000,
+        live_partial: false,
+        last_error: None,
+    };
+
+    let (accumulator, status) =
+        stream_session_file(SessionSource::Claude, &session_path, Some(&previous_state))
+            .expect("rewritten file should stream from the beginning");
+
+    assert_eq!(accumulator.session.message_count, 1);
+    assert_eq!(
+        accumulator.session.source_session_id.as_deref(),
+        Some("rewritten-session")
+    );
+    assert_eq!(
+        status,
+        StreamFileStatus::Complete {
+            committed_offset: rewritten.len() as i64
+        }
+    );
+}
+
 #[tokio::test]
 async fn index_sessions_for_app_persists_fixture_roots() {
     let (_temp_dir, state) = test_state().await;
@@ -435,6 +468,38 @@ async fn index_sessions_for_app_reuses_offsets_incrementally() {
         fs::metadata(&claude_path)
             .expect("claude fixture should exist")
             .len() as i64
+    );
+}
+
+#[tokio::test]
+async fn index_sessions_for_app_reindexes_truncated_session_file() {
+    let (_temp_dir, state) = test_state().await;
+    let (claude_path, _codex_path) = copy_fixture_roots(&state.home_dir);
+    index_sessions_for_app(&state, |_| Ok(()))
+        .await
+        .expect("first session index should complete");
+
+    fs::write(
+        &claude_path,
+        "{\"type\":\"assistant\",\"timestamp\":\"2024-05-27T12:02:00Z\",\"cwd\":\"/tmp/gsd-dashboard-fixture\",\"sessionId\":\"claude-session-1\",\"message\":{\"usage\":{\"input_tokens\":7,\"output_tokens\":3}}}\n",
+    )
+    .expect("session file should be rewritten smaller");
+
+    let summary = index_sessions_for_app(&state, |_| Ok(()))
+        .await
+        .expect("rewritten session index should complete");
+    let stats = load_session_stats(&state, "claude:claude-session-1").await;
+
+    assert_eq!(summary.sessions_persisted, 1);
+    assert_eq!(
+        stats,
+        StoredSessionStats {
+            started_at: Some(1_716_811_320_000),
+            ended_at: Some(1_716_811_320_000),
+            message_count: 1,
+            tokens_in: Some(7),
+            tokens_out: Some(3),
+        }
     );
 }
 

@@ -160,7 +160,15 @@ fn parse_candidate_files(candidate: &PlanningProjectCandidate) -> Result<Project
     let progress = parser::derive_progress(&roadmap, &plans);
     let current_milestone = state
         .as_ref()
-        .and_then(|state| state.current_milestone.clone())
+        .and_then(|state| state.current_milestone.as_ref())
+        .and_then(|state_milestone| {
+            roadmap
+                .milestones
+                .iter()
+                .find(|milestone| milestone.name == state_milestone.name)
+                .cloned()
+                .or_else(|| Some(state_milestone.clone()))
+        })
         .or_else(|| roadmap.milestones.first().cloned());
     let current_phase = state
         .as_ref()

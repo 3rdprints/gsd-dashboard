@@ -1,7 +1,7 @@
 import { MouseEvent, useState } from "react";
 import { flushSync } from "react-dom";
 import { ClipboardCopy, EyeOff } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { copyNextCommand } from "../lib/actions";
@@ -14,7 +14,6 @@ type ProjectCardProps = {
 };
 
 export function ProjectCard({ project, onHideProject, hideDisabled = false }: ProjectCardProps) {
-  const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const phaseLabel =
     project.currentPhaseNumber && project.currentPhaseName
@@ -46,10 +45,6 @@ export function ProjectCard({ project, onHideProject, hideDisabled = false }: Pr
         className="project-card-link"
         to={`/project/${project.id}`}
         aria-label={project.name}
-        onClick={(event) => {
-          event.preventDefault();
-          navigate(`/project/${project.id}`);
-        }}
       >
         <div className="project-card-header">
           <div>

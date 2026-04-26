@@ -135,12 +135,20 @@ export function reduceScanEvent(current: ScanState, event: ScanEvent): ScanState
 
 type ScanSummaryPayload = ScanSummary & {
   discovered_count?: number;
+  projectCount?: number;
+  project_count?: number;
   parsed_count?: number;
   error_count?: number;
 };
 
 export function completeScanState(current: ScanState, summary: ScanSummaryPayload): ScanState {
-  const discoveredCount = readCount(summary.discoveredCount, summary.discovered_count);
+  const discoveredCount = readCount(
+    summary.discoveredCount,
+    summary.discovered_count,
+    summary.projectCount,
+    summary.project_count,
+    current.discoveredCount
+  );
   const errorCount = readCount(summary.errorCount, summary.error_count);
 
   return {
