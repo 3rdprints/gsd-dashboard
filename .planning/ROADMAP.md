@@ -87,7 +87,7 @@ Plans:
 Plans:
 - [x] 04-01-PLAN.md — Add session SQLite schema, repository helpers, and aggregate tests
 - [x] 04-02-PLAN.md — Implement Claude/Codex metadata parsers, incremental streaming, and attribution
-- [ ] 04-03-PLAN.md — Wire session indexing command, progress events, and release capability
+- [x] 04-03-PLAN.md — Wire session indexing command, progress events, and release capability
 - [ ] 04-04-PLAN.md — Surface indexed session stats, sparklines, unmatched rail, and indexing UI
 
 ### Phase 5: Project Detail, Global Sessions & Charts
@@ -156,7 +156,7 @@ Plans:
 | 1. Foundation | 4/4 | Complete | 2026-04-24 |
 | 2. Planning Parser & Scanner | 4/4 | Complete | 2026-04-25 |
 | 3. Portfolio Vertical Slice | 6/6 | Complete | 2026-04-26 |
-| 4. Session Indexer | 1/4 | In Progress | - |
+| 4. Session Indexer | 3/4 | In Progress | - |
 | 5. Project Detail, Global Sessions & Charts | 0/? | Not started | - |
 | 6. Tray Icon with Milestone Bars | 0/? | Not started | - |
 | 7. Live Updates | 0/? | Not started | - |

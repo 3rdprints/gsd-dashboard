@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-04-26T12:12:24.242Z"
+last_updated: "2026-04-26T12:23:12.899Z"
 progress:
   total_phases: 9
   completed_phases: 3
   total_plans: 18
-  completed_plans: 16
-  percent: 89
+  completed_plans: 17
+  percent: 94
 ---
 
 # State: GSD Dashboard
@@ -23,20 +23,20 @@ progress:
 ## Current Position
 
 Phase: 04 (session-indexer) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 **Milestone:** v1.0 MVP
 **Phase:** 4
-**Plan:** 04-03 next
+**Plan:** 04-04 next
 **Status:** Executing Phase 04
 
-**Progress:** [█████████░] 89%
+**Progress:** [█████████░] 94%
 
 ```
 Milestone: [███.......] 3/9 phases
 Phase 1:   [██████████] 4/4 plans
 Phase 2:   [██████████] 4/4 plans
 Phase 3:   [██████████] 6/6 plans
-Phase 4:   [█████.....] 2/4 plans
+Phase 4:   [████████..] 3/4 plans
 Overall:   [███.......] 33%
 ```
 
@@ -49,7 +49,7 @@ Overall:   [███.......] 33%
 ## Performance Metrics
 
 - Phases completed: 3 / 9
-- Plans completed: 16
+- Plans completed: 17
 - Avg plan duration: 12.0 min
 - Nodes retried: 0
 - Plan 01-01 duration: 21 min; tasks: 3; files modified: 18
@@ -64,6 +64,7 @@ Overall:   [███.......] 33%
 - Plan 03-06 duration: 9 min; tasks: 3; files modified: 4
 - Plan 04-01 duration: 7 min; tasks: 3; files modified: 6
 - Plan 04-02 duration: 6 min; tasks: 3; files modified: 11
+- Plan 04-03 duration: 7 min; tasks: 3; files modified: 11
 
 ## Accumulated Context
 
@@ -106,6 +107,9 @@ Overall:   [███.......] 33%
 - Session parsers operate on serde_json::Value and extract metadata only; raw text fields are neither stored nor fixture-backed.
 - Final non-newline JSONL bytes are treated as Live session still writing and left unconsumed for the next index pass.
 - Claude path fallback compares encoded directory names against known project roots rather than trusting decoded paths as filesystem targets.
+- index_sessions accepts no frontend path input; it derives only /Users/smacdonald/.claude/projects and /Users/smacdonald/.codex/sessions from AppState.
+- SessionIndexEvent emits source, path, counts, status, and error text only; prompt/message bodies never cross IPC.
+- Rebuild cache rematches existing unmatched sessions after refreshed project rows are visible, preserving session rows and offsets.
 
 ### Todos
 
@@ -130,9 +134,9 @@ Overall:   [███.......] 33%
 
 ## Session Continuity
 
-**Last session:** 2026-04-26T12:12:24.235Z
+**Last session:** 2026-04-26T12:23:12.894Z
 
-**Next session should:** Execute Phase 04 Plan 03 with `/gsd-execute-phase 4`.
+**Next session should:** Execute Phase 04 Plan 04 with `/gsd-execute-phase 4`.
 
 ---
 *State initialized: 2026-04-23*

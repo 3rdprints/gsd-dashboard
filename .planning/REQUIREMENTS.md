@@ -201,7 +201,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SESS-03 | Phase 4 | Complete |
 | SESS-04 | Phase 4 | Complete |
 | SESS-05 | Phase 4 | Complete |
-| SESS-06 | Phase 4 | Pending |
+| SESS-06 | Phase 4 | Complete |
 | PORT-01 | Phase 3 | Complete |
 | PORT-02 | Phase 4 | Pending |
 | PORT-03 | Phase 3 | Complete |
