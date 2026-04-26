@@ -17,6 +17,7 @@ fn main() {
             gsd_dashboard::commands::projects::get_project,
             gsd_dashboard::commands::scan::rebuild_cache,
             gsd_dashboard::commands::scan::scan_projects,
+            gsd_dashboard::commands::sessions::index_sessions,
             gsd_dashboard::commands::settings::get_boot_status,
             gsd_dashboard::commands::settings::get_settings,
             gsd_dashboard::commands::settings::save_settings
