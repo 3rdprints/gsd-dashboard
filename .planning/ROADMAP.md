@@ -86,7 +86,7 @@ Plans:
 **Plans**: 4 plans
 Plans:
 - [x] 04-01-PLAN.md — Add session SQLite schema, repository helpers, and aggregate tests
-- [ ] 04-02-PLAN.md — Implement Claude/Codex metadata parsers, incremental streaming, and attribution
+- [x] 04-02-PLAN.md — Implement Claude/Codex metadata parsers, incremental streaming, and attribution
 - [ ] 04-03-PLAN.md — Wire session indexing command, progress events, and release capability
 - [ ] 04-04-PLAN.md — Surface indexed session stats, sparklines, unmatched rail, and indexing UI
 

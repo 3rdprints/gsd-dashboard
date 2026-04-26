@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-04-26T12:02:46.716Z"
+last_updated: "2026-04-26T12:12:24.242Z"
 progress:
   total_phases: 9
   completed_phases: 3
   total_plans: 18
-  completed_plans: 15
-  percent: 83
+  completed_plans: 16
+  percent: 89
 ---
 
 # State: GSD Dashboard
@@ -23,20 +23,20 @@ progress:
 ## Current Position
 
 Phase: 04 (session-indexer) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 **Milestone:** v1.0 MVP
 **Phase:** 4
-**Plan:** 04-02 next
+**Plan:** 04-03 next
 **Status:** Executing Phase 04
 
-**Progress:** [████████░░] 83%
+**Progress:** [█████████░] 89%
 
 ```
 Milestone: [███.......] 3/9 phases
 Phase 1:   [██████████] 4/4 plans
 Phase 2:   [██████████] 4/4 plans
 Phase 3:   [██████████] 6/6 plans
-Phase 4:   [███.......] 1/4 plans
+Phase 4:   [█████.....] 2/4 plans
 Overall:   [███.......] 33%
 ```
 
@@ -49,7 +49,7 @@ Overall:   [███.......] 33%
 ## Performance Metrics
 
 - Phases completed: 3 / 9
-- Plans completed: 15
+- Plans completed: 16
 - Avg plan duration: 12.0 min
 - Nodes retried: 0
 - Plan 01-01 duration: 21 min; tasks: 3; files modified: 18
@@ -63,6 +63,7 @@ Overall:   [███.......] 33%
 - Plan 03-05 duration: 9 min; tasks: 3; files modified: 4
 - Plan 03-06 duration: 9 min; tasks: 3; files modified: 4
 - Plan 04-01 duration: 7 min; tasks: 3; files modified: 6
+- Plan 04-02 duration: 6 min; tasks: 3; files modified: 11
 
 ## Accumulated Context
 
@@ -102,6 +103,9 @@ Overall:   [███.......] 33%
 - Session rows store only metadata columns; prompt, transcript, content, tool-call JSON, and FTS columns remain absent.
 - Per-file indexing state advances in the same transaction as session upserts.
 - Unmatched sessions remain first-class rows with nullable project_id and can be rematched after project cache rebuilds.
+- Session parsers operate on serde_json::Value and extract metadata only; raw text fields are neither stored nor fixture-backed.
+- Final non-newline JSONL bytes are treated as Live session still writing and left unconsumed for the next index pass.
+- Claude path fallback compares encoded directory names against known project roots rather than trusting decoded paths as filesystem targets.
 
 ### Todos
 
@@ -126,9 +130,9 @@ Overall:   [███.......] 33%
 
 ## Session Continuity
 
-**Last session:** 2026-04-26T12:02:46.479Z
+**Last session:** 2026-04-26T12:12:24.235Z
 
-**Next session should:** Execute Phase 04 Plan 02 with `/gsd-execute-phase 4`.
+**Next session should:** Execute Phase 04 Plan 03 with `/gsd-execute-phase 4`.
 
 ---
 *State initialized: 2026-04-23*

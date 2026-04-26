@@ -37,11 +37,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Session Indexer (metadata only)
 
-- [ ] **SESS-01**: Indexer streams every Claude Code `.jsonl` file under `~/.claude/projects/` and extracts session metadata (start, end, duration, message count, tokens in/out, model)
-- [ ] **SESS-02**: Indexer streams every Codex session file under `~/.codex/sessions/` and extracts the same metadata (best-effort for tokens/model)
-- [ ] **SESS-03**: Indexer tolerates partially-written JSONL files (live Claude sessions) without marking them corrupt; tracks byte offsets for incremental parsing
-- [ ] **SESS-04**: Indexer attributes Claude sessions to projects by reversing the `.claude/projects` directory-name encoding
-- [ ] **SESS-05**: Indexer attributes Codex sessions to projects via parsed `cwd` when available; unmatched sessions surface in a "Global" bucket
+- [x] **SESS-01**: Indexer streams every Claude Code `.jsonl` file under `~/.claude/projects/` and extracts session metadata (start, end, duration, message count, tokens in/out, model)
+- [x] **SESS-02**: Indexer streams every Codex session file under `~/.codex/sessions/` and extracts the same metadata (best-effort for tokens/model)
+- [x] **SESS-03**: Indexer tolerates partially-written JSONL files (live Claude sessions) without marking them corrupt; tracks byte offsets for incremental parsing
+- [x] **SESS-04**: Indexer attributes Claude sessions to projects by reversing the `.claude/projects` directory-name encoding
+- [x] **SESS-05**: Indexer attributes Codex sessions to projects via parsed `cwd` when available; unmatched sessions surface in a "Global" bucket
 - [x] **SESS-06**: Sessions are persisted to SQLite with indexes supporting portfolio, detail, and global-sessions queries
 
 ### Portfolio View
@@ -196,11 +196,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PARSE-06 | Phase 2 | Pending |
 | PARSE-07 | Phase 2 | Pending |
 | PARSE-08 | Phase 2 | Pending |
-| SESS-01 | Phase 4 | Pending |
-| SESS-02 | Phase 4 | Pending |
-| SESS-03 | Phase 4 | Pending |
-| SESS-04 | Phase 4 | Pending |
-| SESS-05 | Phase 4 | Pending |
+| SESS-01 | Phase 4 | Complete |
+| SESS-02 | Phase 4 | Complete |
+| SESS-03 | Phase 4 | Complete |
+| SESS-04 | Phase 4 | Complete |
+| SESS-05 | Phase 4 | Complete |
 | SESS-06 | Phase 4 | Pending |
 | PORT-01 | Phase 3 | Complete |
 | PORT-02 | Phase 4 | Pending |
