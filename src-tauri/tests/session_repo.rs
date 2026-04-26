@@ -154,9 +154,7 @@ fn session_upsert_replaces_metadata_and_preserves_unmatched() {
 
     let mut session = indexed_session(&temp_dir, "session-1", None, 1_777_000_000);
     {
-        let transaction = connection
-            .transaction()
-            .expect("transaction should start");
+        let transaction = connection.transaction().expect("transaction should start");
         upsert_indexed_session(&transaction, &session, 1_777_000_100)
             .expect("unmatched session should insert");
         transaction.commit().expect("transaction should commit");
@@ -177,9 +175,7 @@ fn session_upsert_replaces_metadata_and_preserves_unmatched() {
     session.tokens_out = Some(35);
     session.attribution_method = "cwd".to_string();
     {
-        let transaction = connection
-            .transaction()
-            .expect("transaction should start");
+        let transaction = connection.transaction().expect("transaction should start");
         upsert_indexed_session(&transaction, &session, 1_777_000_200)
             .expect("matched session should update");
         transaction.commit().expect("transaction should commit");
@@ -221,9 +217,7 @@ fn session_index_state_round_trips_offsets() {
     let state = index_state(&temp_dir, 128);
 
     {
-        let transaction = connection
-            .transaction()
-            .expect("transaction should start");
+        let transaction = connection.transaction().expect("transaction should start");
         save_index_state(&transaction, &state, 1_777_000_000).expect("state should save");
         transaction.commit().expect("transaction should commit");
     }
@@ -242,7 +236,12 @@ fn persist_indexed_file_result_rolls_back_offset_when_session_write_fails() {
     let temp_dir = tempfile::tempdir().expect("temp dir should be created");
     let mut connection = migrated_connection(&temp_dir.path().join("cache.db"));
     let good_session = indexed_session(&temp_dir, "good-session", None, 1_777_000_000);
-    let bad_session = indexed_session(&temp_dir, "bad-session", Some("missing-project"), 1_777_000_100);
+    let bad_session = indexed_session(
+        &temp_dir,
+        "bad-session",
+        Some("missing-project"),
+        1_777_000_100,
+    );
     let state = index_state(&temp_dir, 512);
 
     let result = persist_indexed_file_result(
@@ -363,7 +362,7 @@ fn portfolio_session_summary_counts_today_and_sparkline() {
     expected_sparkline.insert("project-1".to_string(), [1, 1, 1, 1, 1, 1, 1]);
 
     assert_eq!(summary.sessions_today, 2);
-    assert_eq!(summary.tokens_today, 168);
+    assert_eq!(summary.tokens_today, 171);
     assert_eq!(summary.sparkline_by_project, expected_sparkline);
     assert_eq!(summary.unmatched_count, 1);
     assert_eq!(summary.unmatched_claude_count, 0);

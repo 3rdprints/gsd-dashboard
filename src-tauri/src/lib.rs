@@ -7,5 +7,6 @@ pub mod parser;
 pub mod scan_roots;
 pub mod scan_service;
 pub mod scanner;
+pub mod sessions;
 pub mod settings;
 pub mod store;
