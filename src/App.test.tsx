@@ -54,6 +54,10 @@ const emptySessionSparkline = [
   "2026-04-25",
   "2026-04-26"
 ].map((date) => ({ date, count: 0 }));
+const activeSessionSparkline = emptySessionSparkline.map((day, index) => ({
+  ...day,
+  count: index === 5 ? 2 : index === 6 ? 1 : 0
+}));
 const portfolio: PortfolioDto = {
   stats: {
     projectsTracked: 2,
@@ -75,8 +79,8 @@ const portfolio: PortfolioDto = {
       parseError: null,
       lastActivityAt: 1_777_132_245,
       lastScannedAt: 1_777_132_245,
-      sessionSparkline7d: emptySessionSparkline,
-      sessionsLast7d: 0
+      sessionSparkline7d: activeSessionSparkline,
+      sessionsLast7d: 3
     },
     {
       id: "deckpilot",
@@ -103,11 +107,14 @@ const portfolio: PortfolioDto = {
     }
   ],
   unmatchedSessions: {
-    count: 0,
-    label: "No unmatched sessions",
-    claudeCount: 0,
-    codexCount: 0,
-    recent: []
+    count: 2,
+    label: "2 unmatched sessions",
+    claudeCount: 1,
+    codexCount: 1,
+    recent: [
+      { id: "claude-unmatched", source: "claude", sourcePath: "/tmp/claude/unmatched.jsonl", startedAt: 1 },
+      { id: "codex-unmatched", source: "codex", sourcePath: "/tmp/codex/unmatched.jsonl", startedAt: 2 }
+    ]
   }
 };
 const projectDetail: ProjectDetail = portfolio.projects[0];
@@ -187,6 +194,9 @@ describe("portfolio vertical slice", () => {
     expect(screen.getByText("Phase 03: Portfolio Vertical Slice")).toBeInTheDocument();
     expect(screen.getByText("42%")).toBeInTheDocument();
     expect(screen.getByText("Parse error")).toBeInTheDocument();
+    expect(screen.getByText("7d sessions")).toBeInTheDocument();
+    expect(screen.getByText("No sessions in 7d")).toBeInTheDocument();
+    expect(screen.getByLabelText("3 sessions in the last 7 days")).toBeInTheDocument();
   });
   it("triggers session indexing with nonblocking progress and portfolio invalidation", async () => {
     let indexCompleted = false;
@@ -331,7 +341,12 @@ describe("portfolio vertical slice", () => {
     expect(screen.getByText("Hidden projects")).toBeInTheDocument();
     expect(screen.getAllByText("ListingGuru").length).toBeGreaterThan(0);
     expect(screen.getByText("Unmatched sessions")).toBeInTheDocument();
-    expect(screen.getByText("No unmatched sessions")).toBeInTheDocument();
+    expect(screen.queryByText("2 unmatched sessions")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Unmatched sessions" }));
+    expect(screen.getByText("2 unmatched sessions")).toBeInTheDocument();
+    expect(screen.getByText("Claude Code")).toBeInTheDocument();
+    expect(screen.getByText("Codex")).toBeInTheDocument();
+    expect(screen.getByText("/tmp/claude/unmatched.jsonl")).toBeInTheDocument();
   });
 });
 describe("settings vertical slice", () => {
