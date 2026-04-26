@@ -147,6 +147,7 @@ pub fn stream_session_file(
 
         if !has_newline {
             accumulator.live_partial_message = Some(LIVE_PARTIAL_MESSAGE.to_string());
+            finalize_accumulator(source, path, &mut accumulator);
             return Ok((
                 accumulator,
                 StreamFileStatus::LivePartial {
@@ -172,20 +173,7 @@ pub fn stream_session_file(
         }
     }
 
-    if accumulator.session.source_session_id.is_none() {
-        accumulator.session.source_session_id = path
-            .file_stem()
-            .and_then(|name| name.to_str())
-            .map(str::to_string);
-    }
-    accumulator.session.id = session_id(source, &accumulator.session.source_session_id, path);
-
-    if accumulator.session.index_error.is_none() && accumulator.nonfatal_error_count > 0 {
-        accumulator.session.index_error = Some(format!(
-            "{} nonfatal parse errors",
-            accumulator.nonfatal_error_count
-        ));
-    }
+    finalize_accumulator(source, path, &mut accumulator);
 
     let file_size = metadata.len() as i64;
     Ok((
@@ -239,7 +227,10 @@ fn collect_jsonl_files(path: &Path, files: &mut Vec<PathBuf>) -> Result<(), AppE
         if file_type.is_dir() {
             collect_jsonl_files(&entry_path, files)?;
         } else if file_type.is_file()
-            && entry_path.extension().and_then(|extension| extension.to_str()) == Some("jsonl")
+            && entry_path
+                .extension()
+                .and_then(|extension| extension.to_str())
+                == Some("jsonl")
         {
             files.push(entry_path);
         }
@@ -272,7 +263,9 @@ async fn load_previous_index_state(
 ) -> Result<Option<SessionIndexState>, AppError> {
     let connection = pool.get().await.map_err(AppError::store)?;
     connection
-        .interact(move |connection| crate::sessions::repo::load_index_state(connection, &source_path))
+        .interact(move |connection| {
+            crate::sessions::repo::load_index_state(connection, &source_path)
+        })
         .await
         .map_err(AppError::store)?
 }
@@ -306,10 +299,14 @@ async fn index_session_file(
         .as_ref()
         .map(|state| state.last_parsed_byte_offset)
         .unwrap_or(0);
+    let current_file_size = std::fs::metadata(&source_path).map_err(AppError::io)?.len() as i64;
+    let parser_state = previous_state
+        .as_ref()
+        .filter(|state| state.last_parsed_byte_offset == current_file_size)
+        .cloned();
     let (mut accumulator, status) = tokio::task::spawn_blocking({
         let source_path = source_path.clone();
-        let previous_state = previous_state.clone();
-        move || stream_session_file(source, &source_path, previous_state.as_ref())
+        move || stream_session_file(source, &source_path, parser_state.as_ref())
     })
     .await
     .map_err(AppError::io)??;
@@ -409,6 +406,27 @@ fn session_id(source: SessionSource, source_session_id: &Option<String>, path: &
         || format!("{}:{}", source.as_str(), path.display()),
         |source_session_id| format!("{}:{source_session_id}", source.as_str()),
     )
+}
+
+fn finalize_accumulator(
+    source: SessionSource,
+    path: &Path,
+    accumulator: &mut SessionParseAccumulator,
+) {
+    if accumulator.session.source_session_id.is_none() {
+        accumulator.session.source_session_id = path
+            .file_stem()
+            .and_then(|name| name.to_str())
+            .map(str::to_string);
+    }
+    accumulator.session.id = session_id(source, &accumulator.session.source_session_id, path);
+
+    if accumulator.session.index_error.is_none() && accumulator.nonfatal_error_count > 0 {
+        accumulator.session.index_error = Some(format!(
+            "{} nonfatal parse errors",
+            accumulator.nonfatal_error_count
+        ));
+    }
 }
 
 fn trim_jsonl_newline(line: &[u8]) -> &[u8] {

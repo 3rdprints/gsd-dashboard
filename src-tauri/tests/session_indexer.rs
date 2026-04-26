@@ -17,6 +17,15 @@ use gsd_dashboard::{
     },
 };
 
+#[derive(Debug, PartialEq, Eq)]
+struct StoredSessionStats {
+    started_at: Option<i64>,
+    ended_at: Option<i64>,
+    message_count: i64,
+    tokens_in: Option<i64>,
+    tokens_out: Option<i64>,
+}
+
 fn fixture_path(name: &str) -> &'static str {
     match name {
         "claude-basic" => concat!(
@@ -74,6 +83,64 @@ fn collect_session_events() -> (
             .push(event);
         Ok(())
     })
+}
+
+async fn load_session_stats(
+    state: &gsd_dashboard::app_state::AppState,
+    session_id: &str,
+) -> StoredSessionStats {
+    let session_id = session_id.to_string();
+    state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available")
+        .interact(move |connection| {
+            connection
+                .query_row(
+                    "SELECT started_at, ended_at, message_count, tokens_in, tokens_out
+                     FROM sessions
+                     WHERE id = ?1",
+                    [session_id],
+                    |row| {
+                        Ok(StoredSessionStats {
+                            started_at: row.get(0)?,
+                            ended_at: row.get(1)?,
+                            message_count: row.get(2)?,
+                            tokens_in: row.get(3)?,
+                            tokens_out: row.get(4)?,
+                        })
+                    },
+                )
+                .map_err(AppError::from)
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("session stats should load")
+}
+
+async fn count_sessions_for_source_path(
+    state: &gsd_dashboard::app_state::AppState,
+    source_path: &Path,
+) -> i64 {
+    let source_path = source_path.display().to_string();
+    state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available")
+        .interact(move |connection| {
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sessions WHERE source_path = ?1",
+                    [source_path],
+                    |row| row.get(0),
+                )
+                .map_err(AppError::from)
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("session count should load")
 }
 
 fn empty_session(source: SessionSource, source_path: &str) -> IndexedSession {
@@ -165,6 +232,11 @@ fn partial_trailing_line_keeps_offset_before_partial() {
         accumulator.live_partial_message.as_deref(),
         Some("Live session still writing")
     );
+    assert_eq!(
+        accumulator.session.source_session_id.as_deref(),
+        Some("claude-session-1")
+    );
+    assert_eq!(accumulator.session.id, "claude:claude-session-1");
     assert_eq!(
         status,
         StreamFileStatus::LivePartial {
@@ -317,6 +389,75 @@ async fn index_sessions_for_app_reuses_offsets_incrementally() {
             .expect("claude fixture should exist")
             .len() as i64
     );
+}
+
+#[tokio::test]
+async fn index_sessions_for_app_persists_cumulative_metadata_after_append() {
+    let (_temp_dir, state) = test_state().await;
+    let (claude_path, _codex_path) = copy_fixture_roots(&state.home_dir);
+    index_sessions_for_app(&state, |_| Ok(()))
+        .await
+        .expect("first session index should complete");
+
+    fs::write(
+        &claude_path,
+        format!(
+            "{}{}",
+            fs::read_to_string(fixture_path("claude-basic")).expect("fixture should read"),
+            "{\"type\":\"assistant\",\"timestamp\":\"2024-05-27T12:01:00Z\",\"cwd\":\"/tmp/gsd-dashboard-fixture\",\"sessionId\":\"claude-session-1\",\"message\":{\"usage\":{\"input_tokens\":10,\"output_tokens\":5}}}\n"
+        ),
+    )
+    .expect("fixture should be extended");
+
+    let summary = index_sessions_for_app(&state, |_| Ok(()))
+        .await
+        .expect("second session index should complete");
+    let stats = load_session_stats(&state, "claude:claude-session-1").await;
+
+    assert_eq!(summary.sessions_persisted, 1);
+    assert_eq!(
+        stats,
+        StoredSessionStats {
+            started_at: Some(1_716_811_200_000),
+            ended_at: Some(1_716_811_260_000),
+            message_count: 3,
+            tokens_in: Some(130),
+            tokens_out: Some(50),
+        }
+    );
+}
+
+#[tokio::test]
+async fn index_sessions_for_app_keeps_live_partial_session_id_stable_after_completion() {
+    let (_temp_dir, state) = test_state().await;
+    let claude_dir = state
+        .home_dir
+        .join(".claude/projects/-tmp-gsd-dashboard-fixture");
+    fs::create_dir_all(&claude_dir).expect("claude fixture dir should be created");
+    let claude_path = claude_dir.join("claude-session-1.jsonl");
+    fs::copy(fixture_path("claude-partial"), &claude_path).expect("partial fixture should copy");
+
+    let first_summary = index_sessions_for_app(&state, |_| Ok(()))
+        .await
+        .expect("partial session index should complete");
+    fs::write(
+        &claude_path,
+        format!(
+            "{}{}\n",
+            fs::read_to_string(fixture_path("claude-basic")).expect("fixture should read"),
+            "{\"type\":\"assistant\",\"timestamp\":\"2024-05-27T12:00:16Z\",\"cwd\":\"/tmp/gsd-dashboard-fixture\",\"sessionId\":\"claude-session-1\"}"
+        ),
+    )
+    .expect("partial fixture should be completed");
+
+    let second_summary = index_sessions_for_app(&state, |_| Ok(()))
+        .await
+        .expect("completed session index should complete");
+    let session_count = count_sessions_for_source_path(&state, &claude_path).await;
+
+    assert_eq!(first_summary.sessions_persisted, 1);
+    assert_eq!(second_summary.sessions_persisted, 1);
+    assert_eq!(session_count, 1);
 }
 
 #[tokio::test]
