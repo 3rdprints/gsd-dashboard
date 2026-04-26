@@ -16,10 +16,20 @@ export function PortfolioHeaderStats({ stats }: PortfolioHeaderStatsProps) {
 }
 
 function StatCell({ label, value }: { label: string; value: number }) {
+  const displayValue = label === "Tokens today" ? formatCompactNumber(value) : value.toLocaleString();
+
   return (
     <div className="stat-cell">
       <dt>{label}</dt>
-      <dd>{value.toLocaleString()}</dd>
+      <dd title={value.toLocaleString()}>{displayValue}</dd>
     </div>
   );
+}
+
+function formatCompactNumber(value: number) {
+  if (Math.abs(value) < 1_000) {
+    return value.toLocaleString();
+  }
+
+  return `${(value / 1_000).toFixed(1).replace(/\.0$/, "")}k`;
 }

@@ -1,15 +1,12 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@testing-library/jest-dom/vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
 import { App } from "./App";
 import type { PortfolioDto, ProjectDetail, ScanEvent, SessionIndexEvent, SettingsInput } from "./lib/types";
-
 const { channelInstances, invokeMock, openUrlMock, revealItemInDirMock, writeTextMock } = vi.hoisted(() => ({
   channelInstances: [] as Array<{ onmessage: ((event: unknown) => void) | null }>,
   invokeMock: vi.fn(),
@@ -17,27 +14,22 @@ const { channelInstances, invokeMock, openUrlMock, revealItemInDirMock, writeTex
   revealItemInDirMock: vi.fn(),
   writeTextMock: vi.fn()
 }));
-
 vi.mock("@tauri-apps/api/core", () => ({
   Channel: class TestChannel<T> {
     onmessage: ((event: T) => void) | null = null;
-
     constructor() {
       channelInstances.push(this as { onmessage: ((event: unknown) => void) | null });
     }
   },
   invoke: invokeMock
 }));
-
 vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
   writeText: writeTextMock
 }));
-
 vi.mock("@tauri-apps/plugin-opener", () => ({
   openUrl: openUrlMock,
   revealItemInDir: revealItemInDirMock
 }));
-
 const defaultSettings: SettingsInput = {
   scanRoots: ["~/Documents"],
   hiddenProjectIds: ["listingguru"],
@@ -45,7 +37,23 @@ const defaultSettings: SettingsInput = {
   trayBarMaxProjects: 8,
   trayBarSort: "recent_activity"
 };
-
+const bootStatusResponse = {
+  appDataDir: "/tmp/gsd-dashboard",
+  cachePath: "/tmp/gsd-dashboard/cache.db",
+  cacheReady: true,
+  walEnabled: true,
+  migrationsApplied: 3,
+  settingsInitialized: true
+};
+const emptySessionSparkline = [
+  "2026-04-20",
+  "2026-04-21",
+  "2026-04-22",
+  "2026-04-23",
+  "2026-04-24",
+  "2026-04-25",
+  "2026-04-26"
+].map((date) => ({ date, count: 0 }));
 const portfolio: PortfolioDto = {
   stats: {
     projectsTracked: 2,
@@ -67,15 +75,7 @@ const portfolio: PortfolioDto = {
       parseError: null,
       lastActivityAt: 1_777_132_245,
       lastScannedAt: 1_777_132_245,
-      sessionSparkline7d: [
-        { date: "2026-04-20", count: 0 },
-        { date: "2026-04-21", count: 0 },
-        { date: "2026-04-22", count: 0 },
-        { date: "2026-04-23", count: 0 },
-        { date: "2026-04-24", count: 0 },
-        { date: "2026-04-25", count: 0 },
-        { date: "2026-04-26", count: 0 }
-      ],
+      sessionSparkline7d: emptySessionSparkline,
       sessionsLast7d: 0
     },
     {
@@ -91,15 +91,7 @@ const portfolio: PortfolioDto = {
       parseError: "ROADMAP frontmatter could not be parsed",
       lastActivityAt: null,
       lastScannedAt: 1_777_132_200,
-      sessionSparkline7d: [
-        { date: "2026-04-20", count: 0 },
-        { date: "2026-04-21", count: 0 },
-        { date: "2026-04-22", count: 0 },
-        { date: "2026-04-23", count: 0 },
-        { date: "2026-04-24", count: 0 },
-        { date: "2026-04-25", count: 0 },
-        { date: "2026-04-26", count: 0 }
-      ],
+      sessionSparkline7d: emptySessionSparkline,
       sessionsLast7d: 0
     }
   ],
@@ -118,21 +110,16 @@ const portfolio: PortfolioDto = {
     recent: []
   }
 };
-
 const projectDetail: ProjectDetail = portfolio.projects[0];
-
 describe("IPC plumbing", () => {
   beforeEach(() => {
     channelInstances.length = 0;
     invokeMock.mockReset();
   });
-
   it("calls the exact command names for boot, settings, portfolio, detail, scan, and rebuild", async () => {
     const { getBootStatus, getPortfolio, getProject, getSettings, indexSessions, rebuildCache, saveSettings, scanProjects } =
       await import("./lib/ipc");
-
     invokeMock.mockResolvedValue({});
-
     await getBootStatus();
     await getSettings();
     await saveSettings(defaultSettings);
@@ -141,7 +128,6 @@ describe("IPC plumbing", () => {
     await scanProjects(vi.fn());
     await rebuildCache(vi.fn());
     await indexSessions(vi.fn());
-
     expect(invokeMock).toHaveBeenNthCalledWith(1, "get_boot_status");
     expect(invokeMock).toHaveBeenNthCalledWith(2, "get_settings");
     expect(invokeMock).toHaveBeenNthCalledWith(3, "save_settings", { input: defaultSettings });
@@ -157,48 +143,39 @@ describe("IPC plumbing", () => {
       onEvent: channelInstances[2]
     });
   });
-
   it("provides the query client at the app root", () => {
     const mainSource = readFileSync(resolve("src/main.tsx"), "utf8");
-
     expect(mainSource).toContain("QueryClientProvider");
     expect(mainSource).toContain("queryClient");
   });
-
   it("invalidates settings, portfolio, and project queries only after a successful settings save", async () => {
     const { createSaveSettingsMutationOptions, portfolioQueryKey, settingsQueryKey } = await import(
       "./lib/queryClient"
     );
     const queryClient = new QueryClient();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
-
     invokeMock.mockRejectedValueOnce({ kind: "store", message: "save failed" });
     await expect(createSaveSettingsMutationOptions(queryClient).mutationFn(defaultSettings)).rejects.toEqual({
       kind: "store",
       message: "save failed"
     });
     expect(invalidateSpy).not.toHaveBeenCalled();
-
     invokeMock.mockResolvedValueOnce(defaultSettings);
     await createSaveSettingsMutationOptions(queryClient).mutationFn(defaultSettings);
     await createSaveSettingsMutationOptions(queryClient).onSuccess?.(defaultSettings);
-
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: settingsQueryKey });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: portfolioQueryKey });
     expect(invalidateSpy).toHaveBeenCalledWith({ predicate: expect.any(Function) });
   });
 });
-
 describe("portfolio vertical slice", () => {
   beforeEach(() => {
     resetMocks();
     mockCommands();
     window.history.pushState({}, "", "/");
   });
-
   it("renders project cards with portfolio stats", async () => {
     renderWithQueryClient(<App />);
-
     expect(await screen.findByRole("heading", { name: "Portfolio" })).toBeInTheDocument();
     expect(document.querySelectorAll(".project-card-skeleton")).toHaveLength(2);
     expect(screen.getByText("Projects tracked")).toBeInTheDocument();
@@ -211,19 +188,11 @@ describe("portfolio vertical slice", () => {
     expect(screen.getByText("42%")).toBeInTheDocument();
     expect(screen.getByText("Parse error")).toBeInTheDocument();
   });
-
   it("triggers session indexing with nonblocking progress and portfolio invalidation", async () => {
     let indexCompleted = false;
     invokeMock.mockImplementation((command: string, args?: Record<string, unknown>) => {
       if (command === "get_boot_status") {
-        return Promise.resolve({
-          appDataDir: "/tmp",
-          cachePath: "/tmp/cache.db",
-          cacheReady: true,
-          walEnabled: true,
-          migrationsApplied: 3,
-          settingsInitialized: true
-        });
+        return Promise.resolve(bootStatusResponse);
       }
       if (command === "get_settings") return Promise.resolve(defaultSettings);
       if (command === "get_portfolio") {
@@ -244,30 +213,25 @@ describe("portfolio vertical slice", () => {
             data: {
               source: "claude",
               sourcePath: "/tmp/live.jsonl",
-              sessionsIndexed: 1,
-              unmatchedCount: 0,
-              status: "livePartial",
-              message: "Live session still writing"
+              sessionsPersisted: 1,
+              livePartial: true
             }
           });
         });
         indexCompleted = true;
-        return Promise.resolve({ filesIndexed: 1, sessionsIndexed: 1, unmatchedCount: 0, errorCount: 0 });
+        return Promise.resolve({ filesProcessed: 1, sessionsPersisted: 1, unmatchedCount: 0, errorCount: 0 });
       }
       return Promise.reject(new Error(`Unexpected command: ${command}`));
     });
     renderWithQueryClient(<App />);
-
     await screen.findByRole("link", { name: /GSD Dashboard/ });
     fireEvent.click(screen.getByRole("button", { name: "Index Sessions" }));
-
     expect(screen.getByRole("button", { name: "Index Sessions" })).toBeDisabled();
     expect(await screen.findByText("Indexing sessions")).toBeInTheDocument();
     expect(await screen.findByText("Live session still writing")).toBeInTheDocument();
     expect(await screen.findByText("Session index updated")).toBeInTheDocument();
     expect(await screen.findByText("2.4k")).toBeInTheDocument();
   });
-
   it("renders No projects found empty state when portfolio has no cards", async () => {
     mockCommands({
       ...portfolio,
@@ -276,18 +240,15 @@ describe("portfolio vertical slice", () => {
       hiddenProjects: []
     });
     renderWithQueryClient(<App />);
-
     expect(await screen.findByRole("heading", { name: "No projects found" })).toBeInTheDocument();
     expect(
       screen.getByText("Add a scan root or rebuild the cache to discover projects with `.planning/` directories.")
     ).toBeInTheDocument();
   });
-
   it("copies from a card without navigating and shows Copied feedback", async () => {
     let resolveCopy: (() => void) | null = null;
     writeTextMock.mockReturnValueOnce(new Promise<void>((resolve) => { resolveCopy = resolve; }));
     renderWithQueryClient(<App />);
-
     await screen.findByRole("link", { name: /GSD Dashboard/ });
     const copyButtons = await screen.findAllByRole("button", { name: "Copy next command" });
     fireEvent.click(copyButtons[0]);
@@ -297,17 +258,15 @@ describe("portfolio vertical slice", () => {
       await Promise.resolve();
       await Promise.resolve();
     });
-
     expect(writeTextMock).toHaveBeenCalledWith("/gsd-execute-phase 3");
     expect(await screen.findByText("Copied")).toBeInTheDocument();
     expect(window.location.pathname).toBe("/");
   });
-
   it("hides a visible project and removes it after portfolio refetch", async () => {
     let hiddenSaved = false;
     invokeMock.mockImplementation((command: string, args?: Record<string, unknown>) => {
       if (command === "get_boot_status") {
-        return Promise.resolve({ appDataDir: "/tmp", cachePath: "/tmp/cache.db", cacheReady: true, walEnabled: true, migrationsApplied: 3, settingsInitialized: true });
+        return Promise.resolve(bootStatusResponse);
       }
       if (command === "get_settings") return Promise.resolve(defaultSettings);
       if (command === "get_portfolio") {
@@ -328,35 +287,26 @@ describe("portfolio vertical slice", () => {
       return Promise.reject(new Error(`Unexpected command: ${command}`));
     });
     renderWithQueryClient(<App />);
-
     expect(await screen.findByRole("link", { name: /GSD Dashboard/ })).toBeInTheDocument();
     fireEvent.click((await screen.findAllByRole("button", { name: "Hide Project" }))[0]);
-
     await waitFor(() => expect(screen.queryByRole("link", { name: /GSD Dashboard/ })).not.toBeInTheDocument());
   });
-
   it("does not show Copied when clipboard failed", async () => {
     writeTextMock.mockRejectedValueOnce(new Error("clipboard failed"));
     renderWithQueryClient(<App />);
-
     await screen.findByRole("link", { name: /GSD Dashboard/ });
     fireEvent.click((await screen.findAllByRole("button", { name: "Copy next command" }))[0]);
-
     await waitFor(() => expect(writeTextMock).toHaveBeenCalled());
     expect(screen.queryByText("Copied")).not.toBeInTheDocument();
     expect(window.location.pathname).toBe("/");
   });
-
   it("links from a card to project detail and calls get_project on the detail route", async () => {
     renderWithQueryClient(<App />);
-
     const projectLink = await screen.findByRole("link", { name: /GSD Dashboard/ });
     expect(projectLink).toHaveAttribute("href", "/project/gsd-dashboard");
-
     cleanup();
     window.history.pushState({}, "", "/project/gsd-dashboard");
     renderWithQueryClient(<App />);
-
     expect(await screen.findByRole("heading", { name: "GSD Dashboard" })).toBeInTheDocument();
     await waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith("get_project", { projectId: "gsd-dashboard" })
@@ -366,22 +316,17 @@ describe("portfolio vertical slice", () => {
     expect(screen.getByRole("button", { name: "Open in VS Code" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Copy next command" })).toBeInTheDocument();
   });
-
   it("detail_opener_failure_renders_inline_error", async () => {
     window.history.pushState({}, "", "/project/gsd-dashboard");
     revealItemInDirMock.mockRejectedValueOnce(new Error("open failed"));
     renderWithQueryClient(<App />);
-
     fireEvent.click(await screen.findByRole("button", { name: "Open in Finder" }));
-
     expect(
       await screen.findByText("Action failed. Check the configured project path and try again.")
     ).toBeInTheDocument();
   });
-
   it("renders right rail placeholders", async () => {
     renderWithQueryClient(<App />);
-
     expect(await screen.findByText("ListingGuru")).toBeInTheDocument();
     expect(screen.getByText("Hidden projects")).toBeInTheDocument();
     expect(screen.getAllByText("ListingGuru").length).toBeGreaterThan(0);
@@ -389,17 +334,14 @@ describe("portfolio vertical slice", () => {
     expect(screen.getByText("No unmatched sessions")).toBeInTheDocument();
   });
 });
-
 describe("settings vertical slice", () => {
   beforeEach(() => {
     resetMocks();
     mockCommands();
     window.history.pushState({}, "", "/settings");
   });
-
   it("renders settings sections and disabled indexing toggles", async () => {
     renderWithQueryClient(<App />);
-
     expect(await screen.findByRole("heading", { name: "Settings" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Scan roots" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Hidden projects" })).toBeInTheDocument();
@@ -407,19 +349,15 @@ describe("settings vertical slice", () => {
     expect(screen.getByLabelText("Index tool usage")).toBeDisabled();
     expect(screen.getByLabelText("Index message content")).toBeDisabled();
   });
-
   it("adds and removes scan roots before saving settings", async () => {
     renderWithQueryClient(<App />);
-
     const rootInputs = await screen.findAllByRole("textbox");
     fireEvent.change(rootInputs[0], { target: { value: "~/homegit" } });
     fireEvent.click(screen.getByRole("button", { name: "Add Root" }));
-
     const updatedInputs = await screen.findAllByRole("textbox");
     fireEvent.change(updatedInputs[1], { target: { value: "~/Documents/clients" } });
     fireEvent.click(screen.getAllByRole("button", { name: "Remove Root" })[0]);
     fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
-
     await waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith("save_settings", {
         input: {
@@ -429,12 +367,9 @@ describe("settings vertical slice", () => {
       })
     );
   });
-
   it("unhides hidden projects through settings save", async () => {
     renderWithQueryClient(<App />);
-
     fireEvent.click(await screen.findByRole("button", { name: "Unhide Project" }));
-
     await waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith("save_settings", {
         input: {
@@ -444,34 +379,26 @@ describe("settings vertical slice", () => {
       })
     );
   });
-
   it("settings rebuild confirmation states source planning files will not be changed", async () => {
     renderWithQueryClient(<App />);
-
     expect(
       await screen.findByText(
         "Rebuild cache: This clears the derived project cache and runs a full rescan. Source `.planning/` files will not be changed."
       )
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Rebuild Cache" })).toBeDisabled();
-
     fireEvent.click(screen.getByLabelText("Confirm rebuild cache"));
     fireEvent.click(screen.getByRole("button", { name: "Rebuild Cache" }));
-
     await waitFor(() => expect(invokeMock).toHaveBeenCalledWith("rebuild_cache", expect.any(Object)));
   });
-
   it("disables duplicate rebuild while rebuild_cache is in progress", async () => {
     mockCommands(portfolio, projectDetail, true);
     renderWithQueryClient(<App />);
-
     fireEvent.click(await screen.findByLabelText("Confirm rebuild cache"));
     fireEvent.click(screen.getByRole("button", { name: "Rebuild Cache" }));
-
     expect(screen.getByRole("button", { name: "Rebuild Cache" })).toBeDisabled();
   });
 });
-
 function renderWithQueryClient(ui: React.ReactElement) {
   const testQueryClient = new QueryClient({
     defaultOptions: {
@@ -479,12 +406,9 @@ function renderWithQueryClient(ui: React.ReactElement) {
       mutations: { retry: false }
     }
   });
-
   render(<QueryClientProvider client={testQueryClient}>{ui}</QueryClientProvider>);
-
   return testQueryClient;
 }
-
 function resetMocks() {
   channelInstances.length = 0;
   invokeMock.mockReset();
@@ -492,7 +416,6 @@ function resetMocks() {
   revealItemInDirMock.mockReset();
   writeTextMock.mockReset();
 }
-
 function mockCommands(
   portfolioResponse: PortfolioDto = portfolio,
   projectResponse: ProjectDetail = projectDetail,
@@ -500,32 +423,20 @@ function mockCommands(
 ) {
   invokeMock.mockImplementation((command: string, args?: Record<string, unknown>) => {
     if (command === "get_boot_status") {
-      return Promise.resolve({
-        appDataDir: "/tmp/gsd-dashboard",
-        cachePath: "/tmp/gsd-dashboard/cache.db",
-        cacheReady: true,
-        walEnabled: true,
-        migrationsApplied: 3,
-        settingsInitialized: true
-      });
+      return Promise.resolve(bootStatusResponse);
     }
-
     if (command === "get_settings") {
       return Promise.resolve(defaultSettings);
     }
-
     if (command === "save_settings") {
       return Promise.resolve((args as { input: SettingsInput }).input);
     }
-
     if (command === "get_portfolio") {
       return Promise.resolve(portfolioResponse);
     }
-
     if (command === "get_project") {
       return Promise.resolve(projectResponse);
     }
-
     if (command === "scan_projects" || command === "rebuild_cache") {
       if (command === "rebuild_cache" && holdRebuild) {
         return new Promise(() => {});
@@ -540,19 +451,17 @@ function mockCommands(
       });
       return Promise.resolve({ discoveredCount: 2, parsedCount: 2, errorCount: 0 });
     }
-
     if (command === "index_sessions") {
       const event = (args as { onEvent: { onmessage: ((event: SessionIndexEvent) => void) | null } })
         .onEvent;
       act(() => {
         event.onmessage?.({
           event: "finished",
-          data: { filesIndexed: 1, sessionsIndexed: 0, unmatchedCount: 0, errorCount: 0 }
+          data: { filesProcessed: 1, sessionsPersisted: 0, unmatchedCount: 0, errorCount: 0 }
         });
       });
-      return Promise.resolve({ filesIndexed: 1, sessionsIndexed: 0, unmatchedCount: 0, errorCount: 0 });
+      return Promise.resolve({ filesProcessed: 1, sessionsPersisted: 0, unmatchedCount: 0, errorCount: 0 });
     }
-
     return Promise.reject(new Error(`Unexpected command: ${command}`));
   });
 }

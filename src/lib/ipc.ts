@@ -7,6 +7,8 @@ import type {
   ProjectDetail,
   ScanEvent,
   ScanSummary,
+  SessionIndexEvent,
+  SessionIndexSummary,
   SettingsInput
 } from "./types";
 
@@ -42,4 +44,11 @@ export function rebuildCache(onEvent: (event: ScanEvent) => void): Promise<ScanS
   onEventChannel.onmessage = onEvent;
 
   return invoke<ScanSummary>("rebuild_cache", { onEvent: onEventChannel });
+}
+
+export function indexSessions(onEvent: (event: SessionIndexEvent) => void): Promise<SessionIndexSummary> {
+  const onEventChannel = new Channel<SessionIndexEvent>();
+  onEventChannel.onmessage = onEvent;
+
+  return invoke<SessionIndexSummary>("index_sessions", { onEvent: onEventChannel });
 }

@@ -45,7 +45,11 @@ export type PortfolioProjectCard = {
   parseError: string | null;
   lastActivityAt: number | null;
   lastScannedAt: number;
+  sessionSparkline7d: SessionSparklineDay[];
+  sessionsLast7d: number;
 };
+
+export type SessionSparklineDay = { date: string; count: number };
 
 export type HiddenProject = {
   id: string;
@@ -56,6 +60,16 @@ export type HiddenProject = {
 export type UnmatchedSessions = {
   count: number;
   label: string;
+  claudeCount: number;
+  codexCount: number;
+  recent: RecentUnmatchedSession[];
+};
+
+export type RecentUnmatchedSession = {
+  id: string;
+  source: "claude" | "codex";
+  sourcePath: string;
+  startedAt: number | null;
 };
 
 export type PortfolioDto = {
@@ -107,6 +121,55 @@ export type ScanEvent =
   | {
       event: "finished";
       data: ScanSummary;
+    };
+
+export type SessionIndexSummary = {
+  rootCount?: number;
+  root_count?: number;
+  filesProcessed?: number;
+  files_processed?: number;
+  sessionsPersisted?: number;
+  sessions_persisted?: number;
+  unmatchedCount?: number;
+  unmatched_count?: number;
+  errorCount?: number;
+  error_count?: number;
+};
+
+export type SessionIndexEvent =
+  | {
+      event: "started";
+      data: {
+        rootCount: number;
+      };
+    }
+  | {
+      event: "sourceStarted";
+      data: {
+        source: "claude" | "codex";
+        rootPath: string;
+      };
+    }
+  | {
+      event: "fileIndexed";
+      data: {
+        source: "claude" | "codex";
+        sourcePath: string;
+        sessionsPersisted: number;
+        livePartial: boolean;
+      };
+    }
+  | {
+      event: "fileIndexError";
+      data: {
+        source: "claude" | "codex";
+        sourcePath: string;
+        message: string;
+      };
+    }
+  | {
+      event: "finished";
+      data: SessionIndexSummary;
     };
 
 export type AppError = {

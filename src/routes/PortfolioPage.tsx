@@ -11,7 +11,13 @@ import {
   reduceScanEvent,
   ScanProgressPanel
 } from "../components/ScanProgressPanel";
-import { getBootStatus, getPortfolio, getSettings, scanProjects } from "../lib/ipc";
+import {
+  completeSessionIndexState,
+  initialSessionIndexState,
+  reduceSessionIndexEvent,
+  SessionIndexProgressPanel
+} from "../components/SessionIndexProgressPanel";
+import { getBootStatus, getPortfolio, getSettings, indexSessions, scanProjects } from "../lib/ipc";
 import {
   bootStatusQueryKey,
   createSaveSettingsMutationOptions,
@@ -22,8 +28,10 @@ import {
 export function PortfolioPage() {
   const queryClient = useQueryClient();
   const [scanState, setScanState] = useState(initialScanState);
+  const [sessionIndexState, setSessionIndexState] = useState(initialSessionIndexState);
   const initialScanStarted = useRef(false);
   const isScanning = scanState.status === "scanning";
+  const isIndexingSessions = sessionIndexState.status === "indexing";
   const bootStatus = useQuery({ queryKey: bootStatusQueryKey, queryFn: getBootStatus });
   const settings = useQuery({ queryKey: settingsQueryKey, queryFn: getSettings });
   const portfolio = useQuery({ queryKey: portfolioQueryKey, queryFn: getPortfolio });
@@ -73,6 +81,28 @@ export function PortfolioPage() {
     });
   }
 
+  async function runSessionIndex() {
+    setSessionIndexState({
+      ...initialSessionIndexState,
+      status: "indexing",
+      progressText: "Indexing sessions"
+    });
+
+    try {
+      const summary = await indexSessions((event) => {
+        setSessionIndexState((current) => reduceSessionIndexEvent(current, event));
+      });
+      setSessionIndexState((current) => completeSessionIndexState(current, summary));
+      await queryClient.invalidateQueries({ queryKey: portfolioQueryKey });
+    } catch {
+      setSessionIndexState((current) => ({
+        ...current,
+        status: "failed",
+        progressText: "Some session files could not be indexed"
+      }));
+    }
+  }
+
   return (
     <div className="page-stack">
       <div className="app-header">
@@ -80,14 +110,29 @@ export function PortfolioPage() {
           <h1>Portfolio</h1>
           <p>{portfolio.data ? `${portfolio.data.projects.length} visible projects` : "Loading projects"}</p>
         </header>
-        <button className="scan-cta" type="button" onClick={runScan} disabled={isScanning}>
-          {isScanning ? (
-            <Loader2 aria-hidden="true" size={16} strokeWidth={2} />
-          ) : (
-            <Search aria-hidden="true" size={16} strokeWidth={2} />
-          )}
-          Scan Projects
-        </button>
+        <div className="header-actions">
+          <button className="scan-cta" type="button" onClick={runScan} disabled={isScanning}>
+            {isScanning ? (
+              <Loader2 aria-hidden="true" size={16} strokeWidth={2} />
+            ) : (
+              <Search aria-hidden="true" size={16} strokeWidth={2} />
+            )}
+            Scan Projects
+          </button>
+          <button
+            className="scan-cta"
+            type="button"
+            onClick={runSessionIndex}
+            disabled={isIndexingSessions}
+          >
+            {isIndexingSessions ? (
+              <Loader2 aria-hidden="true" size={16} strokeWidth={2} />
+            ) : (
+              <Search aria-hidden="true" size={16} strokeWidth={2} />
+            )}
+            Index Sessions
+          </button>
+        </div>
       </div>
 
       <PortfolioHeaderStats
@@ -102,6 +147,9 @@ export function PortfolioPage() {
       />
 
       <ScanProgressPanel state={scanState} />
+      {sessionIndexState.status !== "ready" ? (
+        <SessionIndexProgressPanel state={sessionIndexState} />
+      ) : null}
 
       <div className="portfolio-layout">
         <section className="project-grid" aria-label="Projects">
@@ -135,7 +183,10 @@ export function PortfolioPage() {
           unmatchedSessions={
             portfolio.data?.unmatchedSessions ?? {
               count: 0,
-              label: "Available after session indexing"
+              label: "No unmatched sessions",
+              claudeCount: 0,
+              codexCount: 0,
+              recent: []
             }
           }
         />
