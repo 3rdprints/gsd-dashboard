@@ -1,22 +1,111 @@
 use std::{
     fs::File,
     io::{BufRead, BufReader, Seek},
-    path::Path,
+    path::{Path, PathBuf},
+    time::UNIX_EPOCH,
 };
 
+use deadpool_sqlite::Pool;
+use serde::Serialize;
 use serde_json::Value;
 
 use crate::{
     error::AppError,
+    events::SessionIndexEvent,
     sessions::{
-        claude::parse_claude_record, codex::parse_codex_record, IndexedSession, SessionIndexState,
+        claude::parse_claude_record, codex::parse_codex_record, matcher::match_project,
+        repo::persist_indexed_file_result, IndexedSession, ProjectRoot, SessionIndexState,
         SessionParseAccumulator, SessionSource,
     },
+    store::project_repo,
 };
 
 pub use crate::sessions::StreamFileStatus;
 
 const LIVE_PARTIAL_MESSAGE: &str = "Live session still writing";
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SessionIndexSummary {
+    pub root_count: usize,
+    pub files_processed: usize,
+    pub sessions_persisted: usize,
+    pub unmatched_count: usize,
+    pub error_count: usize,
+}
+
+#[derive(Debug, Clone)]
+struct SessionRoot {
+    source: SessionSource,
+    path: PathBuf,
+}
+
+pub async fn index_session_roots(
+    pool: Pool,
+    home_dir: PathBuf,
+    on_event: impl Fn(SessionIndexEvent) -> Result<(), AppError> + Send + Sync + 'static,
+) -> Result<SessionIndexSummary, AppError> {
+    let roots = discover_existing_roots(home_dir).await?;
+    on_event(SessionIndexEvent::Started {
+        root_count: roots.len(),
+    })?;
+
+    let known_projects = load_known_project_roots(&pool).await?;
+    let mut summary = SessionIndexSummary {
+        root_count: roots.len(),
+        files_processed: 0,
+        sessions_persisted: 0,
+        unmatched_count: 0,
+        error_count: 0,
+    };
+
+    for root in roots {
+        on_event(SessionIndexEvent::SourceStarted {
+            source: root.source.as_str().to_string(),
+            root_path: root.path.display().to_string(),
+        })?;
+
+        let files = discover_jsonl_files(root.path.clone()).await?;
+        for source_path in files {
+            summary.files_processed += 1;
+            match index_session_file(&pool, root.source, source_path.clone(), &known_projects).await
+            {
+                Ok(result) => {
+                    summary.sessions_persisted += result.sessions_persisted;
+                    on_event(SessionIndexEvent::FileIndexed {
+                        source: root.source.as_str().to_string(),
+                        source_path: source_path.display().to_string(),
+                        sessions_persisted: result.sessions_persisted,
+                        live_partial: result.live_partial,
+                    })?;
+                }
+                Err(error) => {
+                    summary.error_count += 1;
+                    on_event(SessionIndexEvent::FileIndexError {
+                        source: root.source.as_str().to_string(),
+                        source_path: source_path.display().to_string(),
+                        message: error.to_string(),
+                    })?;
+                }
+            }
+        }
+    }
+
+    summary.unmatched_count = load_unmatched_count(&pool).await?;
+    on_event(SessionIndexEvent::Finished {
+        files_processed: summary.files_processed,
+        sessions_persisted: summary.sessions_persisted,
+        unmatched_count: summary.unmatched_count,
+        error_count: summary.error_count,
+    })?;
+
+    Ok(summary)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct IndexedFileResult {
+    sessions_persisted: usize,
+    live_partial: bool,
+}
 
 pub fn stream_session_file(
     source: SessionSource,
@@ -105,6 +194,194 @@ pub fn stream_session_file(
             committed_offset: committed_offset.min(file_size),
         },
     ))
+}
+
+async fn discover_existing_roots(home_dir: PathBuf) -> Result<Vec<SessionRoot>, AppError> {
+    tokio::task::spawn_blocking(move || {
+        let candidates = [
+            SessionRoot {
+                source: SessionSource::Claude,
+                path: home_dir.join(".claude/projects"),
+            },
+            SessionRoot {
+                source: SessionSource::Codex,
+                path: home_dir.join(".codex/sessions"),
+            },
+        ];
+
+        candidates
+            .into_iter()
+            .filter(|root| root.path.is_dir())
+            .collect::<Vec<_>>()
+    })
+    .await
+    .map_err(AppError::io)
+}
+
+async fn discover_jsonl_files(root: PathBuf) -> Result<Vec<PathBuf>, AppError> {
+    tokio::task::spawn_blocking(move || {
+        let mut files = Vec::new();
+        collect_jsonl_files(&root, &mut files)?;
+        files.sort();
+
+        Ok::<_, AppError>(files)
+    })
+    .await
+    .map_err(AppError::io)?
+}
+
+fn collect_jsonl_files(path: &Path, files: &mut Vec<PathBuf>) -> Result<(), AppError> {
+    for entry in std::fs::read_dir(path).map_err(AppError::io)? {
+        let entry = entry.map_err(AppError::io)?;
+        let entry_path = entry.path();
+        let file_type = entry.file_type().map_err(AppError::io)?;
+
+        if file_type.is_dir() {
+            collect_jsonl_files(&entry_path, files)?;
+        } else if file_type.is_file()
+            && entry_path.extension().and_then(|extension| extension.to_str()) == Some("jsonl")
+        {
+            files.push(entry_path);
+        }
+    }
+
+    Ok(())
+}
+
+async fn load_known_project_roots(pool: &Pool) -> Result<Vec<ProjectRoot>, AppError> {
+    let connection = pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(|connection| {
+            project_repo::list_project_snapshots(connection).map(|projects| {
+                projects
+                    .into_iter()
+                    .map(|project| ProjectRoot {
+                        id: project.id,
+                        root_path: project.root_path,
+                    })
+                    .collect::<Vec<_>>()
+            })
+        })
+        .await
+        .map_err(AppError::store)?
+}
+
+async fn load_previous_index_state(
+    pool: &Pool,
+    source_path: String,
+) -> Result<Option<SessionIndexState>, AppError> {
+    let connection = pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(move |connection| crate::sessions::repo::load_index_state(connection, &source_path))
+        .await
+        .map_err(AppError::store)?
+}
+
+async fn load_unmatched_count(pool: &Pool) -> Result<usize, AppError> {
+    let connection = pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(|connection| {
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sessions WHERE project_id IS NULL",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .map(|count| count as usize)
+                .map_err(AppError::from)
+        })
+        .await
+        .map_err(AppError::store)?
+}
+
+async fn index_session_file(
+    pool: &Pool,
+    source: SessionSource,
+    source_path: PathBuf,
+    known_projects: &[ProjectRoot],
+) -> Result<IndexedFileResult, AppError> {
+    let source_path_string = source_path.display().to_string();
+    let previous_state = load_previous_index_state(pool, source_path_string).await?;
+    let previous_offset = previous_state
+        .as_ref()
+        .map(|state| state.last_parsed_byte_offset)
+        .unwrap_or(0);
+    let (mut accumulator, status) = tokio::task::spawn_blocking({
+        let source_path = source_path.clone();
+        let previous_state = previous_state.clone();
+        move || stream_session_file(source, &source_path, previous_state.as_ref())
+    })
+    .await
+    .map_err(AppError::io)??;
+    let committed_offset = match &status {
+        StreamFileStatus::Complete { committed_offset } => *committed_offset,
+        StreamFileStatus::LivePartial {
+            committed_offset, ..
+        } => *committed_offset,
+    };
+    let live_partial = matches!(status, StreamFileStatus::LivePartial { .. });
+    let file_state = build_index_state(source, &source_path, committed_offset, live_partial)?;
+    let should_persist_session =
+        committed_offset > previous_offset && accumulator.session.message_count > 0;
+    let sessions = if should_persist_session {
+        match_project(&mut accumulator.session, known_projects);
+        vec![accumulator.session]
+    } else {
+        Vec::new()
+    };
+
+    if committed_offset == previous_offset && sessions.is_empty() {
+        return Ok(IndexedFileResult {
+            sessions_persisted: 0,
+            live_partial,
+        });
+    }
+
+    let now = current_unix_seconds();
+    let sessions_persisted = sessions.len();
+    let connection = pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(move |connection| {
+            persist_indexed_file_result(connection, &sessions, &file_state, now)
+        })
+        .await
+        .map_err(AppError::store)??;
+
+    Ok(IndexedFileResult {
+        sessions_persisted,
+        live_partial,
+    })
+}
+
+fn build_index_state(
+    source: SessionSource,
+    source_path: &Path,
+    committed_offset: i64,
+    live_partial: bool,
+) -> Result<SessionIndexState, AppError> {
+    let metadata = std::fs::metadata(source_path).map_err(AppError::io)?;
+    let file_mtime = metadata
+        .modified()
+        .ok()
+        .and_then(|modified| modified.duration_since(UNIX_EPOCH).ok())
+        .and_then(|duration| duration.as_secs().try_into().ok());
+
+    Ok(SessionIndexState {
+        source_path: source_path.display().to_string(),
+        source,
+        file_size: metadata.len() as i64,
+        file_mtime,
+        last_parsed_byte_offset: committed_offset,
+        live_partial,
+        last_error: None,
+    })
+}
+
+fn current_unix_seconds() -> i64 {
+    UNIX_EPOCH
+        .elapsed()
+        .map(|duration| duration.as_secs() as i64)
+        .unwrap_or(0)
 }
 
 fn empty_session(source: SessionSource, source_path: String) -> IndexedSession {

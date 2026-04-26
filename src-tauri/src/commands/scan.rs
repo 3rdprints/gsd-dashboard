@@ -4,8 +4,7 @@ use tauri::{ipc::Channel, State};
 
 use crate::{
     app_state::AppState, error::AppError, events::ScanEvent, scan_roots, scan_service,
-    scanner::ScanSummary, settings,
-    store::project_repo,
+    scanner::ScanSummary, sessions, settings, store::project_repo,
 };
 
 #[tauri::command]
@@ -40,7 +39,10 @@ pub async fn rebuild_cache_for_app(
         .await
         .map_err(AppError::store)??;
 
-    scan_projects_for_app(state, on_event).await
+    let summary = scan_projects_for_app(state, on_event).await?;
+    rematch_unmatched_sessions(&state.pool).await?;
+
+    Ok(summary)
 }
 
 pub async fn scan_projects_for_app(
@@ -55,4 +57,30 @@ pub async fn scan_projects_for_app(
         .collect::<Vec<_>>();
 
     scan_service::scan_roots(state.pool.clone(), roots, state.home_dir.clone(), on_event).await
+}
+
+async fn rematch_unmatched_sessions(pool: &deadpool_sqlite::Pool) -> Result<(), AppError> {
+    let now = std::time::UNIX_EPOCH
+        .elapsed()
+        .map(|duration| duration.as_secs() as i64)
+        .unwrap_or(0);
+    let connection = pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(move |connection| {
+            let known_projects = project_repo::list_project_snapshots(connection)?
+                .into_iter()
+                .map(|project| sessions::ProjectRoot {
+                    id: project.id,
+                    root_path: project.root_path,
+                })
+                .collect::<Vec<_>>();
+            sessions::repo::rematch_unmatched_sessions_against_projects(
+                connection,
+                &known_projects,
+                now,
+            )
+            .map(|_| ())
+        })
+        .await
+        .map_err(AppError::store)?
 }
