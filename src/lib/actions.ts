@@ -1,14 +1,15 @@
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { openPath, openUrl } from "@tauri-apps/plugin-opener";
+import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
 
 export async function copyNextCommand(command: string): Promise<void> {
   await writeText(command);
 }
 
 export async function openProjectInFinder(rootPath: string): Promise<void> {
-  await openPath(rootPath);
+  await revealItemInDir(rootPath);
 }
 
 export async function openProjectInVsCode(rootPath: string): Promise<void> {
-  await openUrl(`vscode://file/${encodeURI(rootPath)}`);
+  const encodedPath = rootPath.split("/").map(encodeURIComponent).join("/");
+  await openUrl(`vscode://file/${encodedPath}`);
 }

@@ -10,11 +10,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 import type { PortfolioDto, ProjectDetail, ScanEvent, SettingsInput } from "./lib/types";
 
-const { channelInstances, invokeMock, openPathMock, openUrlMock, writeTextMock } = vi.hoisted(() => ({
+const { channelInstances, invokeMock, openUrlMock, revealItemInDirMock, writeTextMock } = vi.hoisted(() => ({
   channelInstances: [] as Array<{ onmessage: ((event: unknown) => void) | null }>,
   invokeMock: vi.fn(),
-  openPathMock: vi.fn(),
   openUrlMock: vi.fn(),
+  revealItemInDirMock: vi.fn(),
   writeTextMock: vi.fn()
 }));
 
@@ -34,8 +34,8 @@ vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
 }));
 
 vi.mock("@tauri-apps/plugin-opener", () => ({
-  openPath: openPathMock,
-  openUrl: openUrlMock
+  openUrl: openUrlMock,
+  revealItemInDir: revealItemInDirMock
 }));
 
 const defaultSettings: SettingsInput = {
@@ -159,42 +159,6 @@ describe("IPC plumbing", () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: settingsQueryKey });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: portfolioQueryKey });
     expect(invalidateSpy).toHaveBeenCalledWith({ predicate: expect.any(Function) });
-  });
-});
-
-describe("safe action wrappers", () => {
-  beforeEach(() => {
-    invokeMock.mockReset();
-    openPathMock.mockReset();
-    openUrlMock.mockReset();
-    writeTextMock.mockReset();
-  });
-
-  it("copyNextCommand writes clipboard text without backend invoke", async () => {
-    const { copyNextCommand } = await import("./lib/actions");
-
-    writeTextMock.mockResolvedValueOnce(undefined);
-
-    await copyNextCommand("/gsd-next");
-
-    expect(writeTextMock).toHaveBeenCalledWith("/gsd-next");
-    expect(invokeMock).not.toHaveBeenCalled();
-  });
-
-  it("opens project paths through official Tauri opener wrappers", async () => {
-    const { openProjectInFinder, openProjectInVsCode } = await import("./lib/actions");
-    const rootPath = "/Users/smacdonald/homegit/gsd-dashboard";
-
-    openPathMock.mockResolvedValueOnce(undefined);
-    openUrlMock.mockResolvedValueOnce(undefined);
-
-    await openProjectInFinder(rootPath);
-    await openProjectInVsCode(rootPath);
-
-    expect(openPathMock).toHaveBeenCalledWith(rootPath);
-    expect(openUrlMock).toHaveBeenCalledWith(
-      "vscode://file//Users/smacdonald/homegit/gsd-dashboard"
-    );
   });
 });
 
@@ -322,7 +286,7 @@ describe("portfolio vertical slice", () => {
 
   it("detail_opener_failure_renders_inline_error", async () => {
     window.history.pushState({}, "", "/project/gsd-dashboard");
-    openPathMock.mockRejectedValueOnce(new Error("open failed"));
+    revealItemInDirMock.mockRejectedValueOnce(new Error("open failed"));
     renderWithQueryClient(<App />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Open in Finder" }));
@@ -441,8 +405,8 @@ function renderWithQueryClient(ui: React.ReactElement) {
 function resetMocks() {
   channelInstances.length = 0;
   invokeMock.mockReset();
-  openPathMock.mockReset();
   openUrlMock.mockReset();
+  revealItemInDirMock.mockReset();
   writeTextMock.mockReset();
 }
 

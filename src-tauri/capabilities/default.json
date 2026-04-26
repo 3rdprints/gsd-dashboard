@@ -12,7 +12,10 @@
     "allow-scan-projects",
     "allow-save-settings",
     "clipboard-manager:allow-write-text",
-    "opener:allow-open-path",
-    "opener:allow-open-url"
+    "opener:allow-reveal-item-in-dir",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "vscode://file/*" }]
+    }
   ]
 }

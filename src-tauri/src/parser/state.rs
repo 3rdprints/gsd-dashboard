@@ -30,7 +30,8 @@ pub fn parse_state(bytes: &[u8]) -> Result<StateDocument, ParseError> {
     let frontmatter = parsed.data.unwrap_or_default();
     let current_milestone = parse_milestone(&parsed.content, &frontmatter);
     let current_phase = parse_phase(&parsed.content);
-    let next_command = parse_next_command(&parsed.content);
+    let next_command =
+        parse_next_command(&parsed.content).unwrap_or_else(|| default_next_command(&current_phase));
 
     Ok(StateDocument {
         current_milestone,
@@ -78,7 +79,7 @@ fn parse_phase(body: &str) -> Option<PhaseIdentity> {
     Some(PhaseIdentity { number, name })
 }
 
-fn parse_next_command(body: &str) -> String {
+fn parse_next_command(body: &str) -> Option<String> {
     let mut in_next_command = false;
     let mut in_fence = false;
 
@@ -103,11 +104,18 @@ fn parse_next_command(body: &str) -> String {
         }
 
         if (in_fence || trimmed.starts_with('/')) && !trimmed.is_empty() {
-            return trimmed.to_string();
+            return Some(trimmed.to_string());
         }
     }
 
-    "/gsd-next".to_string()
+    None
+}
+
+fn default_next_command(current_phase: &Option<PhaseIdentity>) -> String {
+    current_phase
+        .as_ref()
+        .map(|phase| format!("/gsd-execute-phase {}", phase.number))
+        .unwrap_or_else(|| "/gsd-next".to_string())
 }
 
 fn field_value(line: &str, marker: &str) -> Option<String> {
@@ -147,7 +155,7 @@ milestone_name: milestone
     }
 
     #[test]
-    fn next_command_defaults_to_gsd_next() {
+    fn next_command_defaults_to_current_phase_when_available() {
         let state = parse_state(
             br#"---
 milestone: v1.0
@@ -156,6 +164,21 @@ milestone: v1.0
 ## Current Position
 
 **Phase:** 06.1
+"#,
+        )
+        .unwrap();
+
+        assert_eq!(state.next_command, "/gsd-execute-phase 06.1");
+    }
+
+    #[test]
+    fn next_command_defaults_to_gsd_next_without_phase() {
+        let state = parse_state(
+            br#"---
+milestone: v1.0
+---
+
+## Current Position
 "#,
         )
         .unwrap();
