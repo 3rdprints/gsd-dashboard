@@ -1,9 +1,20 @@
-use std::{fs, path::Path};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    sync::{Arc, Mutex},
+};
 
-use gsd_dashboard::sessions::{
-    indexer::{stream_session_file, StreamFileStatus},
-    matcher::match_project,
-    IndexedSession, ProjectRoot, SessionIndexState, SessionSource,
+use gsd_dashboard::{
+    bootstrap,
+    commands::sessions::index_sessions_for_app,
+    error::AppError,
+    events::SessionIndexEvent,
+    sessions::{
+        indexer::{stream_session_file, StreamFileStatus},
+        matcher::match_project,
+        repo::load_index_state,
+        IndexedSession, ProjectRoot, SessionIndexState, SessionSource,
+    },
 };
 
 fn fixture_path(name: &str) -> &'static str {
@@ -22,6 +33,47 @@ fn fixture_path(name: &str) -> &'static str {
         ),
         _ => panic!("unknown fixture"),
     }
+}
+
+async fn test_state() -> (tempfile::TempDir, gsd_dashboard::app_state::AppState) {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let state = bootstrap::bootstrap_from_paths(
+        temp_dir.path().join("app-data"),
+        temp_dir.path().join("home"),
+    )
+    .await
+    .expect("bootstrap should succeed");
+
+    (temp_dir, state)
+}
+
+fn copy_fixture_roots(home_dir: &Path) -> (PathBuf, PathBuf) {
+    let claude_dir = home_dir.join(".claude/projects/-tmp-gsd-dashboard-fixture");
+    let codex_dir = home_dir.join(".codex/sessions/2024/05/27");
+    fs::create_dir_all(&claude_dir).expect("claude fixture dir should be created");
+    fs::create_dir_all(&codex_dir).expect("codex fixture dir should be created");
+    let claude_path = claude_dir.join("claude-session-1.jsonl");
+    let codex_path = codex_dir.join("codex-session-1.jsonl");
+    fs::copy(fixture_path("claude-basic"), &claude_path).expect("claude fixture should copy");
+    fs::copy(fixture_path("codex-basic"), &codex_path).expect("codex fixture should copy");
+
+    (claude_path, codex_path)
+}
+
+fn collect_session_events() -> (
+    Arc<Mutex<Vec<SessionIndexEvent>>>,
+    impl Fn(SessionIndexEvent) -> Result<(), AppError> + Send + Sync + 'static,
+) {
+    let events = Arc::new(Mutex::new(Vec::new()));
+    let recorded_events = Arc::clone(&events);
+
+    (events, move |event| {
+        recorded_events
+            .lock()
+            .expect("events lock should not be poisoned")
+            .push(event);
+        Ok(())
+    })
 }
 
 fn empty_session(source: SessionSource, source_path: &str) -> IndexedSession {
@@ -196,4 +248,146 @@ fn incremental_state_starts_at_previous_committed_offset() {
             committed_offset: bytes.len() as i64
         }
     );
+}
+
+#[tokio::test]
+async fn index_sessions_for_app_persists_fixture_roots() {
+    let (_temp_dir, state) = test_state().await;
+    let (_claude_path, _codex_path) = copy_fixture_roots(&state.home_dir);
+    let (events, on_event) = collect_session_events();
+
+    let summary = index_sessions_for_app(&state, on_event)
+        .await
+        .expect("session index should complete");
+    let events = events.lock().expect("events should be readable").clone();
+
+    assert_eq!(summary.root_count, 2);
+    assert_eq!(summary.files_processed, 2);
+    assert_eq!(summary.sessions_persisted, 2);
+    assert_eq!(summary.unmatched_count, 2);
+    assert_eq!(summary.error_count, 0);
+    assert!(events
+        .iter()
+        .any(|event| matches!(event, SessionIndexEvent::Started { root_count: 2 })));
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionIndexEvent::Finished {
+                files_processed: 2,
+                sessions_persisted: 2,
+                unmatched_count: 2,
+                error_count: 0
+            }
+        )
+    }));
+}
+
+#[tokio::test]
+async fn index_sessions_for_app_reuses_offsets_incrementally() {
+    let (_temp_dir, state) = test_state().await;
+    let (claude_path, _codex_path) = copy_fixture_roots(&state.home_dir);
+
+    let first_summary = index_sessions_for_app(&state, |_| Ok(()))
+        .await
+        .expect("first session index should complete");
+    let second_summary = index_sessions_for_app(&state, |_| Ok(()))
+        .await
+        .expect("second session index should complete");
+    let source_path = claude_path.display().to_string();
+    let stored_offset = state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available")
+        .interact(move |connection| {
+            load_index_state(connection, &source_path)
+                .map(|state| state.expect("claude index state should exist"))
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("state should load")
+        .last_parsed_byte_offset;
+
+    assert_eq!(first_summary.sessions_persisted, 2);
+    assert_eq!(second_summary.sessions_persisted, 0);
+    assert_eq!(second_summary.files_processed, 2);
+    assert_eq!(
+        stored_offset,
+        fs::metadata(&claude_path)
+            .expect("claude fixture should exist")
+            .len() as i64
+    );
+}
+
+#[tokio::test]
+async fn index_sessions_for_app_does_not_advance_offset_when_persistence_fails() {
+    let (_temp_dir, state) = test_state().await;
+    let (claude_path, _codex_path) = copy_fixture_roots(&state.home_dir);
+    index_sessions_for_app(&state, |_| Ok(()))
+        .await
+        .expect("first session index should complete");
+    let previous_offset = fs::metadata(&claude_path)
+        .expect("claude fixture should exist")
+        .len() as i64;
+    fs::write(
+        &claude_path,
+        format!(
+            "{}{}",
+            fs::read_to_string(fixture_path("claude-basic")).expect("fixture should read"),
+            "{\"type\":\"assistant\",\"timestamp\":\"2024-05-27T12:01:00Z\",\"cwd\":\"/tmp/gsd-dashboard-fixture\",\"sessionId\":\"claude-session-1\"}\n"
+        ),
+    )
+    .expect("fixture should be extended");
+
+    state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available")
+        .interact(|connection| {
+            connection.execute(
+                "CREATE TRIGGER fail_session_update
+                 BEFORE UPDATE ON sessions
+                 BEGIN
+                     SELECT RAISE(ABORT, 'forced persistence failure');
+                 END;",
+                [],
+            )?;
+
+            Ok::<_, AppError>(())
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("failure trigger should be installed");
+
+    let summary = index_sessions_for_app(&state, |_| Ok(()))
+        .await
+        .expect("per-file failures should not abort the whole index");
+    let source_path = claude_path.display().to_string();
+    let stored_offset = state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available")
+        .interact(move |connection| {
+            load_index_state(connection, &source_path)
+                .map(|state| state.expect("claude index state should exist"))
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("state should load")
+        .last_parsed_byte_offset;
+
+    assert_eq!(summary.error_count, 1);
+    assert_eq!(stored_offset, previous_offset);
+}
+
+#[test]
+fn index_sessions_command_is_registered_for_release() {
+    let build_script = include_str!("../build.rs");
+    let default_capability = include_str!("../capabilities/default.json");
+
+    assert!(build_script.contains("\"index_sessions\""));
+    assert!(default_capability.contains("\"allow-index-sessions\""));
+    assert!(!default_capability.contains("fs:allow-read"));
 }

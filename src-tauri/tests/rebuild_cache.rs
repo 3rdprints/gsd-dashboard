@@ -9,6 +9,9 @@ use gsd_dashboard::{
     commands::scan::rebuild_cache_for_app,
     error::AppError,
     events::ScanEvent,
+    sessions::{
+        repo::persist_indexed_file_result, IndexedSession, SessionIndexState, SessionSource,
+    },
     settings::{AppSettings, SettingsInput, TrayBarSort},
     store::{self, project_repo},
 };
@@ -156,6 +159,26 @@ async fn load_settings(state: &AppState) -> AppSettings {
         .expect("settings should load")
 }
 
+fn indexed_session(project_id: Option<&str>, source_path: &str, cwd: &Path) -> IndexedSession {
+    IndexedSession {
+        id: "codex:rebuild-rematch-session".to_string(),
+        source: SessionSource::Codex,
+        source_path: source_path.to_string(),
+        source_session_id: Some("rebuild-rematch-session".to_string()),
+        project_id: project_id.map(str::to_string),
+        cwd: Some(cwd.display().to_string()),
+        started_at: Some(1_716_814_800_000),
+        ended_at: Some(1_716_814_812_500),
+        duration_ms: Some(12_500),
+        message_count: 2,
+        tokens_in: Some(90),
+        tokens_out: Some(30),
+        model: Some("gpt-5".to_string()),
+        attribution_method: "cwd".to_string(),
+        index_error: None,
+    }
+}
+
 #[tokio::test]
 async fn clear_project_cache_removes_only_derived_rows() {
     let temp_dir = tempfile::tempdir().expect("temp dir should be created");
@@ -265,6 +288,93 @@ async fn rebuild_cache_preserves_settings_and_hidden_project_survives_rebuild() 
     assert!(events
         .iter()
         .any(|event| matches!(event, ScanEvent::Finished { .. })));
+}
+
+#[tokio::test]
+async fn rebuild_cache_rematches_existing_sessions_after_project_roots_refresh() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let home_dir = temp_dir.path().to_path_buf();
+    let scan_root = home_dir.join("workspace");
+    let project_root = scan_root.join("good-project");
+    write_valid_planning_project(&project_root, "Good Project");
+    let state = test_app_state(home_dir, &scan_root).await;
+    let source_path = state
+        .home_dir
+        .join(".codex/sessions/2024/05/27/rebuild-rematch-session.jsonl")
+        .display()
+        .to_string();
+    let cwd = project_root.join("src");
+    let previous_offset = 128_i64;
+
+    state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available")
+        .interact({
+            let source_path = source_path.clone();
+            let cwd = cwd.clone();
+            let project_root = project_root.clone();
+            move |connection| {
+                project_repo::upsert_project_snapshot(
+                    connection,
+                    snapshot("stale-project", &project_root.display().to_string()),
+                    Vec::new(),
+                    1_777_000_300,
+                )?;
+                persist_indexed_file_result(
+                    connection,
+                    &[indexed_session(Some("stale-project"), &source_path, &cwd)],
+                    &SessionIndexState {
+                        source_path,
+                        source: SessionSource::Codex,
+                        file_size: previous_offset,
+                        file_mtime: None,
+                        last_parsed_byte_offset: previous_offset,
+                        live_partial: false,
+                        last_error: None,
+                    },
+                    1_777_000_400,
+                )
+            }
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("session should be persisted");
+
+    rebuild_cache_for_app(&state, |_| Ok(()))
+        .await
+        .expect("rebuild should scan configured roots");
+
+    state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available")
+        .interact(move |connection| {
+            let refreshed_project_id: String = connection.query_row(
+                "SELECT id FROM projects WHERE root_path = ?1",
+                [project_root.display().to_string()],
+                |row| row.get(0),
+            )?;
+            let (session_project_id, stored_offset): (Option<String>, i64) =
+                connection.query_row(
+                    "SELECT sessions.project_id, session_index_state.last_parsed_byte_offset
+                     FROM sessions
+                     JOIN session_index_state ON session_index_state.source_path = sessions.source_path
+                     WHERE sessions.id = ?1",
+                    ["codex:rebuild-rematch-session"],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )?;
+
+            assert_eq!(session_project_id.as_deref(), Some(refreshed_project_id.as_str()));
+            assert_eq!(stored_offset, previous_offset);
+
+            Ok::<_, AppError>(())
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("session should be rematched");
 }
 
 #[tokio::test]
