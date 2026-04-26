@@ -83,7 +83,12 @@ Plans:
   2. A live Claude session with a half-written last JSONL line is indexed without being marked corrupt; byte offsets are tracked so subsequent parses are incremental.
   3. Claude sessions are attributed to projects by reversing the directory-name encoding; Codex sessions are attributed via parsed `cwd` when present; sessions that cannot be attributed show up in a "Global / Unmatched" bucket rather than being dropped.
   4. Portfolio cards now show an accurate 7-day session-count sparkline per project driven by indexed session data.
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 04-01-PLAN.md — Add session SQLite schema, repository helpers, and aggregate tests
+- [ ] 04-02-PLAN.md — Implement Claude/Codex metadata parsers, incremental streaming, and attribution
+- [ ] 04-03-PLAN.md — Wire session indexing command, progress events, and release capability
+- [ ] 04-04-PLAN.md — Surface indexed session stats, sparklines, unmatched rail, and indexing UI
 
 ### Phase 5: Project Detail, Global Sessions & Charts
 **Goal**: User can drill into any project for milestone and session analytics and can explore all sessions across the portfolio.
