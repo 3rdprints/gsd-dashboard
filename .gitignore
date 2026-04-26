@@ -182,3 +182,4 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 .planning/
+.DS_Store
