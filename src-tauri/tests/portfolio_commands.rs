@@ -2,8 +2,11 @@ use gsd_dashboard::{
     bootstrap,
     commands::projects::{get_portfolio_for_app, get_project_for_app},
     settings::{self, SettingsInput, TrayBarSort},
+    sessions::{repo as session_repo, IndexedSession, SessionIndexState, SessionSource},
     store::project_repo::{self, StoredProjectSnapshot},
 };
+
+const DAY_MS: i64 = 86_400_000;
 
 fn project_snapshot(
     id: &str,
@@ -85,6 +88,70 @@ async fn insert_projects(
         .await
         .expect("interaction should complete")
         .expect("projects should insert");
+}
+
+fn today_start_ms() -> i64 {
+    let now_ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("system time should be after unix epoch")
+        .as_millis() as i64;
+    now_ms - (now_ms % DAY_MS)
+}
+
+fn indexed_session(
+    id: &str,
+    source: SessionSource,
+    project_id: Option<&str>,
+    source_path: &str,
+    started_at: i64,
+    tokens_in: Option<i64>,
+    tokens_out: Option<i64>,
+) -> IndexedSession {
+    IndexedSession {
+        id: id.to_string(),
+        source,
+        source_path: source_path.to_string(),
+        source_session_id: Some(id.to_string()),
+        project_id: project_id.map(str::to_string),
+        cwd: None,
+        started_at: Some(started_at),
+        ended_at: Some(started_at + 1_000),
+        duration_ms: Some(1_000),
+        message_count: 1,
+        tokens_in,
+        tokens_out,
+        model: Some("test-model".to_string()),
+        attribution_method: project_id.map_or("unmatched", |_| "cwd").to_string(),
+        index_error: None,
+    }
+}
+
+async fn insert_sessions(
+    state: &gsd_dashboard::app_state::AppState,
+    sessions: Vec<IndexedSession>,
+) {
+    let index_state = SessionIndexState {
+        source_path: "/tmp/session-source.jsonl".to_string(),
+        source: SessionSource::Claude,
+        file_size: 100,
+        file_mtime: Some(1_777_000_000),
+        last_parsed_byte_offset: 100,
+        live_partial: false,
+        last_error: None,
+    };
+    let connection = state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available");
+    connection
+        .interact(move |connection| {
+            session_repo::persist_indexed_file_result(connection, &sessions, &index_state, 1)?;
+            Ok::<_, gsd_dashboard::error::AppError>(())
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("sessions should insert");
 }
 
 #[tokio::test]
@@ -243,4 +310,133 @@ async fn portfolio_stats_count_visible_projects_and_active_milestones() {
     assert_eq!(portfolio.stats.active_milestones, 1);
     assert_eq!(portfolio.stats.sessions_today, 0);
     assert_eq!(portfolio.stats.tokens_today, 0);
+}
+
+#[tokio::test]
+async fn portfolio_stats_use_indexed_sessions() {
+    let (_temp_dir, state) = test_state().await;
+    insert_projects(
+        &state,
+        vec![project_snapshot(
+            "active-project",
+            "Active Project",
+            "/tmp/active",
+            None,
+            300,
+        )],
+    )
+    .await;
+    insert_sessions(
+        &state,
+        vec![indexed_session(
+            "today-session",
+            SessionSource::Claude,
+            Some("active-project"),
+            "/tmp/claude/today.jsonl",
+            today_start_ms() + 60_000,
+            Some(120),
+            Some(45),
+        )],
+    )
+    .await;
+
+    let portfolio = get_portfolio_for_app(&state)
+        .await
+        .expect("portfolio should load");
+
+    assert_eq!(portfolio.stats.sessions_today, 1);
+    assert_eq!(portfolio.stats.tokens_today, 165);
+}
+
+#[tokio::test]
+async fn portfolio_cards_include_seven_day_sparklines() {
+    let (_temp_dir, state) = test_state().await;
+    insert_projects(
+        &state,
+        vec![project_snapshot(
+            "spark-project",
+            "Spark Project",
+            "/tmp/spark",
+            None,
+            300,
+        )],
+    )
+    .await;
+    let start = today_start_ms() - (6 * DAY_MS);
+    insert_sessions(
+        &state,
+        vec![
+            indexed_session(
+                "oldest-bucket",
+                SessionSource::Claude,
+                Some("spark-project"),
+                "/tmp/claude/oldest.jsonl",
+                start + 10_000,
+                None,
+                None,
+            ),
+            indexed_session(
+                "today-bucket",
+                SessionSource::Codex,
+                Some("spark-project"),
+                "/tmp/codex/today.jsonl",
+                start + (6 * DAY_MS) + 10_000,
+                None,
+                None,
+            ),
+        ],
+    )
+    .await;
+
+    let portfolio = get_portfolio_for_app(&state)
+        .await
+        .expect("portfolio should load");
+    let project = &portfolio.projects[0];
+
+    assert_eq!(project.session_sparkline_7d.len(), 7);
+    assert_eq!(project.sessions_last_7d, 2);
+    assert_eq!(project.session_sparkline_7d[0].count, 1);
+    assert_eq!(project.session_sparkline_7d[6].count, 1);
+}
+
+#[tokio::test]
+async fn portfolio_unmatched_summary_uses_session_rows() {
+    let (_temp_dir, state) = test_state().await;
+    insert_sessions(
+        &state,
+        vec![
+            indexed_session(
+                "unmatched-claude",
+                SessionSource::Claude,
+                None,
+                "/tmp/claude/unmatched.jsonl",
+                today_start_ms() + 10_000,
+                None,
+                None,
+            ),
+            indexed_session(
+                "unmatched-codex",
+                SessionSource::Codex,
+                None,
+                "/tmp/codex/unmatched.jsonl",
+                today_start_ms() + 20_000,
+                None,
+                None,
+            ),
+        ],
+    )
+    .await;
+
+    let portfolio = get_portfolio_for_app(&state)
+        .await
+        .expect("portfolio should load");
+
+    assert_eq!(portfolio.unmatched_sessions.count, 2);
+    assert_eq!(portfolio.unmatched_sessions.claude_count, 1);
+    assert_eq!(portfolio.unmatched_sessions.codex_count, 1);
+    assert_eq!(portfolio.unmatched_sessions.recent.len(), 2);
+    assert_eq!(
+        portfolio.unmatched_sessions.recent[0].source_path,
+        "/tmp/codex/unmatched.jsonl"
+    );
 }
