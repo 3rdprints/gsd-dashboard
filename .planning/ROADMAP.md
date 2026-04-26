@@ -11,7 +11,7 @@
 - [x] **Phase 1: Foundation** - Tauri 2 skeleton, WAL-SQLite pool, settings persistence, capabilities, error/events infra, first-run defaults
 - [x] **Phase 2: Planning Parser & Scanner** - Pure-function parsers over ROADMAP/STATE/PLAN/config + gitignore-respecting scanner with guardrails
 - [x] **Phase 3: Portfolio Vertical Slice** - First visible demo: scan on launch, project cards with progress bars, Settings scan-roots UI, Rebuild Cache
-- [ ] **Phase 4: Session Indexer** - Claude + Codex JSONL streaming with byte-offset incremental parsing and project attribution
+- [x] **Phase 4: Session Indexer** - Claude + Codex JSONL streaming with byte-offset incremental parsing and project attribution
 - [ ] **Phase 5: Project Detail, Global Sessions & Charts** - Drill-in view, milestone timeline, charts, filterable global sessions table, 90-day heatmap
 - [ ] **Phase 6: Tray Icon with Milestone Bars** - Dynamic openusage-style bar graph, tooltip, click-toggle, right-click menu, copy-next-command
 - [ ] **Phase 7: Live Updates** - notify watchers on .planning/ and session dirs with project-level debouncing and 60s polling fallback
@@ -88,7 +88,7 @@ Plans:
 - [x] 04-01-PLAN.md — Add session SQLite schema, repository helpers, and aggregate tests
 - [x] 04-02-PLAN.md — Implement Claude/Codex metadata parsers, incremental streaming, and attribution
 - [x] 04-03-PLAN.md — Wire session indexing command, progress events, and release capability
-- [ ] 04-04-PLAN.md — Surface indexed session stats, sparklines, unmatched rail, and indexing UI
+- [x] 04-04-PLAN.md — Surface indexed session stats, sparklines, unmatched rail, and indexing UI
 
 ### Phase 5: Project Detail, Global Sessions & Charts
 **Goal**: User can drill into any project for milestone and session analytics and can explore all sessions across the portfolio.
@@ -156,7 +156,7 @@ Plans:
 | 1. Foundation | 4/4 | Complete | 2026-04-24 |
 | 2. Planning Parser & Scanner | 4/4 | Complete | 2026-04-25 |
 | 3. Portfolio Vertical Slice | 6/6 | Complete | 2026-04-26 |
-| 4. Session Indexer | 3/4 | In Progress | - |
+| 4. Session Indexer | 4/4 | Complete | 2026-04-26 |
 | 5. Project Detail, Global Sessions & Charts | 0/? | Not started | - |
 | 6. Tray Icon with Milestone Bars | 0/? | Not started | - |
 | 7. Live Updates | 0/? | Not started | - |

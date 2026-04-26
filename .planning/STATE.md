@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-04-26T12:23:12.899Z"
+status: phase-complete
+last_updated: "2026-04-26T12:45:34.799Z"
 progress:
   total_phases: 9
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 18
-  completed_plans: 17
-  percent: 94
+  completed_plans: 18
+  percent: 100
 ---
 
 # State: GSD Dashboard
@@ -22,34 +22,34 @@ progress:
 
 ## Current Position
 
-Phase: 04 (session-indexer) — EXECUTING
+Phase: 04 (session-indexer) — COMPLETE
 Plan: 4 of 4
 **Milestone:** v1.0 MVP
 **Phase:** 4
-**Plan:** 04-04 next
-**Status:** Executing Phase 04
+**Plan:** 04-04 complete
+**Status:** Phase 04 complete
 
-**Progress:** [█████████░] 94%
+**Progress:** [██████████] 100%
 
 ```
-Milestone: [███.......] 3/9 phases
+Milestone: [████......] 4/9 phases
 Phase 1:   [██████████] 4/4 plans
 Phase 2:   [██████████] 4/4 plans
 Phase 3:   [██████████] 6/6 plans
-Phase 4:   [████████..] 3/4 plans
-Overall:   [███.......] 33%
+Phase 4:   [██████████] 4/4 plans
+Overall:   [████......] 44%
 ```
 
 ## Next Command
 
 ```
-/gsd-execute-phase 4
+/gsd-next
 ```
 
 ## Performance Metrics
 
-- Phases completed: 3 / 9
-- Plans completed: 17
+- Phases completed: 4 / 9
+- Plans completed: 18
 - Avg plan duration: 12.0 min
 - Nodes retried: 0
 - Plan 01-01 duration: 21 min; tasks: 3; files modified: 18
@@ -65,6 +65,7 @@ Overall:   [███.......] 33%
 - Plan 04-01 duration: 7 min; tasks: 3; files modified: 6
 - Plan 04-02 duration: 6 min; tasks: 3; files modified: 11
 - Plan 04-03 duration: 7 min; tasks: 3; files modified: 11
+- Plan 04-04 duration: 18 min; tasks: 3; files modified: 11
 
 ## Accumulated Context
 
@@ -110,6 +111,9 @@ Overall:   [███.......] 33%
 - index_sessions accepts no frontend path input; it derives only /Users/smacdonald/.claude/projects and /Users/smacdonald/.codex/sessions from AppState.
 - SessionIndexEvent emits source, path, counts, status, and error text only; prompt/message bodies never cross IPC.
 - Rebuild cache rematches existing unmatched sessions after refreshed project rows are visible, preserving session rows and offsets.
+- Portfolio stats and cards read session aggregates from SQLite via load_portfolio_session_summary.
+- Index Sessions uses a Tauri Channel and invalidates portfolioQueryKey only after command completion.
+- Project card sparklines use seven fixed CSS bars instead of adding a charting dependency.
 
 ### Todos
 
@@ -134,9 +138,9 @@ Overall:   [███.......] 33%
 
 ## Session Continuity
 
-**Last session:** 2026-04-26T12:23:12.894Z
+**Last session:** 2026-04-26T12:45:34.789Z
 
-**Next session should:** Execute Phase 04 Plan 04 with `/gsd-execute-phase 4`.
+**Next session should:** Run `/gsd-next` to advance after Phase 04 completion.
 
 ---
 *State initialized: 2026-04-23*
@@ -144,3 +148,5 @@ Overall:   [███.......] 33%
 **Completed Phase:** 2 (Planning Parser & Scanner) — 4 plans — 2026-04-25
 
 **Planned Phase:** 4 (Session Indexer) — 4 plans — 2026-04-26T11:25:19.763Z
+
+**Completed Phase:** 4 (Session Indexer) — 4 plans — 2026-04-26

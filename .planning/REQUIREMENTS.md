@@ -47,7 +47,8 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Portfolio View
 
 - [x] **PORT-01**: Landing view displays one card per non-hidden project, sorted by last activity descending
-- [ ] **PORT-02**: Each project card shows name, current milestone + progress bar, current phase label, relative last activity, and a 7-day session sparkline
+- [x] **PORT-02
+**: Each project card shows name, current milestone + progress bar, current phase label, relative last activity, and a 7-day session sparkline
 - [x] **PORT-03**: Clicking a card opens the Project Detail view for that project
 - [x] **PORT-04
 **: Hovering a card reveals a "Copy next command" action
@@ -203,7 +204,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SESS-05 | Phase 4 | Complete |
 | SESS-06 | Phase 4 | Complete |
 | PORT-01 | Phase 3 | Complete |
-| PORT-02 | Phase 4 | Pending |
+| PORT-02 | Phase 4 | Complete |
 | PORT-03 | Phase 3 | Complete |
 | PORT-04 | Phase 3 | Complete |
 | PORT-05 | Phase 5 | Pending |
