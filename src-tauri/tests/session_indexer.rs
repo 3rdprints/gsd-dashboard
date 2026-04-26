@@ -181,9 +181,12 @@ fn incremental_state_starts_at_previous_committed_offset() {
         last_error: None,
     };
 
-    let (accumulator, status) =
-        stream_session_file(SessionSource::Claude, Path::new(source_path), Some(&previous_state))
-            .expect("fixture should stream from previous offset");
+    let (accumulator, status) = stream_session_file(
+        SessionSource::Claude,
+        Path::new(source_path),
+        Some(&previous_state),
+    )
+    .expect("fixture should stream from previous offset");
 
     assert_eq!(accumulator.session.message_count, 1);
     assert_eq!(accumulator.session.started_at, Some(1_716_811_215_000));

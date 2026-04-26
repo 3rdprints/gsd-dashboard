@@ -65,8 +65,7 @@ fn add_usage(usage: Option<&Value>, accumulator: &mut SessionParseAccumulator) {
 
     add_token_count(
         &mut accumulator.session.tokens_in,
-        json_i64(usage.get("input_tokens"))
-            .or_else(|| json_i64(usage.get("tokens_in"))),
+        json_i64(usage.get("input_tokens")).or_else(|| json_i64(usage.get("tokens_in"))),
     );
     add_token_count(
         &mut accumulator.session.tokens_out,

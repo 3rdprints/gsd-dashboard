@@ -1,5 +1,7 @@
 pub mod claude;
 pub mod codex;
+pub mod indexer;
+pub mod matcher;
 pub mod repo;
 
 use serde_json::Value;
