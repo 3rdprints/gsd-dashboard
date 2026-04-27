@@ -15,6 +15,13 @@ vi.mock("../../lib/ipc", async (importOriginal) => {
   };
 });
 
+class TestResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+globalThis.ResizeObserver = TestResizeObserver as typeof ResizeObserver;
+
 describe("ChartsTab", () => {
   it("renders loading and empty states inside stable chart cards", async () => {
     const { ChartCard } = await import("./ChartCard");

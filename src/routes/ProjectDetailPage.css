@@ -57,6 +57,95 @@
   font-size: 14px;
 }
 
+.chart-card-body {
+  min-height: 200px;
+}
+
+.chart-skeleton {
+  height: 200px;
+  border-radius: 8px;
+  background: #E5E7EB;
+}
+
+.chart-empty-state {
+  height: 200px;
+  display: grid;
+  place-items: center;
+  color: #6B7280;
+  font-size: 14px;
+  text-align: center;
+}
+
+.charts-tab {
+  display: grid;
+  gap: 24px;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.range-selector {
+  width: max-content;
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+}
+
+.range-btn {
+  width: auto;
+  height: 32px;
+  border: 0;
+  border-radius: 0;
+  padding: 0 12px;
+  color: #4B5563;
+  background: #FFFFFF;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.range-btn + .range-btn {
+  border-left: 1px solid #D1D5DB;
+}
+
+.range-btn[aria-pressed="true"] {
+  color: #111827;
+  background: #F3F4F6;
+}
+
+.chart-tooltip {
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  padding: 8px;
+  color: #111827;
+  background: #FFFFFF;
+  font-size: 14px;
+}
+
+.chart-tooltip-label {
+  margin: 0 0 4px;
+  color: #4B5563;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chart-tooltip-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.chart-tooltip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
 .overview-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
@@ -351,6 +440,10 @@
 
 @media (max-width: 900px) {
   .overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .charts-grid {
     grid-template-columns: 1fr;
   }
 }
