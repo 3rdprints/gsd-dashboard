@@ -168,11 +168,21 @@ function getSaveErrorMessage(error: unknown) {
   if (error && typeof error === "object" && "message" in error) {
     const message = (error as { message?: unknown }).message;
     if (typeof message === "string" && message.length > 0) {
+      if (isMissingTauriBridgeMessage(message)) {
+        return "Settings can only be saved from the Tauri desktop app. The browser preview can edit the form, but it cannot persist settings.";
+      }
+
       return message;
     }
   }
 
   return "Settings could not be saved. Open the Tauri app window and try again.";
+}
+
+function isMissingTauriBridgeMessage(message: string) {
+  const lowerMessage = message.toLowerCase();
+
+  return lowerMessage.includes("invoke") || lowerMessage.includes("__tauri");
 }
 
 function normalizeScanRootDrafts(scanRootDrafts: string[]) {

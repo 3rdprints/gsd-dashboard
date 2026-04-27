@@ -428,6 +428,21 @@ describe("settings vertical slice", () => {
       })
     );
   });
+  it("explains that browser preview cannot save settings", async () => {
+    mockCommands(portfolio, projectDetail, false, defaultSettings, {
+      saveSettingsError: new TypeError("Cannot read properties of undefined (reading 'invoke')")
+    });
+    renderWithQueryClient(<App />);
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Save Settings" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
+
+    expect(
+      await screen.findByText(
+        "Settings can only be saved from the Tauri desktop app. The browser preview can edit the form, but it cannot persist settings."
+      )
+    ).toBeInTheDocument();
+  });
   it("unhides hidden projects through settings save", async () => {
     renderWithQueryClient(<App />);
     fireEvent.click(await screen.findByRole("button", { name: "Unhide Project" }));
@@ -481,7 +496,8 @@ function mockCommands(
   portfolioResponse: PortfolioDto = portfolio,
   projectResponse: ProjectDetail = projectDetail,
   holdRebuild = false,
-  settingsResponse: SettingsInput | Error = defaultSettings
+  settingsResponse: SettingsInput | Error = defaultSettings,
+  options: { saveSettingsError?: Error } = {}
 ) {
   invokeMock.mockImplementation((command: string, args?: Record<string, unknown>) => {
     if (command === "get_boot_status") {
@@ -494,6 +510,9 @@ function mockCommands(
       return Promise.resolve(settingsResponse);
     }
     if (command === "save_settings") {
+      if (options.saveSettingsError) {
+        return Promise.reject(options.saveSettingsError);
+      }
       return Promise.resolve((args as { input: SettingsInput }).input);
     }
     if (command === "get_portfolio") {
