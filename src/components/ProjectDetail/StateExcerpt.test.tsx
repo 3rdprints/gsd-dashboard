@@ -4,7 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 
 import { StateExcerpt } from "./StateExcerpt";
 
-const openProjectInVsCodeMock = vi.fn(() => Promise.resolve());
+const { openProjectInVsCodeMock } = vi.hoisted(() => ({
+  openProjectInVsCodeMock: vi.fn(() => Promise.resolve())
+}));
 
 vi.mock("../../lib/actions", () => ({
   openProjectInVsCode: openProjectInVsCodeMock

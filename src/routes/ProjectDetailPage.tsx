@@ -3,9 +3,10 @@ import { ClipboardCopy, ExternalLink, FolderOpen } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
+import { OverviewTab } from "../components/ProjectDetail/OverviewTab";
 import { copyNextCommand, openProjectInFinder, openProjectInVsCode } from "../lib/actions";
-import { getProject } from "../lib/ipc";
-import { projectQueryKey } from "../lib/queryClient";
+import { getProject, getProjectMilestones, getProjectPhasePanel } from "../lib/ipc";
+import { projectMilestonesQueryKey, projectPhasePanelQueryKey, projectQueryKey } from "../lib/queryClient";
 import "./ProjectDetailPage.css";
 
 type ProjectDetailTab = "overview" | "sessions" | "charts";
@@ -23,6 +24,16 @@ export function ProjectDetailPage() {
   const project = useQuery({
     queryKey: projectQueryKey(id ?? ""),
     queryFn: () => getProject(id ?? ""),
+    enabled: Boolean(id)
+  });
+  const milestones = useQuery({
+    queryKey: projectMilestonesQueryKey(id ?? ""),
+    queryFn: () => getProjectMilestones(id ?? ""),
+    enabled: Boolean(id)
+  });
+  const phasePanel = useQuery({
+    queryKey: projectPhasePanelQueryKey(id ?? ""),
+    queryFn: () => getProjectPhasePanel(id ?? ""),
     enabled: Boolean(id)
   });
 
@@ -191,7 +202,14 @@ export function ProjectDetailPage() {
             aria-labelledby={`project-tab-${tab.id}-tab`}
             hidden={activeTab !== tab.id}
           >
-            {tab.id === "overview" ? <div className="chart-card">Overview</div> : null}
+            {tab.id === "overview" ? (
+              <OverviewTab
+                milestones={milestones.data ?? []}
+                phasePanel={phasePanel.data ?? null}
+                loading={milestones.isLoading || phasePanel.isLoading}
+                error={milestones.isError || phasePanel.isError}
+              />
+            ) : null}
             {tab.id === "sessions" ? <div className="chart-card">Sessions</div> : null}
             {tab.id === "charts" ? <div className="chart-card">Charts</div> : null}
           </section>

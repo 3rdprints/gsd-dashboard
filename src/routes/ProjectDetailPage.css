@@ -57,6 +57,37 @@
   font-size: 14px;
 }
 
+.overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 24px;
+  align-items: start;
+}
+
+.overview-main-column {
+  display: grid;
+  gap: 24px;
+}
+
+.overview-path-action {
+  width: max-content;
+  margin-top: 16px;
+}
+
+.plan-count-badge {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  padding: 0 8px;
+  color: #4B5563;
+  background: #F3F4F6;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .timeline-accordion {
   display: grid;
   gap: 8px;
@@ -152,6 +183,18 @@
   font-size: 14px;
 }
 
+.state-excerpt h2 {
+  margin: 12px 0 8px;
+  color: #111827;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.state-excerpt p {
+  margin: 0 0 8px;
+}
+
 .state-excerpt-overflow {
   position: sticky;
   right: 0;
@@ -160,4 +203,10 @@
   justify-content: flex-end;
   padding-top: 40px;
   background: linear-gradient(rgba(255, 255, 255, 0), #FFFFFF 40px);
+}
+
+@media (max-width: 900px) {
+  .overview-grid {
+    grid-template-columns: 1fr;
+  }
 }
