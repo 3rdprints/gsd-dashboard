@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PortfolioHeaderStats } from "../components/PortfolioHeaderStats";
 import { ProjectCard } from "../components/ProjectCard";
 import { RightRail } from "../components/RightRail";
+import { ActivityHeatmap } from "../components/charts/ActivityHeatmap";
 import {
   completeScanState,
   initialScanState,
@@ -17,10 +18,11 @@ import {
   reduceSessionIndexEvent,
   SessionIndexProgressPanel
 } from "../components/SessionIndexProgressPanel";
-import { getBootStatus, getPortfolio, getSettings, indexSessions, scanProjects } from "../lib/ipc";
+import { getBootStatus, getPortfolio, getPortfolioHeatmap, getSettings, indexSessions, scanProjects } from "../lib/ipc";
 import {
   bootStatusQueryKey,
   createSaveSettingsMutationOptions,
+  portfolioHeatmapQueryKey,
   portfolioQueryKey,
   settingsQueryKey
 } from "../lib/queryClient";
@@ -35,6 +37,10 @@ export function PortfolioPage() {
   const bootStatus = useQuery({ queryKey: bootStatusQueryKey, queryFn: getBootStatus });
   const settings = useQuery({ queryKey: settingsQueryKey, queryFn: getSettings });
   const portfolio = useQuery({ queryKey: portfolioQueryKey, queryFn: getPortfolio });
+  const portfolioHeatmap = useQuery({
+    queryKey: portfolioHeatmapQueryKey,
+    queryFn: () => getPortfolioHeatmap(90)
+  });
   const saveSettings = useMutation(createSaveSettingsMutationOptions(queryClient));
   const scanProjectsMutation = useMutation({
     mutationFn: () =>
@@ -74,7 +80,10 @@ export function PortfolioPage() {
     },
     onSuccess: async (summary) => {
       setSessionIndexState((current) => completeSessionIndexState(current, summary));
-      await queryClient.invalidateQueries({ queryKey: portfolioQueryKey });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: portfolioQueryKey }),
+        queryClient.invalidateQueries({ queryKey: portfolioHeatmapQueryKey })
+      ]);
     },
     onError: () => {
       setSessionIndexState((current) => ({
@@ -162,6 +171,14 @@ export function PortfolioPage() {
       {sessionIndexState.status !== "ready" ? (
         <SessionIndexProgressPanel state={sessionIndexState} />
       ) : null}
+
+      {portfolioHeatmap.isLoading ? (
+        <div className="chart-card" aria-label="Loading activity heatmap">
+          <div className="heatmap-skeleton" />
+        </div>
+      ) : (
+        <ActivityHeatmap days={portfolioHeatmap.data ?? []} />
+      )}
 
       <div className="portfolio-layout">
         <section className="project-grid" aria-label="Projects">

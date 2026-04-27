@@ -321,6 +321,66 @@ input:focus-visible {
   height: 24px;
 }
 
+.heatmap-wrapper {
+  overflow-x: auto;
+  padding: 4px 0;
+}
+
+.heatmap-container {
+  min-width: 760px;
+  color: #4B5563;
+  font-size: 12px;
+}
+
+.heatmap-container .react-calendar-heatmap text {
+  fill: #4B5563;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.heatmap-container .react-calendar-heatmap-weekday-label {
+  fill: #9CA3AF;
+}
+
+.heatmap-container .react-calendar-heatmap rect {
+  width: 12px;
+  height: 12px;
+  rx: 2px;
+  ry: 2px;
+  stroke: #FFFFFF;
+  stroke-width: 1px;
+}
+
+.heatmap-cell-0 {
+  fill: #E5E7EB;
+}
+
+.heatmap-cell-1 {
+  fill: #BFDBFE;
+}
+
+.heatmap-cell-2 {
+  fill: #93C5FD;
+}
+
+.heatmap-cell-3 {
+  fill: #60A5FA;
+}
+
+.heatmap-cell-4 {
+  fill: #3B82F6;
+}
+
+.heatmap-cell-5 {
+  fill: #2563EB;
+}
+
+.heatmap-skeleton {
+  height: 84px;
+  border-radius: 8px;
+  background: #E5E7EB;
+}
+
 .sr-only {
   width: 1px;
   height: 1px;

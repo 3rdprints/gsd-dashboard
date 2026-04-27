@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { render, screen } from "@testing-library/react";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("ActivityHeatmap", () => {
@@ -54,8 +55,9 @@ describe("ActivityHeatmap", () => {
   });
 
   it("does not import the package stylesheet", () => {
-    const source = readFileSync(new URL("./ActivityHeatmap.tsx", import.meta.url), "utf8");
+    const source = readFileSync(join(process.cwd(), "src/components/charts/ActivityHeatmap.tsx"), "utf8");
+    const forbiddenImport = "react-calendar-heatmap/dist/" + "styles.css";
 
-    expect(source).not.toContain("react-calendar-heatmap/dist/styles.css");
+    expect(source).not.toContain(forbiddenImport);
   });
 });
