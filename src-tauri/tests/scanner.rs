@@ -141,6 +141,24 @@ fn scanner_discovers_planning_dirs() {
 }
 
 #[test]
+fn scanner_skips_planning_dirs_under_hidden_workspaces() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let home_dir = temp_dir.path();
+    let scan_root = home_dir.join("workspace");
+    let real_project_root = scan_root.join("project-a");
+    let hidden_worktree_root = scan_root.join(".claude/worktrees/agent-a485842780e148052");
+
+    create_planning_dir(&real_project_root);
+    create_planning_dir(&hidden_worktree_root);
+
+    let candidates =
+        discover_planning_dirs(&scan_root, home_dir).expect("scan root should be discoverable");
+
+    assert_eq!(candidates.len(), 1);
+    assert_eq!(candidates[0].project_root, real_project_root);
+}
+
+#[test]
 fn scanner_rejects_bare_home_root() {
     let temp_dir = tempfile::tempdir().expect("temp dir should be created");
     let home_dir = temp_dir.path();

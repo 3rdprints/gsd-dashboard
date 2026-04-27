@@ -57,6 +57,9 @@ pub fn discover_planning_dirs(
         let Some(project_root) = planning_path.parent().map(Path::to_path_buf) else {
             continue;
         };
+        if has_hidden_component_under_root(&project_root, root) {
+            continue;
+        }
         let dedupe_key = dedupe_path(&planning_path);
 
         if seen_paths.insert(dedupe_key) {
@@ -68,6 +71,17 @@ pub fn discover_planning_dirs(
     }
 
     Ok(candidates)
+}
+
+fn has_hidden_component_under_root(path: &Path, root: &Path) -> bool {
+    let relative_path = path.strip_prefix(root).unwrap_or(path);
+
+    relative_path.components().any(|component| {
+        component
+            .as_os_str()
+            .to_str()
+            .is_some_and(|name| name.starts_with('.'))
+    })
 }
 
 fn dedupe_path(path: &Path) -> String {
