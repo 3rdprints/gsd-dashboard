@@ -325,8 +325,13 @@ async fn index_session_file(
                 stream_session_file(source, &source_path, previous_state.as_ref())?;
             let committed_offset = committed_offset_from_status(&status);
             let live_partial = matches!(status, StreamFileStatus::LivePartial { .. });
-            let file_state =
-                build_index_state(source, &source_path, committed_offset, live_partial)?;
+            let file_state = build_index_state(
+                source,
+                &source_path,
+                committed_offset,
+                live_partial,
+                accumulator.session.index_error.clone(),
+            )?;
 
             Ok::<_, AppError>((accumulator, status, file_state))
         }
@@ -390,6 +395,7 @@ fn build_index_state(
     source_path: &Path,
     committed_offset: i64,
     live_partial: bool,
+    last_error: Option<String>,
 ) -> Result<SessionIndexState, AppError> {
     let metadata = std::fs::metadata(source_path).map_err(AppError::io)?;
     let file_mtime = metadata
@@ -405,7 +411,7 @@ fn build_index_state(
         file_mtime,
         last_parsed_byte_offset: committed_offset,
         live_partial,
-        last_error: None,
+        last_error,
     })
 }
 

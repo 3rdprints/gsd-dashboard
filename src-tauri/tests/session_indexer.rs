@@ -504,6 +504,39 @@ async fn index_sessions_for_app_reindexes_truncated_session_file() {
 }
 
 #[tokio::test]
+async fn index_sessions_for_app_persists_nonfatal_parse_error_in_index_state() {
+    let (_temp_dir, state) = test_state().await;
+    let claude_dir = state.home_dir.join(".claude/projects/-tmp-bad-jsonl");
+    fs::create_dir_all(&claude_dir).expect("claude fixture dir should be created");
+    let bad_path = claude_dir.join("bad-session.jsonl");
+    fs::write(&bad_path, "{not json}\n").expect("bad session should be written");
+
+    let summary = index_sessions_for_app(&state, |_| Ok(()))
+        .await
+        .expect("bad session index should complete");
+    let source_path = bad_path.display().to_string();
+    let index_state = state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available")
+        .interact(move |connection| {
+            load_index_state(connection, &source_path)
+                .map(|state| state.expect("bad index state should exist"))
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("state should load");
+
+    assert_eq!(summary.sessions_persisted, 0);
+    assert_eq!(
+        index_state.last_parsed_byte_offset,
+        "{not json}\n".len() as i64
+    );
+    assert!(index_state.last_error.is_some());
+}
+
+#[tokio::test]
 async fn index_sessions_for_app_persists_cumulative_metadata_after_append() {
     let (_temp_dir, state) = test_state().await;
     let (claude_path, _codex_path) = copy_fixture_roots(&state.home_dir);

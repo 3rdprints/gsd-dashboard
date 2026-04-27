@@ -32,12 +32,12 @@ pub fn parse_plan(bytes: &[u8]) -> Result<PlanDocument, ParseError> {
         }
     };
     let tasks = parse_task_blocks(&content_source);
-    let checklist = parse_markdown_checklist(&content_source);
+    let checklist = parse_markdown_checklist(content_source.as_bytes())?;
 
     Ok(PlanDocument {
-        phase: raw_frontmatter_value(&matter_source, "phase").or(frontmatter.phase),
-        plan: raw_frontmatter_value(&matter_source, "plan").or(frontmatter.plan),
-        plan_type: raw_frontmatter_value(&matter_source, "type").or(frontmatter.plan_type),
+        phase: frontmatter_value(frontmatter.phase, &matter_source, "phase"),
+        plan: frontmatter_value(frontmatter.plan, &matter_source, "plan"),
+        plan_type: frontmatter_value(frontmatter.plan_type, &matter_source, "type"),
         tasks,
         checklist,
     })
@@ -109,7 +109,8 @@ fn find_next_task_opener(source: &str) -> Option<usize> {
     None
 }
 
-fn parse_markdown_checklist(body: &str) -> Vec<PlanChecklistItem> {
+fn parse_markdown_checklist(body: &[u8]) -> Result<Vec<PlanChecklistItem>, ParseError> {
+    let body = std::str::from_utf8(body)?;
     let parser = Parser::new_ext(body, Options::ENABLE_TASKLISTS);
     let mut checklist = Vec::new();
     let mut in_item = false;
@@ -150,7 +151,7 @@ fn parse_markdown_checklist(body: &str) -> Vec<PlanChecklistItem> {
         }
     }
 
-    checklist
+    Ok(checklist)
 }
 
 fn tag_value(block: &str, tag: &str) -> Option<String> {
@@ -168,6 +169,25 @@ fn raw_frontmatter_value(matter: &str, key: &str) -> Option<String> {
         let value = line.strip_prefix(&prefix)?.trim().trim_matches('"');
         (!value.is_empty()).then_some(value.to_string())
     })
+}
+
+fn frontmatter_value(typed: Option<String>, matter: &str, key: &str) -> Option<String> {
+    let raw = raw_frontmatter_value(matter, key);
+    match (typed, raw) {
+        (Some(typed), Some(raw)) if raw_preserves_zero_padding(&typed, &raw) => Some(raw),
+        (Some(typed), _) => Some(typed),
+        (None, raw) => raw,
+    }
+}
+
+fn raw_preserves_zero_padding(typed: &str, raw: &str) -> bool {
+    raw.len() > 1
+        && raw.starts_with('0')
+        && raw.chars().all(|character| character.is_ascii_digit())
+        && raw
+            .parse::<u64>()
+            .ok()
+            .is_some_and(|number| number.to_string() == typed)
 }
 
 fn string_or_number<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
@@ -263,5 +283,22 @@ type: execute
 
         assert_eq!(plan.tasks.len(), 1);
         assert_eq!(plan.tasks[0].name, "Task 1");
+    }
+
+    #[test]
+    fn typed_frontmatter_takes_precedence_over_raw_lines() {
+        let plan = parse_plan(
+            br#"---
+phase: "02" # inline note
+plan: 01
+type: execute
+---
+"#,
+        )
+        .unwrap();
+
+        assert_eq!(plan.phase.as_deref(), Some("02"));
+        assert_eq!(plan.plan.as_deref(), Some("01"));
+        assert_eq!(plan.plan_type.as_deref(), Some("execute"));
     }
 }
