@@ -6,7 +6,15 @@ use tauri::State;
 use crate::{
     app_state::AppState,
     error::AppError,
-    sessions::{self, repo::UnmatchedSessionSummary, SessionSource},
+    sessions::{
+        self,
+        project_charts::ProjectChartDataDto,
+        project_detail::{
+            ProjectMilestoneDto, ProjectPhasePanelDto, ProjectSessionsPageDto,
+        },
+        repo::UnmatchedSessionSummary,
+        SessionSource,
+    },
     settings,
     store::{
         daily_activity::{self, DailyActivityRow},
@@ -129,6 +137,51 @@ pub async fn get_project(
 }
 
 #[tauri::command]
+pub async fn get_project_milestones(
+    state: State<'_, AppState>,
+    project_id: String,
+) -> Result<Vec<ProjectMilestoneDto>, AppError> {
+    get_project_milestones_for_app(&state, &project_id).await
+}
+
+#[tauri::command]
+pub async fn get_project_phase_panel(
+    state: State<'_, AppState>,
+    project_id: String,
+) -> Result<ProjectPhasePanelDto, AppError> {
+    get_project_phase_panel_for_app(&state, &project_id).await
+}
+
+#[tauri::command]
+pub async fn list_project_sessions(
+    state: State<'_, AppState>,
+    project_id: String,
+    sort: Option<String>,
+    direction: Option<String>,
+    page: Option<i64>,
+    page_size: Option<i64>,
+) -> Result<ProjectSessionsPageDto, AppError> {
+    list_project_sessions_for_app(
+        &state,
+        &project_id,
+        sort.as_deref(),
+        direction.as_deref(),
+        page,
+        page_size,
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn get_project_chart_data(
+    state: State<'_, AppState>,
+    project_id: String,
+    range: Option<String>,
+) -> Result<ProjectChartDataDto, AppError> {
+    get_project_chart_data_for_app(&state, &project_id, range.as_deref()).await
+}
+
+#[tauri::command]
 pub async fn get_portfolio_heatmap(
     state: State<'_, AppState>,
     days: Option<i64>,
@@ -247,6 +300,81 @@ pub async fn get_project_for_app(
         .ok_or_else(|| AppError::store("project not found"))?;
 
     Ok(ProjectDetailDto::from(snapshot))
+}
+
+pub async fn get_project_milestones_for_app(
+    state: &AppState,
+    project_id: &str,
+) -> Result<Vec<ProjectMilestoneDto>, AppError> {
+    let project_id = project_id.to_string();
+    let connection = state.pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(move |connection| {
+            sessions::project_detail::load_project_milestones(connection, &project_id)
+        })
+        .await
+        .map_err(AppError::store)?
+}
+
+pub async fn get_project_phase_panel_for_app(
+    state: &AppState,
+    project_id: &str,
+) -> Result<ProjectPhasePanelDto, AppError> {
+    let project_id = project_id.to_string();
+    let connection = state.pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(move |connection| {
+            sessions::project_detail::load_project_phase_panel(connection, &project_id)
+        })
+        .await
+        .map_err(AppError::store)?
+}
+
+pub async fn list_project_sessions_for_app(
+    state: &AppState,
+    project_id: &str,
+    sort: Option<&str>,
+    direction: Option<&str>,
+    page: Option<i64>,
+    page_size: Option<i64>,
+) -> Result<ProjectSessionsPageDto, AppError> {
+    let project_id = project_id.to_string();
+    let sort = sort.map(str::to_string);
+    let direction = direction.map(str::to_string);
+    let connection = state.pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(move |connection| {
+            sessions::project_detail::list_project_sessions(
+                connection,
+                &project_id,
+                sort.as_deref(),
+                direction.as_deref(),
+                page,
+                page_size,
+            )
+        })
+        .await
+        .map_err(AppError::store)?
+}
+
+pub async fn get_project_chart_data_for_app(
+    state: &AppState,
+    project_id: &str,
+    range: Option<&str>,
+) -> Result<ProjectChartDataDto, AppError> {
+    let project_id = project_id.to_string();
+    let range = range.map(str::to_string);
+    let connection = state.pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(move |connection| {
+            sessions::project_charts::load_project_chart_data(
+                connection,
+                &project_id,
+                range.as_deref(),
+            )
+        })
+        .await
+        .map_err(AppError::store)?
 }
 
 pub async fn load_portfolio_heatmap_for_app(

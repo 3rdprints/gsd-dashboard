@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-get-project-phase-panel"
+description = "Enables the get_project_phase_panel command without any pre-configured scope."
+commands.allow = ["get_project_phase_panel"]
+
+[[permission]]
+identifier = "deny-get-project-phase-panel"
+description = "Denies the get_project_phase_panel command without any pre-configured scope."
+commands.deny = ["get_project_phase_panel"]

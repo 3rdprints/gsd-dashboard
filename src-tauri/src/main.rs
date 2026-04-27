@@ -15,6 +15,10 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             gsd_dashboard::commands::projects::get_portfolio,
             gsd_dashboard::commands::projects::get_project,
+            gsd_dashboard::commands::projects::get_project_chart_data,
+            gsd_dashboard::commands::projects::get_project_milestones,
+            gsd_dashboard::commands::projects::get_project_phase_panel,
+            gsd_dashboard::commands::projects::list_project_sessions,
             gsd_dashboard::commands::scan::rebuild_cache,
             gsd_dashboard::commands::scan::scan_projects,
             gsd_dashboard::commands::sessions::index_sessions,
