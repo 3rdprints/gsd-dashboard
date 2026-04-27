@@ -1,5 +1,6 @@
 use pulldown_cmark::{Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 use crate::parser::{percent, MilestoneIdentity, ParseError, PhaseIdentity};
 
@@ -27,12 +28,34 @@ pub fn parse_roadmap(bytes: &[u8]) -> Result<RoadmapDocument, ParseError> {
     let source = std::str::from_utf8(bytes)?;
     let milestones = parse_milestones(bytes)?;
     let phase_lines = markdown_lines(source);
-    let phases = phase_lines
+    let checkbox_phases = phase_lines
         .iter()
-        .filter_map(|line| parse_phase_checkbox(line).or_else(|| parse_phase_heading(line)))
+        .filter_map(|line| parse_phase_checkbox(line))
         .collect::<Vec<_>>();
-    let phase_checkbox_total = phases.len();
-    let phase_checkbox_completed = phases.iter().filter(|phase| phase.completed).count();
+    let completion_by_number = checkbox_phases
+        .iter()
+        .map(|phase| (phase_key(&phase.number), phase.completed))
+        .collect::<BTreeMap<_, _>>();
+    let heading_phases = phase_lines
+        .iter()
+        .filter_map(|line| parse_phase_heading(line))
+        .map(|mut phase| {
+            if let Some(completed) = completion_by_number.get(&phase_key(&phase.number)) {
+                phase.completed = *completed;
+            }
+            phase
+        })
+        .collect::<Vec<_>>();
+    let phases = if heading_phases.is_empty() {
+        checkbox_phases.clone()
+    } else {
+        heading_phases
+    };
+    let phase_checkbox_total = checkbox_phases.len();
+    let phase_checkbox_completed = checkbox_phases
+        .iter()
+        .filter(|phase| phase.completed)
+        .count();
 
     Ok(RoadmapDocument {
         milestones,
@@ -183,7 +206,9 @@ fn parse_phase_identity(label: &str) -> Option<PhaseIdentity> {
     let after_phase = label.strip_prefix("Phase ")?;
     let number_len = after_phase
         .chars()
-        .take_while(|character| character.is_ascii_digit() || *character == '.')
+        .take_while(|character| {
+            character.is_ascii_alphanumeric() || *character == '.' || *character == '-'
+        })
         .map(char::len_utf8)
         .sum::<usize>();
     if number_len == 0 {
@@ -196,17 +221,44 @@ fn parse_phase_identity(label: &str) -> Option<PhaseIdentity> {
         .strip_prefix(':')
         .unwrap_or("")
         .trim();
-    let name = name_source
+    let without_inserted = name_source.replace("(INSERTED)", "");
+    let name = without_inserted
         .split("**")
         .next()
-        .unwrap_or(name_source)
+        .unwrap_or(without_inserted.as_str())
         .split(" - ")
         .next()
-        .unwrap_or(name_source)
+        .unwrap_or(without_inserted.as_str())
         .trim()
         .to_string();
 
     Some(PhaseIdentity { number, name })
+}
+
+fn phase_key(number: &str) -> String {
+    let without_project_code = number
+        .split_once('-')
+        .and_then(|(prefix, rest)| {
+            (prefix
+                .chars()
+                .all(|character| character.is_ascii_alphabetic())
+                && rest
+                    .chars()
+                    .next()
+                    .is_some_and(|character| character.is_ascii_digit()))
+            .then_some(rest)
+        })
+        .unwrap_or(number);
+    let stripped = without_project_code
+        .trim_start_matches('0')
+        .trim()
+        .to_ascii_lowercase();
+
+    if stripped.is_empty() {
+        "0".to_string()
+    } else {
+        stripped
+    }
 }
 
 #[cfg(test)]
@@ -319,5 +371,43 @@ mod tests {
         .unwrap();
 
         assert_eq!(roadmap.phases[0].number, "72.1");
+    }
+
+    #[test]
+    fn uses_phase_detail_headings_and_checkboxes_as_completion_markers() {
+        let roadmap = parse_roadmap(
+            br#"## Roadmap v1.0: MVP
+
+- [x] **Phase 01: Foundation**
+- [ ] **Phase 02: Parser**
+
+### Phase 01: Foundation
+
+**Plans:** 1/1 plans complete
+
+### Phase 02: Parser
+
+**Plans:** 0/2 plans executed
+"#,
+        )
+        .unwrap();
+
+        assert_eq!(roadmap.phases.len(), 2);
+        assert_eq!(roadmap.phases[0].number, "01");
+        assert!(roadmap.phases[0].completed);
+        assert_eq!(roadmap.phases[1].number, "02");
+        assert!(!roadmap.phases[1].completed);
+    }
+
+    #[test]
+    fn parses_letter_decimal_and_project_code_phase_tokens() {
+        let roadmap = parse_roadmap(
+            br#"### Phase CK-12A.1: Inserted Follow-up (INSERTED)
+"#,
+        )
+        .unwrap();
+
+        assert_eq!(roadmap.phases[0].number, "CK-12A.1");
+        assert_eq!(roadmap.phases[0].name, "Inserted Follow-up");
     }
 }

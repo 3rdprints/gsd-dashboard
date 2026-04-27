@@ -332,6 +332,66 @@ async fn malformed_project_does_not_abort_scan() {
 }
 
 #[tokio::test]
+async fn scan_progress_uses_phase_plan_summary_files() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let home_dir = temp_dir.path();
+    let scan_root = home_dir.join("workspace");
+    let project_root = scan_root.join("summary-progress-project");
+    let planning_dir = project_root.join(".planning");
+    let phase_dir = planning_dir.join("phases/02-planning-parser-scanner");
+    let pool = migrated_pool(&temp_dir.path().join("cache.db")).await;
+
+    write_valid_planning_project(&project_root, "Summary Progress Project");
+    fs::write(
+        phase_dir.join("02-02-PLAN.md"),
+        r#"---
+phase: 02-planning-parser-scanner
+plan: 02
+type: execute
+---
+
+<tasks>
+<task type="auto">
+  <name>Task 2</name>
+</task>
+</tasks>
+"#,
+    )
+    .expect("second plan should be written");
+    fs::write(
+        phase_dir.join("02-01-SUMMARY.md"),
+        "# Summary\n\nPlan 1 complete.\n",
+    )
+    .expect("summary should be written");
+
+    scan_service::scan_roots(
+        pool.clone(),
+        vec![scan_root],
+        home_dir.to_path_buf(),
+        |_| Ok(()),
+    )
+    .await
+    .expect("scan should parse project");
+
+    let connection = pool.get().await.expect("connection should be available");
+    connection
+        .interact(move |connection| {
+            let project = project_repo::load_project_by_root(
+                connection,
+                project_root.to_string_lossy().as_ref(),
+            )?
+            .expect("project should be persisted");
+
+            assert!((project.milestone_progress_pct - 50.0).abs() < f64::EPSILON);
+
+            Ok::<_, AppError>(())
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("project should load");
+}
+
+#[tokio::test]
 async fn state_milestone_index_resolves_against_roadmap() {
     let temp_dir = tempfile::tempdir().expect("temp dir should be created");
     let home_dir = temp_dir.path();

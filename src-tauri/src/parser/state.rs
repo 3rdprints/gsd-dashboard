@@ -119,7 +119,9 @@ fn parse_phase(body: &str) -> Option<PhaseIdentity> {
         .split_whitespace()
         .next()
         .unwrap_or(value.as_str())
-        .trim_matches(|character: char| !character.is_ascii_digit() && character != '.')
+        .trim_matches(|character: char| {
+            !character.is_ascii_alphanumeric() && character != '.' && character != '-'
+        })
         .to_string();
     if number.is_empty() {
         return None;
@@ -230,6 +232,21 @@ milestone: v1.0
         .unwrap();
 
         assert_eq!(state.next_command, "/gsd-execute-phase 06.1");
+    }
+
+    #[test]
+    fn extracts_letter_decimal_phase_tokens() {
+        let state = parse_state(
+            br#"## Current Position
+
+**Phase:** CK-12A.1 of 14 (Inserted Follow-up)
+"#,
+        )
+        .unwrap();
+        let phase = state.current_phase.unwrap();
+
+        assert_eq!(phase.number, "CK-12A.1");
+        assert_eq!(phase.name, "Inserted Follow-up");
     }
 
     #[test]
