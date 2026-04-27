@@ -4,14 +4,19 @@ import type {
   AppSettings,
   BootStatus,
   PortfolioDto,
+  ProjectChartData,
+  ProjectChartRange,
   ProjectDetail,
   ProjectMilestone,
   ProjectPhasePanel,
+  ProjectSessionsPage,
+  ProjectSessionSortKey,
   ScanEvent,
   ScanSummary,
   SessionIndexEvent,
   SessionIndexSummary,
-  SettingsInput
+  SettingsInput,
+  SortDirection
 } from "./types";
 
 export function getBootStatus(): Promise<BootStatus> {
@@ -47,6 +52,20 @@ export function getProjectMilestones(projectId: string): Promise<ProjectMileston
 
 export function getProjectPhasePanel(projectId: string): Promise<ProjectPhasePanel> {
   return invoke<ProjectPhasePanel>("get_project_phase_panel", { projectId });
+}
+
+export function listProjectSessions(
+  projectId: string,
+  sort: ProjectSessionSortKey,
+  direction: SortDirection,
+  page: number,
+  pageSize: number
+): Promise<ProjectSessionsPage> {
+  return invoke<ProjectSessionsPage>("list_project_sessions", { projectId, sort, direction, page, pageSize });
+}
+
+export function getProjectChartData(projectId: string, range: ProjectChartRange): Promise<ProjectChartData> {
+  return invoke<ProjectChartData>("get_project_chart_data", { projectId, range });
 }
 
 export function rebuildCache(onEvent: (event: ScanEvent) => void): Promise<ScanSummary> {

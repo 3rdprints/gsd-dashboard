@@ -134,14 +134,14 @@ describe("Project Detail IPC contracts", () => {
       projectId: "gsd-dashboard",
       range: "30d"
     });
-    expect((queryClient as { projectSessionsQueryKey: (...args: unknown[]) => unknown[] }).projectSessionsQueryKey(
+    expect((queryClient as { projectSessionsQueryKey: (...args: unknown[]) => readonly unknown[] }).projectSessionsQueryKey(
       "gsd-dashboard",
       "startedAt",
       "desc",
       2,
       50
     )).toEqual(["project", "gsd-dashboard", "sessions", "startedAt", "desc", 2, 50]);
-    expect((queryClient as { projectChartsQueryKey: (...args: unknown[]) => unknown[] }).projectChartsQueryKey(
+    expect((queryClient as { projectChartsQueryKey: (...args: unknown[]) => readonly unknown[] }).projectChartsQueryKey(
       "gsd-dashboard",
       "30d"
     )).toEqual(["project", "gsd-dashboard", "charts", "30d"]);

@@ -1,5 +1,15 @@
 export type TrayBarSort = "name" | "progress" | "recent_activity";
 export type GlobalSessionsDefaultRange = "7d" | "30d" | "90d" | "all";
+export type ProjectSessionSortKey =
+  | "startedAt"
+  | "source"
+  | "durationMs"
+  | "messageCount"
+  | "tokensIn"
+  | "tokensOut"
+  | "tokenTotal";
+export type SortDirection = "asc" | "desc";
+export type ProjectChartRange = "7d" | "30d" | "90d" | "all";
 
 export type BootStatus = {
   appDataDir: string;
@@ -124,6 +134,54 @@ export type ProjectPhasePanel = {
   completedItemCount: number;
   totalItemCount: number;
   items: ProjectPlanItem[];
+};
+
+export type ProjectSessionRow = {
+  id: string;
+  source: "claude" | "codex";
+  sourcePath: string;
+  startedAt: number | null;
+  endedAt: number | null;
+  durationMs: number | null;
+  messageCount: number;
+  tokensIn: number;
+  tokensOut: number;
+  tokenTotal: number;
+  model: string | null;
+};
+
+export type ProjectSessionsPage = {
+  rows: ProjectSessionRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+export type ProjectDailyCount = {
+  date: string;
+  count: number;
+};
+
+export type ProjectDailyTokens = {
+  date: string;
+  tokens: number;
+};
+
+export type ProjectDailyAverageDuration = {
+  date: string;
+  averageDurationMs: number;
+};
+
+export type ProjectMilestoneVelocity = {
+  week: string;
+  completedPlans: number;
+};
+
+export type ProjectChartData = {
+  sessionsPerDay: ProjectDailyCount[];
+  tokensPerDay: ProjectDailyTokens[];
+  averageDurationPerDay: ProjectDailyAverageDuration[];
+  milestoneVelocity: ProjectMilestoneVelocity[];
 };
 
 export type ScanEvent =
