@@ -57,10 +57,13 @@ pub fn parse_codex_record(value: &Value, accumulator: &mut SessionParseAccumulat
     }
 
     if let Some(payload) = payload {
-        add_usage(
-            payload.get("usage").or_else(|| payload.get("token_usage")),
-            accumulator,
-        );
+        let info = payload.get("info");
+        let usage = payload
+            .get("usage")
+            .or_else(|| payload.get("token_usage"))
+            .or_else(|| info.and_then(|info| info.get("last_token_usage")))
+            .or_else(|| info.and_then(|info| info.get("total_token_usage")));
+        add_usage(usage, accumulator);
     }
 }
 

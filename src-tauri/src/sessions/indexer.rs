@@ -16,7 +16,7 @@ use crate::{
         claude::parse_claude_record,
         codex::parse_codex_record,
         matcher::match_project,
-        repo::{load_indexed_session, persist_indexed_file_result},
+        repo::{load_indexed_session, persist_indexed_file_result, prune_indexed_paths_under},
         IndexedSession, ProjectRoot, SessionIndexState, SessionParseAccumulator, SessionSource,
     },
     store::{daily_activity, project_repo},
@@ -61,6 +61,10 @@ pub async fn index_session_roots(
     };
 
     for root in roots {
+        if root.source == SessionSource::Codex {
+            prune_ignored_codex_index_paths(&pool, root.path.join("index")).await?;
+        }
+
         on_event(SessionIndexEvent::SourceStarted {
             source: root.source.as_str().to_string(),
             root_path: root.path.display().to_string(),
@@ -106,6 +110,20 @@ pub async fn index_session_roots(
     })?;
 
     Ok(summary)
+}
+
+async fn prune_ignored_codex_index_paths(
+    pool: &Pool,
+    path_prefix: PathBuf,
+) -> Result<(), AppError> {
+    let path_prefix = path_prefix.display().to_string();
+    let connection = pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(move |connection| prune_indexed_paths_under(connection, &path_prefix))
+        .await
+        .map_err(AppError::store)??;
+
+    Ok(())
 }
 
 async fn rebuild_daily_activity(pool: &Pool) -> Result<(), AppError> {
@@ -253,6 +271,9 @@ fn collect_jsonl_files(path: &Path, files: &mut Vec<PathBuf>) -> Result<(), AppE
         let file_type = entry.file_type().map_err(AppError::io)?;
 
         if file_type.is_dir() {
+            if entry_path.file_name().and_then(|name| name.to_str()) == Some("index") {
+                continue;
+            }
             collect_jsonl_files(&entry_path, files)?;
         } else if file_type.is_file()
             && entry_path

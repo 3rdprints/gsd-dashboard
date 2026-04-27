@@ -207,6 +207,35 @@ pub fn persist_indexed_file_result(
     transaction.commit().map_err(AppError::from)
 }
 
+pub fn prune_indexed_paths_under(
+    connection: &mut rusqlite::Connection,
+    path_prefix: &str,
+) -> Result<i64, AppError> {
+    let transaction = connection.transaction().map_err(AppError::from)?;
+    let path_prefix_with_separator = format!("{}/", path_prefix.trim_end_matches('/'));
+    let prefix_len: i64 = path_prefix_with_separator
+        .len()
+        .try_into()
+        .map_err(|_| AppError::store("session path prefix is too long"))?;
+    let pruned_sessions = transaction
+        .execute(
+            "DELETE FROM sessions
+             WHERE source_path = ?1 OR substr(source_path, 1, ?2) = ?3",
+            params![path_prefix, prefix_len, path_prefix_with_separator],
+        )
+        .map_err(AppError::from)?;
+    transaction
+        .execute(
+            "DELETE FROM session_index_state
+             WHERE source_path = ?1 OR substr(source_path, 1, ?2) = ?3",
+            params![path_prefix, prefix_len, path_prefix_with_separator],
+        )
+        .map_err(AppError::from)?;
+
+    transaction.commit().map_err(AppError::from)?;
+    Ok(pruned_sessions as i64)
+}
+
 pub fn rematch_unmatched_sessions_against_projects(
     connection: &mut rusqlite::Connection,
     known_projects: &[ProjectRoot],
