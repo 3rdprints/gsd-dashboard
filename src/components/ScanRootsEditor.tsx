@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { CheckCircle2, FolderOpen, Plus, Save, X } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -11,6 +11,7 @@ import type { AppError } from "../lib/types";
 
 const INVALID_SCAN_ROOT_MESSAGE =
   "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace.";
+const DEFAULT_SCAN_ROOT = "~/Documents";
 
 type ScanRootsEditorProps = {
   title?: string;
@@ -23,15 +24,20 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
     queryFn: getSettings
   });
   const saveSettings = useMutation(createSaveSettingsMutationOptions(queryClient));
-  const [scanRootDrafts, setScanRootDrafts] = useState<string[]>([]);
+  const [scanRootDrafts, setScanRootDrafts] = useState<string[]>([DEFAULT_SCAN_ROOT]);
+  const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
+  const hasEditedDrafts = useRef(false);
   const [hasSavedSettings, setHasSavedSettings] = useState(false);
   const rejectedScanRoot = parseRejectedScanRoot(saveSettings.error);
 
   useEffect(() => {
-    if (settings.data && scanRootDrafts.length === 0) {
-      setScanRootDrafts(settings.data.scanRoots.length > 0 ? settings.data.scanRoots : [""]);
+    if (settings.data && !hasLoadedSettings && !hasEditedDrafts.current) {
+      setScanRootDrafts(
+        settings.data.scanRoots.length > 0 ? settings.data.scanRoots : [DEFAULT_SCAN_ROOT]
+      );
+      setHasLoadedSettings(true);
     }
-  }, [scanRootDrafts.length, settings.data]);
+  }, [hasLoadedSettings, settings.data]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -43,7 +49,7 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
     saveSettings.mutate(
       {
         ...settings.data,
-        scanRoots: scanRootDrafts.map((root) => root.trim()).filter(Boolean)
+        scanRoots: normalizeScanRootDrafts(scanRootDrafts)
       },
       {
         onSuccess: () => setHasSavedSettings(true),
@@ -82,6 +88,7 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
                           rootIndex === index ? event.target.value : root
                         )
                       );
+                      hasEditedDrafts.current = true;
                       setHasSavedSettings(false);
                     }}
                     disabled={!settings.data}
@@ -93,8 +100,9 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
                       setScanRootDrafts((current) =>
                         current.length > 1
                           ? current.filter((_root, rootIndex) => rootIndex !== index)
-                          : [""]
+                          : [DEFAULT_SCAN_ROOT]
                       );
+                      hasEditedDrafts.current = true;
                       setHasSavedSettings(false);
                     }}
                     disabled={!settings.data}
@@ -113,7 +121,8 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
             className="secondary-button"
             type="button"
             onClick={() => {
-              setScanRootDrafts((current) => [...current, ""]);
+              setScanRootDrafts((current) => [...normalizeScanRootDrafts(current), ""]);
+              hasEditedDrafts.current = true;
               setHasSavedSettings(false);
             }}
             disabled={!settings.data}
@@ -143,6 +152,12 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
       ) : null}
     </section>
   );
+}
+
+function normalizeScanRootDrafts(scanRootDrafts: string[]) {
+  const roots = scanRootDrafts.map((root) => root.trim()).filter(Boolean);
+
+  return roots.length > 0 ? roots : [DEFAULT_SCAN_ROOT];
 }
 
 function parseRejectedScanRoot(error: unknown): AppError | null {

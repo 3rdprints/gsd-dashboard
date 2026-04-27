@@ -110,17 +110,31 @@ pub async fn save(
 }
 
 fn validate_settings(scan_roots: &[String], home_dir: &Path) -> Result<(), AppError> {
-    for scan_root in scan_roots {
-        validate_scan_root(Path::new(scan_root), home_dir)?;
+    for scan_root in normalize_scan_roots(scan_roots.to_vec()) {
+        validate_scan_root(Path::new(&scan_root), home_dir)?;
     }
 
     Ok(())
 }
 
+fn normalize_scan_roots(scan_roots: Vec<String>) -> Vec<String> {
+    let roots = scan_roots
+        .into_iter()
+        .map(|root| root.trim().to_string())
+        .filter(|root| !root.is_empty())
+        .collect::<Vec<_>>();
+
+    if roots.is_empty() {
+        AppSettings::default().scan_roots
+    } else {
+        roots
+    }
+}
+
 impl From<SettingsInput> for AppSettings {
     fn from(input: SettingsInput) -> Self {
         Self {
-            scan_roots: input.scan_roots,
+            scan_roots: normalize_scan_roots(input.scan_roots),
             hidden_project_ids: input.hidden_project_ids,
             autostart_enabled: input.autostart_enabled,
             tray_bar_max_projects: input.tray_bar_max_projects,
@@ -138,7 +152,7 @@ impl TryFrom<StoredSettings> for AppSettings {
 
     fn try_from(stored: StoredSettings) -> Result<Self, Self::Error> {
         Ok(Self {
-            scan_roots: serde_json::from_str(&stored.scan_roots_json)?,
+            scan_roots: normalize_scan_roots(serde_json::from_str(&stored.scan_roots_json)?),
             hidden_project_ids: serde_json::from_str(&stored.hidden_project_ids_json)?,
             autostart_enabled: stored.autostart_enabled,
             tray_bar_max_projects: stored.tray_bar_max_projects,

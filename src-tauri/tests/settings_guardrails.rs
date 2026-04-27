@@ -112,6 +112,43 @@ async fn invalid_global_sessions_default_range_coerces_to_seven_days() {
 }
 
 #[tokio::test]
+async fn empty_scan_roots_coerce_to_default() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let db_path = temp_dir.path().join("cache.db");
+    let pool = open_migrated_pool(&db_path).await;
+
+    let saved = settings::save(
+        &pool,
+        temp_dir.path(),
+        SettingsInput {
+            scan_roots: vec![" ".to_string()],
+            hidden_project_ids: Vec::new(),
+            autostart_enabled: false,
+            tray_bar_max_projects: 8,
+            tray_bar_sort: TrayBarSort::RecentActivity,
+            global_sessions_default_range: "7d".to_string(),
+        },
+    )
+    .await
+    .expect("empty scan roots should save as defaults");
+
+    assert_eq!(saved.scan_roots, vec!["~/Documents"]);
+
+    let conn = pool.get().await.expect("connection should be available");
+    conn.interact(|conn| {
+        conn.execute("UPDATE settings SET scan_roots_json = '[]' WHERE id = 1", [])
+    })
+    .await
+    .expect("interaction should complete")
+    .expect("empty roots update should run");
+
+    let loaded = settings::load_or_initialize(&pool, temp_dir.path())
+        .await
+        .expect("empty stored scan roots should coerce");
+    assert_eq!(loaded.scan_roots, vec!["~/Documents"]);
+}
+
+#[tokio::test]
 async fn invalid_saved_json_returns_app_error_instead_of_panicking() {
     let temp_dir = tempfile::tempdir().expect("temp dir should be created");
     let db_path = temp_dir.path().join("cache.db");

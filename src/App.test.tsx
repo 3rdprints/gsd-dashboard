@@ -393,6 +393,17 @@ describe("settings vertical slice", () => {
       })
     );
   });
+  it("shows the default scan root when stored settings have no roots", async () => {
+    mockCommands(portfolio, projectDetail, false, { ...defaultSettings, scanRoots: [] });
+    renderWithQueryClient(<App />);
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith("get_settings"));
+
+    const rootInput = await screen.findByLabelText("Scan root 1");
+    expect(rootInput).toHaveValue("~/Documents");
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Root" }));
+    expect(await screen.findByLabelText("Scan root 2")).toHaveValue("");
+  });
   it("unhides hidden projects through settings save", async () => {
     renderWithQueryClient(<App />);
     fireEvent.click(await screen.findByRole("button", { name: "Unhide Project" }));
@@ -445,14 +456,15 @@ function resetMocks() {
 function mockCommands(
   portfolioResponse: PortfolioDto = portfolio,
   projectResponse: ProjectDetail = projectDetail,
-  holdRebuild = false
+  holdRebuild = false,
+  settingsResponse: SettingsInput = defaultSettings
 ) {
   invokeMock.mockImplementation((command: string, args?: Record<string, unknown>) => {
     if (command === "get_boot_status") {
       return Promise.resolve(bootStatusResponse);
     }
     if (command === "get_settings") {
-      return Promise.resolve(defaultSettings);
+      return Promise.resolve(settingsResponse);
     }
     if (command === "save_settings") {
       return Promise.resolve((args as { input: SettingsInput }).input);
