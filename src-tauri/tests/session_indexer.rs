@@ -531,8 +531,10 @@ async fn index_sessions_for_app_prunes_and_skips_unmatched_sessions() {
     let (_temp_dir, state) = test_state().await;
     let codex_dir = state.home_dir.join(".codex/sessions/2026/04/27");
     fs::create_dir_all(&codex_dir).expect("codex fixture dir should be created");
+    let unmatched_path = codex_dir.join("unmatched-session.jsonl");
+    let unmatched_source_path = unmatched_path.display().to_string();
     fs::write(
-        codex_dir.join("unmatched-session.jsonl"),
+        &unmatched_path,
         "{\"type\":\"event_msg\",\"timestamp\":\"2026-04-27T14:00:00Z\",\"payload\":{\"id\":\"unmatched-session\",\"cwd\":\"/tmp/not-a-known-project\"}}\n",
     )
     .expect("unmatched codex session should be written");
@@ -577,19 +579,35 @@ async fn index_sessions_for_app_prunes_and_skips_unmatched_sessions() {
     let summary = index_sessions_for_app(&state, |_| Ok(()))
         .await
         .expect("session index should complete");
-    let unmatched_count = state
+    let (unmatched_count, unmatched_state_count, stale_state_count) = state
         .pool
         .get()
         .await
         .expect("connection should be available")
-        .interact(|connection| {
-            connection
+        .interact(move |connection| {
+            let unmatched_count = connection
                 .query_row(
                     "SELECT COUNT(*) FROM sessions WHERE project_id IS NULL",
                     [],
                     |row| row.get::<_, i64>(0),
                 )
-                .map_err(AppError::from)
+                .map_err(AppError::from)?;
+            let unmatched_state_count = connection
+                .query_row(
+                    "SELECT COUNT(*) FROM session_index_state WHERE source_path = ?1",
+                    [unmatched_source_path],
+                    |row| row.get::<_, i64>(0),
+                )
+                .map_err(AppError::from)?;
+            let stale_state_count = connection
+                .query_row(
+                    "SELECT COUNT(*) FROM session_index_state WHERE source_path = ?1",
+                    ["/tmp/stale-unmatched.jsonl"],
+                    |row| row.get::<_, i64>(0),
+                )
+                .map_err(AppError::from)?;
+
+            Ok::<_, AppError>((unmatched_count, unmatched_state_count, stale_state_count))
         })
         .await
         .expect("interaction should complete")
@@ -598,6 +616,67 @@ async fn index_sessions_for_app_prunes_and_skips_unmatched_sessions() {
     assert_eq!(summary.sessions_persisted, 0);
     assert_eq!(summary.unmatched_count, 0);
     assert_eq!(unmatched_count, 0);
+    assert_eq!(unmatched_state_count, 0);
+    assert_eq!(stale_state_count, 0);
+}
+
+#[tokio::test]
+async fn index_sessions_for_app_reparses_stale_tokenless_codex_sessions() {
+    let (_temp_dir, state) = test_state().await;
+    let codex_dir = state.home_dir.join(".codex/sessions/2026/04/27");
+    fs::create_dir_all(&codex_dir).expect("codex fixture dir should be created");
+    let codex_path = codex_dir.join("codex-current.jsonl");
+    fs::copy(fixture_path("codex-current"), &codex_path).expect("codex fixture should copy");
+    let codex_source_path = codex_path.display().to_string();
+    let codex_file_size = codex_path
+        .metadata()
+        .expect("codex fixture metadata should load")
+        .len() as i64;
+    let stale_session = IndexedSession {
+        id: "codex:codex-current-session".to_string(),
+        source: SessionSource::Codex,
+        source_path: codex_source_path.clone(),
+        source_session_id: Some("codex-current-session".to_string()),
+        project_id: Some("gsd-dashboard-fixture".to_string()),
+        cwd: Some("/tmp/gsd-dashboard-fixture".to_string()),
+        started_at: Some(1_777_000_000_000),
+        ended_at: Some(1_777_000_000_000),
+        duration_ms: Some(0),
+        message_count: 1,
+        tokens_in: Some(0),
+        tokens_out: Some(0),
+        model: Some("gpt-5".to_string()),
+        attribution_method: "cwd".to_string(),
+        index_error: None,
+    };
+    let stale_state = SessionIndexState {
+        source_path: codex_source_path,
+        source: SessionSource::Codex,
+        file_size: codex_file_size,
+        file_mtime: Some(1),
+        last_parsed_byte_offset: codex_file_size,
+        live_partial: false,
+        last_error: None,
+    };
+    state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available")
+        .interact(move |connection| {
+            persist_indexed_file_result(connection, &[stale_session], &stale_state, 1)
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("stale tokenless codex session should persist");
+
+    index_sessions_for_app(&state, |_| Ok(()))
+        .await
+        .expect("session index should complete");
+    let stats = load_session_stats(&state, "codex:codex-current-session").await;
+
+    assert_eq!(stats.tokens_in, Some(26940));
+    assert_eq!(stats.tokens_out, Some(435));
 }
 
 #[tokio::test]

@@ -247,6 +247,43 @@ pub fn prune_unmatched_sessions(connection: &mut rusqlite::Connection) -> Result
         .map_err(AppError::from)
 }
 
+pub fn prune_orphan_index_states(connection: &mut rusqlite::Connection) -> Result<i64, AppError> {
+    connection
+        .execute(
+            "DELETE FROM session_index_state
+             WHERE NOT EXISTS (
+                SELECT 1
+                FROM sessions
+                WHERE sessions.source_path = session_index_state.source_path
+             )",
+            [],
+        )
+        .map(|count| count as i64)
+        .map_err(AppError::from)
+}
+
+pub fn prune_tokenless_codex_index_states(
+    connection: &mut rusqlite::Connection,
+) -> Result<i64, AppError> {
+    connection
+        .execute(
+            "DELETE FROM session_index_state
+             WHERE source = 'codex'
+                AND EXISTS (
+                    SELECT 1
+                    FROM sessions
+                    WHERE sessions.source_path = session_index_state.source_path
+                        AND sessions.source = 'codex'
+                        AND sessions.message_count > 0
+                        AND COALESCE(sessions.tokens_in, 0) = 0
+                        AND COALESCE(sessions.tokens_out, 0) = 0
+                )",
+            [],
+        )
+        .map(|count| count as i64)
+        .map_err(AppError::from)
+}
+
 pub fn prune_indexed_paths_under(
     connection: &mut rusqlite::Connection,
     path_prefix: &str,

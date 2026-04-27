@@ -18,6 +18,7 @@ use crate::{
         matcher::match_project,
         repo::{
             load_indexed_session, persist_indexed_file_result, prune_indexed_paths_under,
+            prune_orphan_index_states, prune_tokenless_codex_index_states,
             prune_unmatched_sessions,
         },
         IndexedSession, ProjectRoot, SessionIndexState, SessionParseAccumulator, SessionSource,
@@ -56,6 +57,8 @@ pub async fn index_session_roots(
 
     let known_projects = load_known_project_roots(&pool).await?;
     prune_existing_unmatched_sessions(&pool).await?;
+    prune_existing_orphan_index_states(&pool).await?;
+    prune_existing_tokenless_codex_index_states(&pool).await?;
     let mut summary = SessionIndexSummary {
         root_count: roots.len(),
         files_processed: 0,
@@ -389,6 +392,7 @@ async fn index_session_file(
     let offset_was_reset = previous_offset > file_state.file_size;
     let should_persist_session = (offset_was_reset || committed_offset > previous_offset)
         && accumulator.session.message_count > 0;
+    let mut skipped_unmatched_session = false;
     let sessions = if should_persist_session {
         if previous_offset > 0 && !offset_was_reset {
             if let Some(previous_session) =
@@ -402,11 +406,19 @@ async fn index_session_file(
         if accumulator.session.project_id.is_some() {
             vec![accumulator.session]
         } else {
+            skipped_unmatched_session = true;
             Vec::new()
         }
     } else {
         Vec::new()
     };
+
+    if skipped_unmatched_session {
+        return Ok(IndexedFileResult {
+            sessions_persisted: 0,
+            live_partial,
+        });
+    }
 
     if committed_offset == previous_offset && sessions.is_empty() {
         return Ok(IndexedFileResult {
@@ -435,6 +447,26 @@ async fn prune_existing_unmatched_sessions(pool: &Pool) -> Result<(), AppError> 
     let connection = pool.get().await.map_err(AppError::store)?;
     connection
         .interact(prune_unmatched_sessions)
+        .await
+        .map_err(AppError::store)??;
+
+    Ok(())
+}
+
+async fn prune_existing_orphan_index_states(pool: &Pool) -> Result<(), AppError> {
+    let connection = pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(prune_orphan_index_states)
+        .await
+        .map_err(AppError::store)??;
+
+    Ok(())
+}
+
+async fn prune_existing_tokenless_codex_index_states(pool: &Pool) -> Result<(), AppError> {
+    let connection = pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(prune_tokenless_codex_index_states)
         .await
         .map_err(AppError::store)??;
 
