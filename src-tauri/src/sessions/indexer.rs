@@ -11,7 +11,7 @@ use serde_json::Value;
 
 use crate::{
     error::AppError,
-    events::SessionIndexEvent,
+    events::{AppEvent, SessionIndexEvent},
     sessions::{
         claude::parse_claude_record,
         codex::parse_codex_record,
@@ -19,7 +19,7 @@ use crate::{
         repo::{load_indexed_session, persist_indexed_file_result},
         IndexedSession, ProjectRoot, SessionIndexState, SessionParseAccumulator, SessionSource,
     },
-    store::project_repo,
+    store::{daily_activity, project_repo},
 };
 
 pub use crate::sessions::StreamFileStatus;
@@ -93,6 +93,11 @@ pub async fn index_session_roots(
     }
 
     summary.unmatched_count = load_unmatched_count(&pool).await?;
+    if let Err(error) = rebuild_daily_activity(&pool).await {
+        eprintln!("daily_activity rebuild failed after session index: {error}");
+    } else {
+        on_event(SessionIndexEvent::App(AppEvent::DailyActivityUpdated))?;
+    }
     on_event(SessionIndexEvent::Finished {
         files_processed: summary.files_processed,
         sessions_persisted: summary.sessions_persisted,
@@ -101,6 +106,22 @@ pub async fn index_session_roots(
     })?;
 
     Ok(summary)
+}
+
+async fn rebuild_daily_activity(pool: &Pool) -> Result<(), AppError> {
+    let now_ms = current_epoch_ms();
+    let connection = pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(move |connection| daily_activity::rebuild_window(connection, 90, now_ms))
+        .await
+        .map_err(AppError::store)?
+}
+
+fn current_epoch_ms() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_millis().try_into().unwrap_or(0))
+        .unwrap_or(0)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

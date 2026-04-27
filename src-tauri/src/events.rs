@@ -3,7 +3,9 @@ use serde::Serialize;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "event", content = "data", rename_all = "camelCase")]
 pub enum AppEvent {
-    BootReady { cache_path: String },
+    BootReady {
+        cache_path: String,
+    },
     SettingsChanged,
     #[serde(rename = "daily_activity_updated")]
     DailyActivityUpdated,
@@ -43,6 +45,7 @@ pub enum ScanEvent {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "event", content = "data", rename_all = "camelCase")]
 pub enum SessionIndexEvent {
+    App(AppEvent),
     Started {
         root_count: usize,
     },
