@@ -13,5 +13,7 @@ pub mod settings;
 pub mod store;
 
 pub use commands::projects::{
-    get_project_chart_data, get_project_milestones, get_project_phase_panel, list_project_sessions,
+    get_portfolio_heatmap, get_project_chart_data, get_project_milestones, get_project_phase_panel,
+    list_project_sessions,
 };
+pub use commands::sessions::{get_global_chart_data, list_global_sessions};

@@ -1,10 +1,12 @@
 {
   "identifier": "default",
-  "description": "Release-strict default capability for the main dashboard window, including scan_projects, get_project_milestones, get_project_phase_panel, list_project_sessions, and get_project_chart_data.",
+  "description": "Release-strict default capability for the main dashboard window, including list_global_sessions, get_global_chart_data, get_portfolio_heatmap, and project detail commands.",
   "windows": ["main"],
   "permissions": [
     "core:default",
     "allow-get-portfolio",
+    "allow-get-portfolio-heatmap",
+    "allow-get-global-chart-data",
     "allow-get-project",
     "allow-get-project-chart-data",
     "allow-get-project-milestones",
@@ -12,6 +14,7 @@
     "allow-get-boot-status",
     "allow-get-settings",
     "allow-index-sessions",
+    "allow-list-global-sessions",
     "allow-list-project-sessions",
     "allow-rebuild-cache",
     "allow-scan-projects",
