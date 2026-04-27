@@ -49,7 +49,12 @@ fn session(
         tokens_in: Some(tokens_in),
         tokens_out: Some(tokens_out),
         model: Some("test-model".to_string()),
-        attribution_method: if project_id.is_some() { "cwd" } else { "unmatched" }.to_string(),
+        attribution_method: if project_id.is_some() {
+            "cwd"
+        } else {
+            "unmatched"
+        }
+        .to_string(),
         index_error: None,
     }
 }
@@ -64,7 +69,11 @@ async fn global_sessions_query_combines_filters() {
     .await
     .expect("bootstrap should succeed");
 
-    let connection = state.pool.get().await.expect("connection should be available");
+    let connection = state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available");
     connection
         .interact(|connection| {
             project_repo::upsert_project_snapshot(
@@ -82,12 +91,60 @@ async fn global_sessions_query_combines_filters() {
             session_repo::persist_indexed_file_result(
                 connection,
                 &[
-                    session("match-new", SessionSource::Claude, Some("project-1"), 1_777_003_000, 4_000, 80, 10),
-                    session("match-old", SessionSource::Claude, Some("project-1"), 1_777_001_000, 3_000, 30, 10),
-                    session("codex-project", SessionSource::Codex, Some("project-1"), 1_777_002_000, 4_000, 90, 10),
-                    session("other-project", SessionSource::Claude, Some("project-2"), 1_777_004_000, 4_000, 90, 10),
-                    session("too-short", SessionSource::Claude, Some("project-1"), 1_777_005_000, 500, 90, 10),
-                    session("too-few-tokens", SessionSource::Claude, Some("project-1"), 1_777_006_000, 4_000, 1, 1),
+                    session(
+                        "match-new",
+                        SessionSource::Claude,
+                        Some("project-1"),
+                        1_777_003_000,
+                        4_000,
+                        80,
+                        10,
+                    ),
+                    session(
+                        "match-old",
+                        SessionSource::Claude,
+                        Some("project-1"),
+                        1_777_001_000,
+                        3_000,
+                        30,
+                        10,
+                    ),
+                    session(
+                        "codex-project",
+                        SessionSource::Codex,
+                        Some("project-1"),
+                        1_777_002_000,
+                        4_000,
+                        90,
+                        10,
+                    ),
+                    session(
+                        "other-project",
+                        SessionSource::Claude,
+                        Some("project-2"),
+                        1_777_004_000,
+                        4_000,
+                        90,
+                        10,
+                    ),
+                    session(
+                        "too-short",
+                        SessionSource::Claude,
+                        Some("project-1"),
+                        1_777_005_000,
+                        500,
+                        90,
+                        10,
+                    ),
+                    session(
+                        "too-few-tokens",
+                        SessionSource::Claude,
+                        Some("project-1"),
+                        1_777_006_000,
+                        4_000,
+                        1,
+                        1,
+                    ),
                 ],
                 &SessionIndexState {
                     source_path: "/tmp/source.jsonl".to_string(),
@@ -130,7 +187,10 @@ async fn global_sessions_query_combines_filters() {
     assert_eq!(page.page_size, 200);
     assert_eq!(page.total, 2);
     assert_eq!(
-        page.rows.iter().map(|row| row.id.as_str()).collect::<Vec<_>>(),
+        page.rows
+            .iter()
+            .map(|row| row.id.as_str())
+            .collect::<Vec<_>>(),
         vec!["match-new", "match-old"]
     );
     assert!(page.rows[0].started_at >= page.rows[1].started_at);
@@ -148,11 +208,17 @@ async fn global_sessions_query_combines_filters() {
     .expect_err("injected source should be rejected");
     assert!(error.to_string().contains("invalid session source"));
 
-    let connection = state.pool.get().await.expect("connection should be available");
+    let connection = state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available");
     let count = connection
         .interact(|connection| {
             connection
-                .query_row("SELECT COUNT(*) FROM sessions", [], |row| row.get::<_, i64>(0))
+                .query_row("SELECT COUNT(*) FROM sessions", [], |row| {
+                    row.get::<_, i64>(0)
+                })
                 .map_err(gsd_dashboard::error::AppError::from)
         })
         .await

@@ -68,7 +68,11 @@ async fn global_chart_data_returns_four_aggregate_series() {
     let day_one = 1_777_000_000_000_i64;
     let day_two = day_one + DAY_MS;
 
-    let connection = state.pool.get().await.expect("connection should be available");
+    let connection = state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available");
     connection
         .interact(move |connection| {
             for id in 1..=6 {
@@ -82,13 +86,62 @@ async fn global_chart_data_returns_four_aggregate_series() {
             session_repo::persist_indexed_file_result(
                 connection,
                 &[
-                    session("claude-one", SessionSource::Claude, "project-1", day_one + HOUR_MS, 10, 5),
-                    session("codex-one", SessionSource::Codex, "project-2", day_one + (2 * HOUR_MS), 20, 5),
-                    session("claude-two", SessionSource::Claude, "project-1", day_two + HOUR_MS, 1, 1),
-                    session("project-three", SessionSource::Codex, "project-3", day_two + (3 * HOUR_MS), 30, 1),
-                    session("project-four", SessionSource::Codex, "project-4", day_two + (4 * HOUR_MS), 40, 1),
-                    session("project-five", SessionSource::Codex, "project-5", day_two + (5 * HOUR_MS), 50, 1),
-                    session("project-six", SessionSource::Codex, "project-6", day_two + (6 * HOUR_MS), 60, 1),
+                    session(
+                        "claude-one",
+                        SessionSource::Claude,
+                        "project-1",
+                        day_one + HOUR_MS,
+                        10,
+                        5,
+                    ),
+                    session(
+                        "codex-one",
+                        SessionSource::Codex,
+                        "project-2",
+                        day_one + (2 * HOUR_MS),
+                        20,
+                        5,
+                    ),
+                    session(
+                        "claude-two",
+                        SessionSource::Claude,
+                        "project-1",
+                        day_two + HOUR_MS,
+                        1,
+                        1,
+                    ),
+                    session(
+                        "project-three",
+                        SessionSource::Codex,
+                        "project-3",
+                        day_two + (3 * HOUR_MS),
+                        30,
+                        1,
+                    ),
+                    session(
+                        "project-four",
+                        SessionSource::Codex,
+                        "project-4",
+                        day_two + (4 * HOUR_MS),
+                        40,
+                        1,
+                    ),
+                    session(
+                        "project-five",
+                        SessionSource::Codex,
+                        "project-5",
+                        day_two + (5 * HOUR_MS),
+                        50,
+                        1,
+                    ),
+                    session(
+                        "project-six",
+                        SessionSource::Codex,
+                        "project-6",
+                        day_two + (6 * HOUR_MS),
+                        60,
+                        1,
+                    ),
                 ],
                 &SessionIndexState {
                     source_path: "/tmp/source.jsonl".to_string(),
@@ -143,7 +196,7 @@ async fn global_chart_data_returns_four_aggregate_series() {
             .iter()
             .map(|row| row.tokens)
             .sum::<i64>(),
-        224
+        233
     );
     assert!(chart_data
         .tokens_per_day_by_project

@@ -4,8 +4,13 @@ use crate::{
     app_state::AppState,
     error::AppError,
     events::SessionIndexEvent,
-    sessions::indexer::{self, SessionIndexSummary},
+    sessions::{
+        global::{self, GlobalChartDataDto, GlobalSessionsPageDto},
+        indexer::{self, SessionIndexSummary},
+    },
 };
+
+pub use crate::sessions::global::GlobalSessionFilters;
 
 #[tauri::command]
 pub async fn index_sessions(
@@ -23,4 +28,48 @@ pub async fn index_sessions_for_app(
     on_event: impl Fn(SessionIndexEvent) -> Result<(), AppError> + Send + Sync + 'static,
 ) -> Result<SessionIndexSummary, AppError> {
     indexer::index_session_roots(state.pool.clone(), state.home_dir.clone(), on_event).await
+}
+
+#[tauri::command]
+pub async fn list_global_sessions(
+    state: State<'_, AppState>,
+    filters: GlobalSessionFilters,
+    page: Option<i64>,
+    page_size: Option<i64>,
+) -> Result<GlobalSessionsPageDto, AppError> {
+    list_global_sessions_for_app(&state, filters, page, page_size).await
+}
+
+#[tauri::command]
+pub async fn get_global_chart_data(
+    state: State<'_, AppState>,
+    filters: GlobalSessionFilters,
+) -> Result<GlobalChartDataDto, AppError> {
+    get_global_chart_data_for_app(&state, filters).await
+}
+
+pub async fn list_global_sessions_for_app(
+    state: &AppState,
+    filters: GlobalSessionFilters,
+    page: Option<i64>,
+    page_size: Option<i64>,
+) -> Result<GlobalSessionsPageDto, AppError> {
+    let connection = state.pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(move |connection| {
+            global::list_global_sessions(connection, &filters, page, page_size)
+        })
+        .await
+        .map_err(AppError::store)?
+}
+
+pub async fn get_global_chart_data_for_app(
+    state: &AppState,
+    filters: GlobalSessionFilters,
+) -> Result<GlobalChartDataDto, AppError> {
+    let connection = state.pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(move |connection| global::load_global_chart_data(connection, &filters))
+        .await
+        .map_err(AppError::store)?
 }

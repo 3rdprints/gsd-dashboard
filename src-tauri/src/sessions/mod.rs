@@ -1,5 +1,6 @@
 pub mod claude;
 pub mod codex;
+pub mod global;
 pub mod indexer;
 pub mod matcher;
 pub mod project_charts;

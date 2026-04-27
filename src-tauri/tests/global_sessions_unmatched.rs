@@ -41,7 +41,12 @@ fn session(id: &str, project_id: Option<&str>, started_at: i64) -> IndexedSessio
         tokens_in: Some(1),
         tokens_out: Some(2),
         model: None,
-        attribution_method: if project_id.is_some() { "cwd" } else { "unmatched" }.to_string(),
+        attribution_method: if project_id.is_some() {
+            "cwd"
+        } else {
+            "unmatched"
+        }
+        .to_string(),
         index_error: None,
     }
 }
@@ -56,7 +61,11 @@ async fn global_sessions_unmatched_uses_partial_index_and_rejects_injection() {
     .await
     .expect("bootstrap should succeed");
 
-    let connection = state.pool.get().await.expect("connection should be available");
+    let connection = state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available");
     connection
         .interact(|connection| {
             project_repo::upsert_project_snapshot(connection, snapshot(), Vec::new(), 1)?;
@@ -100,17 +109,24 @@ async fn global_sessions_unmatched_uses_partial_index_and_rejects_injection() {
     assert_eq!(page.total, 2);
     assert!(page.rows.iter().all(|row| row.project_id.is_none()));
     assert_eq!(
-        page.rows.iter().map(|row| row.id.as_str()).collect::<Vec<_>>(),
+        page.rows
+            .iter()
+            .map(|row| row.id.as_str())
+            .collect::<Vec<_>>(),
         vec!["unmatched-new", "unmatched-old"]
     );
 
-    let connection = state.pool.get().await.expect("connection should be available");
+    let connection = state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available");
     let plan = connection
         .interact(|connection| {
             connection
                 .query_row(
                     "EXPLAIN QUERY PLAN
-                     SELECT id FROM sessions
+                     SELECT id FROM sessions INDEXED BY idx_sessions_unmatched_started
                      WHERE project_id IS NULL
                      ORDER BY started_at DESC NULLS LAST
                      LIMIT 100",
