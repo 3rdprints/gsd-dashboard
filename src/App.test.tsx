@@ -45,14 +45,15 @@ const defaultSettings: SettingsInput = {
   hiddenProjectIds: ["listingguru"],
   autostartEnabled: false,
   trayBarMaxProjects: 8,
-  trayBarSort: "recent_activity"
+  trayBarSort: "recent_activity",
+  globalSessionsDefaultRange: "7d"
 };
 const bootStatusResponse = {
   appDataDir: "/tmp/gsd-dashboard",
   cachePath: "/tmp/gsd-dashboard/cache.db",
   cacheReady: true,
   walEnabled: true,
-  migrationsApplied: 3,
+  migrationsApplied: 6,
   settingsInitialized: true
 };
 const emptySessionSparkline = [

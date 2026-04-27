@@ -141,6 +141,9 @@ const MIGRATION_SLICE: &[M<'_>] = &[
         FOREIGN KEY (top_project_id) REFERENCES projects(id) ON DELETE SET NULL
     );",
     ),
+    M::up(
+        "ALTER TABLE settings ADD COLUMN global_sessions_default_range TEXT NOT NULL DEFAULT '7d';",
+    ),
 ];
 pub const MIGRATION_COUNT: u32 = MIGRATION_SLICE.len() as u32;
 const MIGRATIONS: Migrations<'_> = Migrations::from_slice(MIGRATION_SLICE);

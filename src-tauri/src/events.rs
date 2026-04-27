@@ -5,6 +5,8 @@ use serde::Serialize;
 pub enum AppEvent {
     BootReady { cache_path: String },
     SettingsChanged,
+    #[serde(rename = "daily_activity_updated")]
+    DailyActivityUpdated,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

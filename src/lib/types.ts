@@ -1,4 +1,5 @@
 export type TrayBarSort = "name" | "progress" | "recent_activity";
+export type GlobalSessionsDefaultRange = "7d" | "30d" | "90d" | "all";
 
 export type BootStatus = {
   appDataDir: string;
@@ -15,9 +16,17 @@ export type AppSettings = {
   autostartEnabled: boolean;
   trayBarMaxProjects: number;
   trayBarSort: TrayBarSort;
+  globalSessionsDefaultRange: GlobalSessionsDefaultRange;
 };
 
-export type SettingsInput = AppSettings;
+export type SettingsInput = {
+  scanRoots: string[];
+  hiddenProjectIds: string[];
+  autostartEnabled: boolean;
+  trayBarMaxProjects: number;
+  trayBarSort: TrayBarSort;
+  globalSessionsDefaultRange: GlobalSessionsDefaultRange;
+};
 
 export interface ScanSummary {
   discoveredCount: number;

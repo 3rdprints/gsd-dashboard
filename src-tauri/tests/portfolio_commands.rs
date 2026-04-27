@@ -57,6 +57,7 @@ async fn save_hidden_projects(state: &gsd_dashboard::app_state::AppState, hidden
             autostart_enabled: false,
             tray_bar_max_projects: 8,
             tray_bar_sort: TrayBarSort::RecentActivity,
+            global_sessions_default_range: "7d".to_string(),
         },
     )
     .await

@@ -40,6 +40,7 @@ async fn test_app_state(home_dir: PathBuf, scan_root: &Path) -> AppState {
             autostart_enabled: false,
             tray_bar_max_projects: 8,
             tray_bar_sort: gsd_dashboard::settings::TrayBarSort::RecentActivity,
+            global_sessions_default_range: "7d".to_string(),
         },
     )
     .await
@@ -584,6 +585,7 @@ async fn scan_command_expands_tilde_scan_roots() {
             autostart_enabled: false,
             tray_bar_max_projects: 8,
             tray_bar_sort: gsd_dashboard::settings::TrayBarSort::RecentActivity,
+            global_sessions_default_range: "7d".to_string(),
         },
     )
     .await

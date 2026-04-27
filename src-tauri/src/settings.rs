@@ -20,6 +20,7 @@ pub struct AppSettings {
     pub autostart_enabled: bool,
     pub tray_bar_max_projects: u8,
     pub tray_bar_sort: TrayBarSort,
+    pub global_sessions_default_range: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -30,6 +31,7 @@ pub struct SettingsInput {
     pub autostart_enabled: bool,
     pub tray_bar_max_projects: u8,
     pub tray_bar_sort: TrayBarSort,
+    pub global_sessions_default_range: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -49,6 +51,7 @@ impl Default for AppSettings {
             autostart_enabled: false,
             tray_bar_max_projects: 8,
             tray_bar_sort: TrayBarSort::RecentActivity,
+            global_sessions_default_range: default_global_sessions_range().to_string(),
         }
     }
 }
@@ -61,6 +64,7 @@ impl From<AppSettings> for SettingsInput {
             autostart_enabled: settings.autostart_enabled,
             tray_bar_max_projects: settings.tray_bar_max_projects,
             tray_bar_sort: settings.tray_bar_sort,
+            global_sessions_default_range: settings.global_sessions_default_range,
         }
     }
 }
@@ -121,6 +125,10 @@ impl From<SettingsInput> for AppSettings {
             autostart_enabled: input.autostart_enabled,
             tray_bar_max_projects: input.tray_bar_max_projects,
             tray_bar_sort: input.tray_bar_sort,
+            global_sessions_default_range: coerce_global_sessions_range(
+                &input.global_sessions_default_range,
+            )
+            .to_string(),
         }
     }
 }
@@ -135,6 +143,10 @@ impl TryFrom<StoredSettings> for AppSettings {
             autostart_enabled: stored.autostart_enabled,
             tray_bar_max_projects: stored.tray_bar_max_projects,
             tray_bar_sort: TrayBarSort::from_db_value(&stored.tray_bar_sort)?,
+            global_sessions_default_range: coerce_global_sessions_range(
+                &stored.global_sessions_default_range,
+            )
+            .to_string(),
         })
     }
 }
@@ -149,6 +161,10 @@ impl TryFrom<AppSettings> for StoredSettings {
             autostart_enabled: settings.autostart_enabled,
             tray_bar_max_projects: settings.tray_bar_max_projects,
             tray_bar_sort: settings.tray_bar_sort.as_db_value().to_string(),
+            global_sessions_default_range: coerce_global_sessions_range(
+                &settings.global_sessions_default_range,
+            )
+            .to_string(),
         })
     }
 }
@@ -177,4 +193,15 @@ fn unix_timestamp() -> i64 {
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_secs() as i64)
         .unwrap_or_default()
+}
+
+fn default_global_sessions_range() -> &'static str {
+    "7d"
+}
+
+fn coerce_global_sessions_range(value: &str) -> &str {
+    match value {
+        "7d" | "30d" | "90d" | "all" => value,
+        _ => default_global_sessions_range(),
+    }
 }
