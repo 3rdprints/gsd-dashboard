@@ -2,7 +2,14 @@ import type { QueryClient } from "@tanstack/react-query";
 import { QueryClient as TanStackQueryClient } from "@tanstack/react-query";
 
 import { saveSettings } from "./ipc";
-import type { AppSettings, ProjectChartRange, ProjectSessionSortKey, SettingsInput, SortDirection } from "./types";
+import type {
+  AppSettings,
+  GlobalSessionFilters,
+  ProjectChartRange,
+  ProjectSessionSortKey,
+  SettingsInput,
+  SortDirection
+} from "./types";
 
 export const bootStatusQueryKey = ["bootStatus"] as const;
 export const settingsQueryKey = ["settings"] as const;
@@ -12,6 +19,8 @@ export const projectMilestonesQueryKey = (id: string) => ["project", id, "milest
 export const projectPhasePanelQueryKey = (id: string) => ["project", id, "phasePanel"] as const;
 export const projectSessionsQueryKey = (id: string, sort: ProjectSessionSortKey, direction: SortDirection, page: number, pageSize: number) => ["project", id, "sessions", sort, direction, page, pageSize] as const;
 export const projectChartsQueryKey = (id: string, range: ProjectChartRange) => ["project", id, "charts", range] as const;
+export const globalSessionsQueryKey = (filters: GlobalSessionFilters, page: number, pageSize: number) =>
+  ["globalSessions", filters, page, pageSize] as const;
 
 export const queryClient = new TanStackQueryClient();
 

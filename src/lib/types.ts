@@ -159,6 +159,25 @@ export type ProjectSessionsPage = {
   pageSize: number;
 };
 
+export type GlobalSessionFilters = {
+  source?: "claude" | "codex";
+  projectId?: string;
+  startedAfter?: number;
+  startedBefore?: number;
+  durationMinMs?: number;
+  durationMaxMs?: number;
+  tokensMin?: number;
+  tokensMax?: number;
+  unmatchedOnly?: boolean;
+};
+
+export type GlobalSessionsPage = {
+  rows: ProjectSessionRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
 export type ProjectDailyCount = {
   date: string;
   count: number;
