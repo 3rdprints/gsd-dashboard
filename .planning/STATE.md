@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-04-27T15:25:48.280Z"
+last_updated: "2026-04-27T15:34:14.314Z"
 progress:
   total_phases: 9
   completed_phases: 4
   total_plans: 30
-  completed_plans: 28
-  percent: 93
+  completed_plans: 29
+  percent: 97
 ---
 
 # State: GSD Dashboard
@@ -23,13 +23,13 @@ progress:
 ## Current Position
 
 Phase: 05 (project-detail-global-sessions-charts) — EXECUTING
-Plan: 11 of 12
+Plan: 12 of 12
 **Milestone:** v1.0 MVP
 **Phase:** 5
-**Plan:** 11 of 12
+**Plan:** 12 of 12
 **Status:** Ready to execute
 
-**Progress:** [█████████░] 93%
+**Progress:** [██████████] 97%
 
 ```
 Milestone: [████......] 4/9 phases
@@ -74,6 +74,7 @@ Overall:   [████......] 44%
 - Plan 05-08 duration: 6 min; tasks: 2; files modified: 11
 - Plan 05-09 duration: 7 min; tasks: 3; files modified: 12
 - Plan 05-10 duration: 7 min; tasks: 2; files modified: 11
+- Plan 05-11 duration: 5 min; tasks: 2; files modified: 10
 
 ## Accumulated Context
 
@@ -140,6 +141,8 @@ Overall:   [████......] 44%
 - [Phase 05]: Plan 05-09 uses a single tab-level project chart range selector defaulting to 30d and includes the range in the TanStack Query key.
 - [Phase 05]: Plan 05-10 uses browser URLSearchParams as live Global Sessions filter/page state and derives backend filters via strict coercion.
 - [Phase 05]: Plan 05-10 keeps Global Sessions CSS route-scoped in GlobalSessionsPage.css because src/styles.css exceeds the AGENTS.md 500-line limit.
+- [Phase 05]: Plan 05-11 renders chart project names only as React text children in legend chips.
+- [Phase 05]: Plan 05-11 reuses filtersToGlobalSessionFilters for both Global Sessions table and chart queries.
 
 ### Todos
 
@@ -164,7 +167,7 @@ Overall:   [████......] 44%
 
 ## Session Continuity
 
-**Last session:** 2026-04-27T15:25:04.032Z
+**Last session:** 2026-04-27T15:33:45.597Z
 
 **Next session should:** Continue Phase 05 execution from the next incomplete plan.
 

@@ -111,7 +111,7 @@ Plans:
 - [x] 05-08-PLAN.md — Project Detail tab shell and Overview tab UI
 - [x] 05-09-PLAN.md — Project Detail Sessions and Charts tabs UI
 - [x] 05-10-PLAN.md — Global Sessions route, URL filters, chips, and server-paged table UI
-- [ ] 05-11-PLAN.md — Global Sessions charts UI wired to active filters
+- [x] 05-11-PLAN.md — Global Sessions charts UI wired to active filters
 - [ ] 05-12-PLAN.md — Portfolio activity heatmap UI and daily_activity_updated invalidation
 **UI hint**: yes
 
