@@ -6,10 +6,20 @@ import { useQuery } from "@tanstack/react-query";
 import { copyNextCommand, openProjectInFinder, openProjectInVsCode } from "../lib/actions";
 import { getProject } from "../lib/ipc";
 import { projectQueryKey } from "../lib/queryClient";
+import "./ProjectDetailPage.css";
+
+type ProjectDetailTab = "overview" | "sessions" | "charts";
+
+const detailTabs: Array<{ id: ProjectDetailTab; label: string }> = [
+  { id: "overview", label: "Overview" },
+  { id: "sessions", label: "Sessions" },
+  { id: "charts", label: "Charts" }
+];
 
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [actionError, setActionError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<ProjectDetailTab>("overview");
   const project = useQuery({
     queryKey: projectQueryKey(id ?? ""),
     queryFn: () => getProject(id ?? ""),
@@ -22,6 +32,28 @@ export function ProjectDetailPage() {
       await action();
     } catch {
       setActionError("Action failed. Check the configured project path and try again.");
+    }
+  }
+
+  function selectTabByOffset(offset: number) {
+    const currentIndex = detailTabs.findIndex((tab) => tab.id === activeTab);
+    const nextIndex = (currentIndex + offset + detailTabs.length) % detailTabs.length;
+    setActiveTab(detailTabs[nextIndex].id);
+  }
+
+  function handleTabKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      selectTabByOffset(-1);
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      selectTabByOffset(1);
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      setActiveTab(detailTabs[0].id);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      setActiveTab(detailTabs[detailTabs.length - 1].id);
     }
   }
 
@@ -127,6 +159,43 @@ export function ProjectDetailPage() {
             </div>
           </div>
         </div>
+
+        <div className="tab-nav" role="tablist" aria-label="Project detail sections">
+          {detailTabs.map((tab) => {
+            const selected = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                id={`project-tab-${tab.id}-tab`}
+                className="tab-btn"
+                role="tab"
+                aria-selected={selected}
+                aria-controls={`project-tab-${tab.id}`}
+                tabIndex={selected ? 0 : -1}
+                onClick={() => setActiveTab(tab.id)}
+                onKeyDown={handleTabKeyDown}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {detailTabs.map((tab) => (
+          <section
+            key={tab.id}
+            id={`project-tab-${tab.id}`}
+            className="tab-panel"
+            role="tabpanel"
+            aria-labelledby={`project-tab-${tab.id}-tab`}
+            hidden={activeTab !== tab.id}
+          >
+            {tab.id === "overview" ? <div className="chart-card">Overview</div> : null}
+            {tab.id === "sessions" ? <div className="chart-card">Sessions</div> : null}
+            {tab.id === "charts" ? <div className="chart-card">Charts</div> : null}
+          </section>
+        ))}
       </section>
     </div>
   );

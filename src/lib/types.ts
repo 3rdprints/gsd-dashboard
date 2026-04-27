@@ -90,6 +90,42 @@ export type PortfolioDto = {
 
 export type ProjectDetail = PortfolioProjectCard;
 
+export type ProjectMilestonePhase = {
+  number: string;
+  name: string | null;
+  isCurrent: boolean;
+  completedAt: number | null;
+  completedPlanCount: number;
+  totalPlanCount: number;
+};
+
+export type ProjectMilestone = {
+  name: string | null;
+  progressPct: number;
+  phaseCount: number;
+  completedPhaseCount: number;
+  phases: ProjectMilestonePhase[];
+};
+
+export type ProjectPlanItem = {
+  planPath: string;
+  ord: number;
+  text: string;
+  checked: boolean;
+  lineNo: number;
+};
+
+export type ProjectPhasePanel = {
+  phaseNumber: string | null;
+  phaseName: string | null;
+  planPath: string | null;
+  statePath: string;
+  stateExcerpt: string | null;
+  completedItemCount: number;
+  totalItemCount: number;
+  items: ProjectPlanItem[];
+};
+
 export type ScanEvent =
   | {
       event: "started";

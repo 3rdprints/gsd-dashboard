@@ -5,6 +5,8 @@ import type {
   BootStatus,
   PortfolioDto,
   ProjectDetail,
+  ProjectMilestone,
+  ProjectPhasePanel,
   ScanEvent,
   ScanSummary,
   SessionIndexEvent,
@@ -37,6 +39,14 @@ export function getPortfolio(): Promise<PortfolioDto> {
 
 export function getProject(projectId: string): Promise<ProjectDetail> {
   return invoke<ProjectDetail>("get_project", { projectId });
+}
+
+export function getProjectMilestones(projectId: string): Promise<ProjectMilestone[]> {
+  return invoke<ProjectMilestone[]>("get_project_milestones", { projectId });
+}
+
+export function getProjectPhasePanel(projectId: string): Promise<ProjectPhasePanel> {
+  return invoke<ProjectPhasePanel>("get_project_phase_panel", { projectId });
 }
 
 export function rebuildCache(onEvent: (event: ScanEvent) => void): Promise<ScanSummary> {
