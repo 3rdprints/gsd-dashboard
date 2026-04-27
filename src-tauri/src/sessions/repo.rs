@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, HashSet};
 
 use rusqlite::{params, OptionalExtension};
+use serde::Serialize;
 
 use crate::{
     error::AppError,
@@ -199,12 +200,51 @@ pub fn persist_indexed_file_result(
 ) -> Result<(), AppError> {
     let transaction = connection.transaction().map_err(AppError::from)?;
 
+    transaction
+        .execute(
+            "DELETE FROM sessions WHERE source_path = ?1",
+            [&state.source_path],
+        )
+        .map_err(AppError::from)?;
     for session in sessions {
         upsert_indexed_session(&transaction, session, now)?;
     }
     save_index_state(&transaction, state, now)?;
 
     transaction.commit().map_err(AppError::from)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionIndexClearSummary {
+    pub sessions_cleared: i64,
+    pub index_states_cleared: i64,
+}
+
+pub fn clear_session_index(
+    connection: &mut rusqlite::Connection,
+) -> Result<SessionIndexClearSummary, AppError> {
+    let transaction = connection.transaction().map_err(AppError::from)?;
+    let sessions_cleared = transaction
+        .execute("DELETE FROM sessions", [])
+        .map_err(AppError::from)?;
+    let index_states_cleared = transaction
+        .execute("DELETE FROM session_index_state", [])
+        .map_err(AppError::from)?;
+
+    transaction.commit().map_err(AppError::from)?;
+
+    Ok(SessionIndexClearSummary {
+        sessions_cleared: sessions_cleared as i64,
+        index_states_cleared: index_states_cleared as i64,
+    })
+}
+
+pub fn prune_unmatched_sessions(connection: &mut rusqlite::Connection) -> Result<i64, AppError> {
+    connection
+        .execute("DELETE FROM sessions WHERE project_id IS NULL", [])
+        .map(|count| count as i64)
+        .map_err(AppError::from)
 }
 
 pub fn prune_indexed_paths_under(

@@ -40,13 +40,25 @@ fn match_known_root_path<'a>(
     candidate_path: &Path,
     known_projects: &'a [ProjectRoot],
 ) -> Option<&'a ProjectRoot> {
+    let canonical_candidate = candidate_path.canonicalize().ok();
+
     known_projects
         .iter()
         .filter(|project| {
             let root_path = Path::new(&project.root_path);
-            candidate_path == root_path || candidate_path.starts_with(root_path)
+            let canonical_root = root_path.canonicalize().ok();
+
+            path_is_inside(candidate_path, root_path)
+                || canonical_candidate
+                    .as_deref()
+                    .zip(canonical_root.as_deref())
+                    .is_some_and(|(candidate, root)| path_is_inside(candidate, root))
         })
         .max_by_key(|project| project.root_path.len())
+}
+
+fn path_is_inside(candidate_path: &Path, root_path: &Path) -> bool {
+    candidate_path == root_path || candidate_path.starts_with(root_path)
 }
 
 fn match_git_worktree_root<'a>(

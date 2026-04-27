@@ -18,6 +18,7 @@ import type {
   ScanEvent,
   ScanSummary,
   SessionIndexEvent,
+  SessionIndexClearSummary,
   SessionIndexSummary,
   SettingsInput,
   SortDirection
@@ -100,4 +101,8 @@ export function indexSessions(onEvent: (event: SessionIndexEvent) => void): Prom
   onEventChannel.onmessage = onEvent;
 
   return invoke<SessionIndexSummary>("index_sessions", { onEvent: onEventChannel });
+}
+
+export function clearSessionIndex(): Promise<SessionIndexClearSummary> {
+  return invoke<SessionIndexClearSummary>("clear_session_index");
 }

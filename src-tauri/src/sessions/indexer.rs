@@ -16,7 +16,10 @@ use crate::{
         claude::parse_claude_record,
         codex::parse_codex_record,
         matcher::match_project,
-        repo::{load_indexed_session, persist_indexed_file_result, prune_indexed_paths_under},
+        repo::{
+            load_indexed_session, persist_indexed_file_result, prune_indexed_paths_under,
+            prune_unmatched_sessions,
+        },
         IndexedSession, ProjectRoot, SessionIndexState, SessionParseAccumulator, SessionSource,
     },
     store::{daily_activity, project_repo},
@@ -52,6 +55,7 @@ pub async fn index_session_roots(
     })?;
 
     let known_projects = load_known_project_roots(&pool).await?;
+    prune_existing_unmatched_sessions(&pool).await?;
     let mut summary = SessionIndexSummary {
         root_count: roots.len(),
         files_processed: 0,
@@ -395,7 +399,11 @@ async fn index_session_file(
             }
         }
         match_project(&mut accumulator.session, known_projects);
-        vec![accumulator.session]
+        if accumulator.session.project_id.is_some() {
+            vec![accumulator.session]
+        } else {
+            Vec::new()
+        }
     } else {
         Vec::new()
     };
@@ -421,6 +429,16 @@ async fn index_session_file(
         sessions_persisted,
         live_partial,
     })
+}
+
+async fn prune_existing_unmatched_sessions(pool: &Pool) -> Result<(), AppError> {
+    let connection = pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(prune_unmatched_sessions)
+        .await
+        .map_err(AppError::store)??;
+
+    Ok(())
 }
 
 fn committed_offset_from_status(status: &StreamFileStatus) -> i64 {

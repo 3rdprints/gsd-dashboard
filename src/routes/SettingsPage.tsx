@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Database, Eye, Loader2 } from "lucide-react";
+import { Database, Eye, Loader2, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { ScanRootsEditor } from "../components/ScanRootsEditor";
@@ -9,7 +9,7 @@ import {
   reduceScanEvent,
   ScanProgressPanel
 } from "../components/ScanProgressPanel";
-import { getPortfolio, getSettings, rebuildCache } from "../lib/ipc";
+import { clearSessionIndex, getPortfolio, getSettings, rebuildCache } from "../lib/ipc";
 import {
   createSaveSettingsMutationOptions,
   portfolioQueryKey,
@@ -18,6 +18,8 @@ import {
 
 const REBUILD_CONFIRMATION =
   "Rebuild cache: This clears the derived project cache and runs a full rescan. Source `.planning/` files will not be changed.";
+const CLEAR_SESSION_INDEX_CONFIRMATION =
+  "Clear session index: This removes derived Claude/Codex session rows and index offsets. Source session files will not be changed.";
 
 export function SettingsPage() {
   const queryClient = useQueryClient();
@@ -26,6 +28,7 @@ export function SettingsPage() {
   const saveSettings = useMutation(createSaveSettingsMutationOptions(queryClient));
   const [scanState, setScanState] = useState(initialScanState);
   const [confirmedRebuild, setConfirmedRebuild] = useState(false);
+  const [confirmedClearSessionIndex, setConfirmedClearSessionIndex] = useState(false);
   const rebuildCacheMutation = useMutation({
     mutationFn: () =>
       rebuildCache((event) => {
@@ -51,6 +54,21 @@ export function SettingsPage() {
     }
   });
   const isRebuilding = scanState.status === "scanning" || rebuildCacheMutation.isPending;
+  const clearSessionIndexMutation = useMutation({
+    mutationFn: clearSessionIndex,
+    onSuccess: async () => {
+      setConfirmedClearSessionIndex(false);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: portfolioQueryKey }),
+        queryClient.invalidateQueries({
+          predicate: (query) =>
+            query.queryKey[0] === "globalSessions" ||
+            query.queryKey[0] === "globalCharts" ||
+            query.queryKey[0] === "project"
+        })
+      ]);
+    }
+  });
 
   async function handleUnhide(projectId: string) {
     if (!settings.data) return;
@@ -65,6 +83,12 @@ export function SettingsPage() {
     if (!confirmedRebuild || isRebuilding) return;
 
     rebuildCacheMutation.mutate();
+  }
+
+  function handleClearSessionIndex() {
+    if (!confirmedClearSessionIndex || clearSessionIndexMutation.isPending) return;
+
+    clearSessionIndexMutation.mutate();
   }
 
   return (
@@ -139,6 +163,27 @@ export function SettingsPage() {
 
       <section className="settings-panel" aria-labelledby="indexing-title">
         <h2 id="indexing-title">Indexing</h2>
+        <p className="confirmation-copy">{CLEAR_SESSION_INDEX_CONFIRMATION}</p>
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={confirmedClearSessionIndex}
+            onChange={(event) => setConfirmedClearSessionIndex(event.target.checked)}
+          />
+          Confirm clear session index
+        </label>
+        <button
+          type="button"
+          onClick={handleClearSessionIndex}
+          disabled={!confirmedClearSessionIndex || clearSessionIndexMutation.isPending}
+        >
+          {clearSessionIndexMutation.isPending ? (
+            <Loader2 aria-hidden="true" size={16} strokeWidth={2} />
+          ) : (
+            <Trash2 aria-hidden="true" size={16} strokeWidth={2} />
+          )}
+          Clear Session Index
+        </button>
         <label className="checkbox-row disabled-row">
           <input type="checkbox" disabled />
           Index tool usage

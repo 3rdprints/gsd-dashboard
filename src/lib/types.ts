@@ -298,6 +298,13 @@ export type SessionIndexSummary = {
   error_count?: number;
 };
 
+export type SessionIndexClearSummary = {
+  sessionsCleared?: number;
+  sessions_cleared?: number;
+  indexStatesCleared?: number;
+  index_states_cleared?: number;
+};
+
 export type SessionIndexEvent =
   | {
       event: "started";

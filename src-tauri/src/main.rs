@@ -22,6 +22,7 @@ fn main() {
             gsd_dashboard::commands::projects::list_project_sessions,
             gsd_dashboard::commands::scan::rebuild_cache,
             gsd_dashboard::commands::scan::scan_projects,
+            gsd_dashboard::commands::sessions::clear_session_index,
             gsd_dashboard::commands::sessions::get_global_chart_data,
             gsd_dashboard::commands::sessions::index_sessions,
             gsd_dashboard::commands::sessions::list_global_sessions,

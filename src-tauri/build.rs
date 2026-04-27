@@ -10,6 +10,7 @@ fn main() {
             "get_project_phase_panel",
             "get_boot_status",
             "get_settings",
+            "clear_session_index",
             "index_sessions",
             "list_global_sessions",
             "list_project_sessions",

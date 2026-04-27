@@ -7,7 +7,9 @@ use crate::{
     sessions::{
         global::{self, GlobalChartDataDto, GlobalSessionsPageDto},
         indexer::{self, SessionIndexSummary},
+        repo::{self, SessionIndexClearSummary},
     },
+    store::daily_activity,
 };
 
 pub use crate::sessions::global::GlobalSessionFilters;
@@ -28,6 +30,34 @@ pub async fn index_sessions_for_app(
     on_event: impl Fn(SessionIndexEvent) -> Result<(), AppError> + Send + Sync + 'static,
 ) -> Result<SessionIndexSummary, AppError> {
     indexer::index_session_roots(state.pool.clone(), state.home_dir.clone(), on_event).await
+}
+
+#[tauri::command]
+pub async fn clear_session_index(
+    state: State<'_, AppState>,
+) -> Result<SessionIndexClearSummary, AppError> {
+    clear_session_index_for_app(&state).await
+}
+
+pub async fn clear_session_index_for_app(
+    state: &AppState,
+) -> Result<SessionIndexClearSummary, AppError> {
+    let connection = state.pool.get().await.map_err(AppError::store)?;
+    let summary = connection
+        .interact(repo::clear_session_index)
+        .await
+        .map_err(AppError::store)??;
+    let now_ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_millis().try_into().unwrap_or(0))
+        .unwrap_or(0);
+    let connection = state.pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(move |connection| daily_activity::rebuild_window(connection, 90, now_ms))
+        .await
+        .map_err(AppError::store)??;
+
+    Ok(summary)
 }
 
 #[tauri::command]
