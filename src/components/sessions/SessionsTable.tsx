@@ -1,4 +1,5 @@
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import type { ProjectSessionRow, ProjectSessionSortKey, SortDirection } from "../../lib/types";
 
@@ -96,7 +97,17 @@ export function SessionsTable({
                   <td className="numeric-cell">{formatNumber(row.messageCount)}</td>
                   <td className="numeric-cell">{formatNumber(row.tokensIn)}</td>
                   <td className="numeric-cell">{formatNumber(row.tokensOut)}</td>
-                  {showProject ? <td>{row.projectName ?? "Unmatched"}</td> : null}
+                  {showProject ? (
+                    <td>
+                      {row.projectId ? (
+                        <Link className="secondary-link" to={`/project/${encodeURIComponent(row.projectId)}`}>
+                          {row.projectName ?? row.projectId}
+                        </Link>
+                      ) : (
+                        "Unmatched"
+                      )}
+                    </td>
+                  ) : null}
                 </tr>
               ))
             )}

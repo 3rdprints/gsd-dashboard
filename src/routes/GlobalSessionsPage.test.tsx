@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { BrowserRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 describe("GlobalSessionsPage", () => {
@@ -69,7 +70,6 @@ describe("GlobalSessionsPage", () => {
   });
 
   it("updates URL-backed filters with debounced numeric inputs and removable chips", async () => {
-    vi.useFakeTimers();
     const invoke = vi.fn((command: string) => {
       if (command === "get_settings") {
         return Promise.resolve({
@@ -129,9 +129,12 @@ describe("GlobalSessionsPage", () => {
     }));
     const { GlobalSessionsPage } = await import("./GlobalSessionsPage");
 
+    window.history.replaceState(null, "", "/sessions");
     render(
       <QueryClientProvider client={new QueryClient()}>
-        <GlobalSessionsPage />
+        <BrowserRouter>
+          <GlobalSessionsPage />
+        </BrowserRouter>
       </QueryClientProvider>
     );
 
@@ -141,14 +144,12 @@ describe("GlobalSessionsPage", () => {
 
     fireEvent.change(screen.getByLabelText("Minimum duration"), { target: { value: "5" } });
     expect(window.location.search).not.toContain("dmin=5");
-    await vi.advanceTimersByTimeAsync(300);
+    await new Promise((resolve) => window.setTimeout(resolve, 350));
     expect(window.location.search).toContain("dmin=5");
 
     fireEvent.click(screen.getByLabelText("Remove source filter"));
     expect(screen.queryByText("Source: Claude")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
     await waitFor(() => expect(window.location.search).not.toContain("dmin=5"));
-
-    vi.useRealTimers();
   });
 });

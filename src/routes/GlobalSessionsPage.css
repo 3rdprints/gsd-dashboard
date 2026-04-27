@@ -1,0 +1,117 @@
+.global-sessions-page {
+  gap: 16px;
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  padding: 16px;
+  background: #FFFFFF;
+}
+
+.filter-control {
+  min-width: 144px;
+  display: grid;
+  gap: 4px;
+}
+
+.filter-control.compact {
+  min-width: 112px;
+}
+
+.filter-control select,
+.filter-control input {
+  min-height: 36px;
+  box-sizing: border-box;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  padding: 0 10px;
+  color: #111827;
+  background: #FFFFFF;
+}
+
+.unmatched-toggle {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: end;
+  color: #4B5563;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.filter-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.filter-chip {
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  padding: 0 8px;
+  color: #4B5563;
+  background: #F3F4F6;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.filter-chip button {
+  width: 20px;
+  height: 20px;
+  border: 0;
+  padding: 0;
+  color: #4B5563;
+  background: transparent;
+}
+
+.clear-all-btn {
+  width: auto;
+  height: 28px;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #DC2626;
+  background: #FFFFFF;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.global-chart-placeholder {
+  min-height: 160px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed #D1D5DB;
+  border-radius: 8px;
+  padding: 24px;
+  color: #6B7280;
+  background: #FFFFFF;
+  text-align: center;
+}
+
+.global-chart-placeholder h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.global-chart-placeholder p {
+  margin: 4px 0 0;
+}
+
+@media (max-width: 700px) {
+  .filter-control,
+  .filter-control.compact {
+    width: 100%;
+  }
+}
