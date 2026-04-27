@@ -12,7 +12,7 @@
 - [x] **Phase 2: Planning Parser & Scanner** - Pure-function parsers over ROADMAP/STATE/PLAN/config + gitignore-respecting scanner with guardrails
 - [x] **Phase 3: Portfolio Vertical Slice** - First visible demo: scan on launch, project cards with progress bars, Settings scan-roots UI, Rebuild Cache
 - [x] **Phase 4: Session Indexer** - Claude + Codex JSONL streaming with byte-offset incremental parsing and project attribution
-- [ ] **Phase 5: Project Detail, Global Sessions & Charts** - Drill-in view, milestone timeline, charts, filterable global sessions table, 90-day heatmap
+- [x] **Phase 5: Project Detail, Global Sessions & Charts** - Drill-in view, milestone timeline, charts, filterable global sessions table, 90-day heatmap
 - [ ] **Phase 6: Tray Icon with Milestone Bars** - Dynamic openusage-style bar graph, tooltip, click-toggle, right-click menu, copy-next-command
 - [ ] **Phase 7: Live Updates** - notify watchers on .planning/ and session dirs with project-level debouncing and 60s polling fallback
 - [ ] **Phase 8: Autostart & OS Polish** - Launch-on-login with hidden-startup on all three OSes
@@ -112,7 +112,7 @@ Plans:
 - [x] 05-09-PLAN.md — Project Detail Sessions and Charts tabs UI
 - [x] 05-10-PLAN.md — Global Sessions route, URL filters, chips, and server-paged table UI
 - [x] 05-11-PLAN.md — Global Sessions charts UI wired to active filters
-- [ ] 05-12-PLAN.md — Portfolio activity heatmap UI and daily_activity_updated invalidation
+- [x] 05-12-PLAN.md — Portfolio activity heatmap UI and daily_activity_updated invalidation
 **UI hint**: yes
 
 ### Phase 6: Tray Icon with Milestone Bars

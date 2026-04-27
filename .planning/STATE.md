@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-04-27T15:34:14.314Z"
+status: verifying
+last_updated: "2026-04-27T15:41:20.037Z"
 progress:
   total_phases: 9
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 30
-  completed_plans: 29
-  percent: 97
+  completed_plans: 30
+  percent: 100
 ---
 
 # State: GSD Dashboard
@@ -27,9 +27,9 @@ Plan: 12 of 12
 **Milestone:** v1.0 MVP
 **Phase:** 5
 **Plan:** 12 of 12
-**Status:** Ready to execute
+**Status:** Phase complete — ready for verification
 
-**Progress:** [██████████] 97%
+**Progress:** [██████████] 100%
 
 ```
 Milestone: [████......] 4/9 phases
@@ -75,6 +75,7 @@ Overall:   [████......] 44%
 - Plan 05-09 duration: 7 min; tasks: 3; files modified: 12
 - Plan 05-10 duration: 7 min; tasks: 2; files modified: 11
 - Plan 05-11 duration: 5 min; tasks: 2; files modified: 10
+- Plan 05-12 duration: 4 min; tasks: 2; files modified: 10
 
 ## Accumulated Context
 
@@ -143,6 +144,8 @@ Overall:   [████......] 44%
 - [Phase 05]: Plan 05-10 keeps Global Sessions CSS route-scoped in GlobalSessionsPage.css because src/styles.css exceeds the AGENTS.md 500-line limit.
 - [Phase 05]: Plan 05-11 renders chart project names only as React text children in legend chips.
 - [Phase 05]: Plan 05-11 reuses filtersToGlobalSessionFilters for both Global Sessions table and chart queries.
+- [Phase 05]: Plan 05-12 uses react-calendar-heatmap with local CSS classes and no package stylesheet import for the Portfolio activity heatmap.
+- [Phase 05]: Plan 05-12 invalidates portfolioHeatmapQueryKey from daily_activity_updated without trusting event payloads.
 
 ### Todos
 
@@ -167,7 +170,7 @@ Overall:   [████......] 44%
 
 ## Session Continuity
 
-**Last session:** 2026-04-27T15:33:45.597Z
+**Last session:** 2026-04-27T15:40:50.917Z
 
 **Next session should:** Continue Phase 05 execution from the next incomplete plan.
 
