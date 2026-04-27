@@ -1,11 +1,22 @@
 {
   "identifier": "default",
-  "description": "Release-strict default capability for the main dashboard window.",
+  "description": "Release-strict default capability for the main dashboard window, including scan_projects.",
   "windows": ["main"],
   "permissions": [
     "core:default",
+    "allow-get-portfolio",
+    "allow-get-project",
     "allow-get-boot-status",
     "allow-get-settings",
-    "allow-save-settings"
+    "allow-index-sessions",
+    "allow-rebuild-cache",
+    "allow-scan-projects",
+    "allow-save-settings",
+    "clipboard-manager:allow-write-text",
+    "opener:allow-reveal-item-in-dir",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "vscode://file/*" }]
+    }
   ]
 }

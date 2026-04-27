@@ -1,0 +1,2 @@
+{"type":"session_meta","timestamp":"2024-05-27T13:00:00Z","payload":{"id":"codex-session-1","session_meta":{"cwd":"/tmp/gsd-dashboard-fixture","timestamp":"2024-05-27T13:00:00Z"},"provider":"openai","model":"gpt-5"}}
+{"type":"response","timestamp":"2024-05-27T13:00:12.500Z","payload":{"id":"codex-session-1","usage":{"input_tokens":90,"output_tokens":30},"model":"gpt-5"}}

@@ -1,30 +1,29 @@
-import { BootStatus } from "./components/BootStatus";
-import { ScanRootsEditor } from "./components/ScanRootsEditor";
+import { useEffect } from "react";
+import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
+
+import { registerAppListeners } from "./lib/appListeners";
+import { PortfolioPage } from "./routes/PortfolioPage";
+import { ProjectDetailPage } from "./routes/ProjectDetailPage";
+import { SettingsPage } from "./routes/SettingsPage";
 
 export function App() {
+  useEffect(() => registerAppListeners(), []);
+
   return (
-    <main className="app-shell">
-      <div className="foundation-layout" aria-labelledby="app-title">
-        <div className="app-header">
-          <header>
-            <h1 id="app-title">GSD Dashboard</h1>
-            <p>No projects scanned yet</p>
-          </header>
+    <BrowserRouter>
+      <main className="app-shell">
+        <div className="app-layout">
+          <nav className="app-nav" aria-label="Main">
+            <Link to="/">Portfolio</Link>
+            <Link to="/settings">Settings</Link>
+          </nav>
+          <Routes>
+            <Route path="/" element={<PortfolioPage />} />
+            <Route path="/project/:id" element={<ProjectDetailPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+          </Routes>
         </div>
-
-        <div className="foundation-grid">
-          <BootStatus />
-          <ScanRootsEditor />
-        </div>
-
-        <section className="empty-state" aria-labelledby="empty-title">
-          <h2 id="empty-title">No projects scanned yet</h2>
-          <p>
-            GSD Dashboard is initialized with ~/Documents as the default scan root. Project
-            discovery starts in the next phase.
-          </p>
-        </section>
-      </div>
-    </main>
+      </main>
+    </BrowserRouter>
   );
 }

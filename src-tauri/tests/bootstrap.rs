@@ -6,6 +6,8 @@ use gsd_dashboard::{
 };
 use tauri::Manager;
 
+const EXPECTED_MIGRATIONS_APPLIED: u32 = gsd_dashboard::store::migrations::MIGRATION_COUNT;
+
 #[test]
 fn app_error_invalid_scan_root_serializes_stable_fields() {
     let error = AppError::InvalidScanRoot {
@@ -58,7 +60,7 @@ async fn bootstrap_paths_create_cache_and_ready_boot_status() {
             cache_path: state.cache_path.display().to_string(),
             cache_ready: true,
             wal_enabled: true,
-            migrations_applied: 1,
+            migrations_applied: EXPECTED_MIGRATIONS_APPLIED,
             settings_initialized: true,
         }
     );
@@ -86,6 +88,9 @@ fn tauri_setup_manages_app_state_before_commands_run() {
     let state = app.state::<AppState>();
     assert!(state.boot_status.cache_ready);
     assert!(state.boot_status.wal_enabled);
-    assert_eq!(state.boot_status.migrations_applied, 1);
+    assert_eq!(
+        state.boot_status.migrations_applied,
+        EXPECTED_MIGRATIONS_APPLIED
+    );
     assert!(state.boot_status.settings_initialized);
 }
