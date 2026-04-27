@@ -70,6 +70,14 @@ export type PortfolioProjectCard = {
 
 export type SessionSparklineDay = { date: string; count: number };
 
+export type HeatmapDay = {
+  date: string;
+  sessionCount: number;
+  tokenTotal: number;
+  topProjectId: string | null;
+  topProjectName: string | null;
+};
+
 export type HiddenProject = {
   id: string;
   name: string;

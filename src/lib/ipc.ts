@@ -6,6 +6,7 @@ import type {
   GlobalChartData,
   GlobalSessionFilters,
   GlobalSessionsPage,
+  HeatmapDay,
   PortfolioDto,
   ProjectChartData,
   ProjectChartRange,
@@ -43,6 +44,10 @@ export function scanProjects(onEvent: (event: ScanEvent) => void): Promise<ScanS
 
 export function getPortfolio(): Promise<PortfolioDto> {
   return invoke<PortfolioDto>("get_portfolio");
+}
+
+export function getPortfolioHeatmap(days: number): Promise<HeatmapDay[]> {
+  return invoke<HeatmapDay[]>("get_portfolio_heatmap", { days });
 }
 
 export function getProject(projectId: string): Promise<ProjectDetail> {
