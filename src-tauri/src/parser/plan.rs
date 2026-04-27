@@ -1,6 +1,5 @@
 use gray_matter::{engine::YAML, Matter};
-use pulldown_cmark::{Event, Options, Parser, Tag, TagEnd};
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::parser::{ParseError, PlanChecklistItem, PlanDocument, PlanTask};
 
@@ -13,6 +12,15 @@ struct PlanFrontmatter {
     #[serde(rename = "type")]
     #[serde(default, deserialize_with = "string_or_number")]
     plan_type: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlanItem {
+    pub ord: usize,
+    pub text: String,
+    pub checked: bool,
+    pub line_no: usize,
 }
 
 // Acceptance marker for basic grep: pub fn parse_plan(bytes: &u)
@@ -32,14 +40,23 @@ pub fn parse_plan(bytes: &[u8]) -> Result<PlanDocument, ParseError> {
         }
     };
     let tasks = parse_task_blocks(&content_source);
-    let checklist = parse_markdown_checklist(content_source.as_bytes())?;
+    let items = parse_plan_items_with_lines(source.as_bytes())?;
+    let checklist = items
+        .iter()
+        .map(|item| PlanChecklistItem {
+            label: item.text.clone(),
+            completed: item.checked,
+        })
+        .collect();
 
     Ok(PlanDocument {
         phase: frontmatter_value(frontmatter.phase, &matter_source, "phase"),
         plan: frontmatter_value(frontmatter.plan, &matter_source, "plan"),
         plan_type: frontmatter_value(frontmatter.plan_type, &matter_source, "type"),
+        source_path: None,
         tasks,
         checklist,
+        items,
     })
 }
 
@@ -109,49 +126,37 @@ fn find_next_task_opener(source: &str) -> Option<usize> {
     None
 }
 
-fn parse_markdown_checklist(body: &[u8]) -> Result<Vec<PlanChecklistItem>, ParseError> {
+pub fn parse_plan_items_with_lines(body: &[u8]) -> Result<Vec<PlanItem>, ParseError> {
     let body = std::str::from_utf8(body)?;
-    let parser = Parser::new_ext(body, Options::ENABLE_TASKLISTS);
-    let mut checklist = Vec::new();
-    let mut in_item = false;
-    let mut current_completed = None;
-    let mut current_label = String::new();
+    let mut items = Vec::new();
 
-    for event in parser {
-        match event {
-            Event::Start(Tag::Item) => {
-                in_item = true;
-                current_completed = None;
-                current_label.clear();
-            }
-            Event::End(TagEnd::Item) => {
-                if let Some(completed) = current_completed {
-                    let label = current_label.trim();
-                    if !label.is_empty() {
-                        checklist.push(PlanChecklistItem {
-                            label: label.to_string(),
-                            completed,
-                        });
-                    }
-                }
-                in_item = false;
-                current_completed = None;
-                current_label.clear();
-            }
-            Event::TaskListMarker(completed) if in_item => {
-                current_completed = Some(completed);
-            }
-            Event::Text(text) | Event::Code(text) if in_item && current_completed.is_some() => {
-                current_label.push_str(&text);
-            }
-            Event::SoftBreak | Event::HardBreak if in_item && current_completed.is_some() => {
-                current_label.push(' ');
-            }
-            _ => {}
+    for (line_index, line) in body.lines().enumerate() {
+        let trimmed = line.trim_start();
+        let Some(after_bullet) = trimmed.strip_prefix("- [") else {
+            continue;
+        };
+        let Some((marker, text)) = after_bullet.split_once("] ") else {
+            continue;
+        };
+        let checked = match marker {
+            " " => false,
+            "x" | "X" => true,
+            _ => continue,
+        };
+        let text = text.trim();
+        if text.is_empty() {
+            continue;
         }
+
+        items.push(PlanItem {
+            ord: items.len(),
+            text: text.to_string(),
+            checked,
+            line_no: line_index + 1,
+        });
     }
 
-    Ok(checklist)
+    Ok(items)
 }
 
 fn tag_value(block: &str, tag: &str) -> Option<String> {

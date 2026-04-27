@@ -74,7 +74,8 @@ async fn plan_items_insert_replace_and_scan_integration() {
     assert_eq!(parsed[2].line_no, 5);
 
     let temp_dir = tempfile::tempdir().expect("temp dir should be created");
-    let scan_root = temp_dir.path().join("workspace");
+    let home_dir = temp_dir.path().join("home");
+    let scan_root = home_dir.join("workspace");
     let project_root = scan_root.join("demo-project");
     fs::create_dir_all(&project_root).expect("project root should be created");
     write_planning_project(&project_root);
@@ -84,9 +85,12 @@ async fn plan_items_insert_replace_and_scan_integration() {
     scan_service::scan_roots(
         pool.clone(),
         vec![scan_root.clone()],
-        temp_dir.path().join("home"),
-        |event| {
-            events.lock().expect("events lock should be available").push(event);
+        home_dir,
+        move |event| {
+            events
+                .lock()
+                .expect("events lock should be available")
+                .push(event);
             Ok(())
         },
     )
@@ -110,7 +114,7 @@ async fn plan_items_insert_replace_and_scan_integration() {
 
             assert_eq!(items.len(), 3);
             assert_eq!(items[0].text, "Parse checklist rows");
-            assert_eq!(items[0].line_no, 8);
+            assert_eq!(items[0].line_no, 7);
             assert!(!items[0].checked);
             assert!(items[1].checked);
             assert!(items[2].checked);
@@ -127,6 +131,27 @@ async fn plan_items_insert_replace_and_scan_integration() {
                 |row| row.get(0),
             )?;
             assert_eq!(completed_at, None);
+
+            let checked_items = items
+                .into_iter()
+                .map(|mut item| {
+                    item.checked = true;
+                    item
+                })
+                .collect::<Vec<_>>();
+            project_repo::replace_plan_items(connection, &project.id, &plan_path, checked_items)?;
+            project_repo::set_plan_completed_at_if_all_checked(
+                connection,
+                &project.id,
+                &plan_path,
+                1_777_000_001,
+            )?;
+            let completed_at: Option<i64> = connection.query_row(
+                "SELECT completed_at FROM phase_plans WHERE project_id = ?1 AND plan_path = ?2",
+                [&project.id, &plan_path],
+                |row| row.get(0),
+            )?;
+            assert_eq!(completed_at, Some(1_777_000_001));
 
             Ok::<_, gsd_dashboard::error::AppError>(())
         })

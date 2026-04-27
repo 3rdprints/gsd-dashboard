@@ -40,6 +40,63 @@ pub fn parse_state(bytes: &[u8]) -> Result<StateDocument, ParseError> {
     })
 }
 
+pub fn extract_state_excerpt(
+    body: &str,
+    max_lines: usize,
+    max_bytes: usize,
+) -> Result<String, ParseError> {
+    let selected_lines = current_position_section(body).unwrap_or_else(|| first_lines(body));
+    Ok(cap_excerpt(selected_lines, max_lines, max_bytes))
+}
+
+fn current_position_section(body: &str) -> Option<Vec<&str>> {
+    let lines = body.lines().collect::<Vec<_>>();
+    let heading_index = lines
+        .iter()
+        .position(|line| heading_text(line).is_some_and(|text| text == "Current Position"))?;
+    let section_start = heading_index + 1;
+    let section_end = lines[section_start..]
+        .iter()
+        .position(|line| heading_text(line).is_some())
+        .map(|relative_index| section_start + relative_index)
+        .unwrap_or(lines.len());
+
+    Some(lines[section_start..section_end].to_vec())
+}
+
+fn first_lines(body: &str) -> Vec<&str> {
+    body.lines().collect()
+}
+
+fn heading_text(line: &str) -> Option<&str> {
+    let trimmed = line.trim_start();
+    let text = trimmed
+        .strip_prefix("# ")
+        .or_else(|| trimmed.strip_prefix("## "))?
+        .trim();
+    (!text.is_empty()).then_some(text)
+}
+
+fn cap_excerpt(lines: Vec<&str>, max_lines: usize, max_bytes: usize) -> String {
+    let line_capped = lines
+        .into_iter()
+        .take(max_lines)
+        .collect::<Vec<_>>()
+        .join("\n")
+        .trim()
+        .to_string();
+
+    if line_capped.len() <= max_bytes {
+        return line_capped;
+    }
+
+    let mut end = max_bytes;
+    while !line_capped.is_char_boundary(end) {
+        end -= 1;
+    }
+    line_capped[..end].trim_end().to_string()
+}
+
 fn parse_milestone(body: &str, frontmatter: &StateFrontmatter) -> Option<MilestoneIdentity> {
     let body_value = body
         .lines()

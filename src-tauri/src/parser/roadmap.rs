@@ -258,6 +258,7 @@ mod tests {
             phase: None,
             plan: None,
             plan_type: None,
+            source_path: None,
             tasks: Vec::new(),
             checklist: vec![
                 PlanChecklistItem {
@@ -269,6 +270,7 @@ mod tests {
                     completed: false,
                 },
             ],
+            items: Vec::new(),
         }];
 
         let progress = derive_progress(&roadmap, &plans);
@@ -291,11 +293,13 @@ mod tests {
             phase: None,
             plan: None,
             plan_type: None,
+            source_path: None,
             tasks: Vec::new(),
             checklist: vec![PlanChecklistItem {
                 label: "Done".to_string(),
                 completed: true,
             }],
+            items: Vec::new(),
         }];
 
         let progress = derive_progress(&roadmap, &plans);
