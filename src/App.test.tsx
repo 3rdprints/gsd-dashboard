@@ -404,6 +404,30 @@ describe("settings vertical slice", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add Root" }));
     expect(await screen.findByLabelText("Scan root 2")).toHaveValue("");
   });
+  it("allows scan root edits when settings failed to load", async () => {
+    mockCommands(portfolio, projectDetail, false, new Error("settings unavailable"));
+    renderWithQueryClient(<App />);
+
+    const rootInput = await screen.findByLabelText("Scan root 1");
+    fireEvent.change(rootInput, { target: { value: "~/homegit" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add Root" }));
+    fireEvent.change(await screen.findByLabelText("Scan root 2"), {
+      target: { value: "~/Documents/clients" }
+    });
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Save Settings" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
+
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith("save_settings", {
+        input: {
+          ...defaultSettings,
+          hiddenProjectIds: [],
+          scanRoots: ["~/homegit", "~/Documents/clients"]
+        }
+      })
+    );
+  });
   it("unhides hidden projects through settings save", async () => {
     renderWithQueryClient(<App />);
     fireEvent.click(await screen.findByRole("button", { name: "Unhide Project" }));
@@ -457,13 +481,16 @@ function mockCommands(
   portfolioResponse: PortfolioDto = portfolio,
   projectResponse: ProjectDetail = projectDetail,
   holdRebuild = false,
-  settingsResponse: SettingsInput = defaultSettings
+  settingsResponse: SettingsInput | Error = defaultSettings
 ) {
   invokeMock.mockImplementation((command: string, args?: Record<string, unknown>) => {
     if (command === "get_boot_status") {
       return Promise.resolve(bootStatusResponse);
     }
     if (command === "get_settings") {
+      if (settingsResponse instanceof Error) {
+        return Promise.reject(settingsResponse);
+      }
       return Promise.resolve(settingsResponse);
     }
     if (command === "save_settings") {

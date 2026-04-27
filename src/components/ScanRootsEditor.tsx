@@ -7,11 +7,19 @@ import {
   createSaveSettingsMutationOptions,
   settingsQueryKey
 } from "../lib/queryClient";
-import type { AppError } from "../lib/types";
+import type { AppError, SettingsInput } from "../lib/types";
 
 const INVALID_SCAN_ROOT_MESSAGE =
   "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace.";
 const DEFAULT_SCAN_ROOT = "~/Documents";
+const DEFAULT_SETTINGS_INPUT: SettingsInput = {
+  scanRoots: [DEFAULT_SCAN_ROOT],
+  hiddenProjectIds: [],
+  autostartEnabled: false,
+  trayBarMaxProjects: 8,
+  trayBarSort: "recent_activity",
+  globalSessionsDefaultRange: "7d"
+};
 
 type ScanRootsEditorProps = {
   title?: string;
@@ -29,6 +37,9 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
   const hasEditedDrafts = useRef(false);
   const [hasSavedSettings, setHasSavedSettings] = useState(false);
   const rejectedScanRoot = parseRejectedScanRoot(saveSettings.error);
+  const saveErrorMessage = getSaveErrorMessage(saveSettings.error);
+  const settingsInput = settings.data ?? DEFAULT_SETTINGS_INPUT;
+  const canSaveSettings = Boolean(settings.data) || settings.isError;
 
   useEffect(() => {
     if (settings.data && !hasLoadedSettings && !hasEditedDrafts.current) {
@@ -42,13 +53,9 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!settings.data) {
-      return;
-    }
-
     saveSettings.mutate(
       {
-        ...settings.data,
+        ...settingsInput,
         scanRoots: normalizeScanRootDrafts(scanRootDrafts)
       },
       {
@@ -91,7 +98,6 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
                       hasEditedDrafts.current = true;
                       setHasSavedSettings(false);
                     }}
-                    disabled={!settings.data}
                   />
                   <button
                     className="secondary-button"
@@ -105,7 +111,6 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
                       hasEditedDrafts.current = true;
                       setHasSavedSettings(false);
                     }}
-                    disabled={!settings.data}
                   >
                     <X aria-hidden="true" size={16} strokeWidth={2} />
                     Remove Root
@@ -125,12 +130,11 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
               hasEditedDrafts.current = true;
               setHasSavedSettings(false);
             }}
-            disabled={!settings.data}
           >
             <Plus aria-hidden="true" size={16} strokeWidth={2} />
             Add Root
           </button>
-          <button type="submit" disabled={!settings.data || saveSettings.isPending}>
+          <button type="submit" disabled={!canSaveSettings || saveSettings.isPending}>
             <Save aria-hidden="true" size={16} strokeWidth={2} />
             Save Settings
           </button>
@@ -144,6 +148,12 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
         </div>
       ) : null}
 
+      {!rejectedScanRoot && saveSettings.isError ? (
+        <div className="scan-root-error" role="alert">
+          <p>{saveErrorMessage}</p>
+        </div>
+      ) : null}
+
       {hasSavedSettings && !saveSettings.isError ? (
         <div className="settings-saved">
           <CheckCircle2 aria-hidden="true" size={16} strokeWidth={2} />
@@ -152,6 +162,17 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
       ) : null}
     </section>
   );
+}
+
+function getSaveErrorMessage(error: unknown) {
+  if (error && typeof error === "object" && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string" && message.length > 0) {
+      return message;
+    }
+  }
+
+  return "Settings could not be saved. Open the Tauri app window and try again.";
 }
 
 function normalizeScanRootDrafts(scanRootDrafts: string[]) {
