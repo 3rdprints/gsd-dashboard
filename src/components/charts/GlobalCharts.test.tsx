@@ -87,9 +87,11 @@ describe("GlobalCharts", () => {
     await waitFor(() => {
       const tableCall = invoke.mock.calls.find(([command]) => command === "list_global_sessions");
       const chartCall = invoke.mock.calls.find(([command]) => command === "get_global_chart_data");
+      const tableArgs = tableCall?.[1] as { filters: Record<string, unknown> } | undefined;
+      const chartArgs = chartCall?.[1] as { filters: Record<string, unknown> } | undefined;
 
-      expect(tableCall?.[1]).toMatchObject({ filters: { source: "codex", tokensMin: 200, unmatchedOnly: true } });
-      expect(chartCall?.[1]).toMatchObject({ filters: tableCall?.[1].filters });
+      expect(tableArgs).toMatchObject({ filters: { source: "codex", tokensMin: 200, unmatchedOnly: true } });
+      expect(chartArgs).toMatchObject({ filters: tableArgs?.filters });
     });
   });
 });

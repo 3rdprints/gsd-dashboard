@@ -21,6 +21,7 @@ export const projectSessionsQueryKey = (id: string, sort: ProjectSessionSortKey,
 export const projectChartsQueryKey = (id: string, range: ProjectChartRange) => ["project", id, "charts", range] as const;
 export const globalSessionsQueryKey = (filters: GlobalSessionFilters, page: number, pageSize: number) =>
   ["globalSessions", filters, page, pageSize] as const;
+export const globalChartsQueryKey = (filters: GlobalSessionFilters) => ["globalCharts", filters] as const;
 
 export const queryClient = new TanStackQueryClient();
 

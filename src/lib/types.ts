@@ -178,6 +178,36 @@ export type GlobalSessionsPage = {
   pageSize: number;
 };
 
+export type GlobalSessionsBySourceDay = {
+  date: string;
+  claude: number;
+  codex: number;
+};
+
+export type GlobalTokensByProjectDay = {
+  date: string;
+  projectId: string | null;
+  projectName: string;
+  tokens: number;
+};
+
+export type GlobalHistogramBucket = {
+  hour: number;
+  count: number;
+};
+
+export type GlobalDayOfWeekBucket = {
+  day: number;
+  count: number;
+};
+
+export type GlobalChartData = {
+  sessionsPerDayBySource: GlobalSessionsBySourceDay[];
+  tokensPerDayByProject: GlobalTokensByProjectDay[];
+  timeOfDayHistogram: GlobalHistogramBucket[];
+  dayOfWeekDistribution: GlobalDayOfWeekBucket[];
+};
+
 export type ProjectDailyCount = {
   date: string;
   count: number;

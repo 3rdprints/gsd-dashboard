@@ -3,6 +3,7 @@ import { Channel, invoke } from "@tauri-apps/api/core";
 import type {
   AppSettings,
   BootStatus,
+  GlobalChartData,
   GlobalSessionFilters,
   GlobalSessionsPage,
   PortfolioDto,
@@ -72,6 +73,10 @@ export function listGlobalSessions(
   pageSize: number
 ): Promise<GlobalSessionsPage> {
   return invoke<GlobalSessionsPage>("list_global_sessions", { filters, page, pageSize });
+}
+
+export function getGlobalChartData(filters: GlobalSessionFilters): Promise<GlobalChartData> {
+  return invoke<GlobalChartData>("get_global_chart_data", { filters });
 }
 
 export function getProjectChartData(projectId: string, range: ProjectChartRange): Promise<ProjectChartData> {

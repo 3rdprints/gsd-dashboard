@@ -2,12 +2,14 @@ import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 
+import { ChartCard } from "../components/charts/ChartCard";
 import { FilterBar } from "../components/sessions/FilterBar";
 import { FilterChipsRow } from "../components/sessions/FilterChipsRow";
 import { SessionsTable } from "../components/sessions/SessionsTable";
-import { getPortfolio, getSettings, listGlobalSessions } from "../lib/ipc";
+import { getGlobalChartData, getPortfolio, getSettings, listGlobalSessions } from "../lib/ipc";
 import {
   createSaveSettingsMutationOptions,
+  globalChartsQueryKey,
   globalSessionsQueryKey,
   portfolioQueryKey,
   settingsQueryKey
@@ -39,6 +41,10 @@ export function GlobalSessionsPage() {
   const sessions = useQuery({
     queryKey: globalSessionsQueryKey(ipcFilters, filters.page, pageSize),
     queryFn: () => listGlobalSessions(ipcFilters, filters.page, pageSize)
+  });
+  const charts = useQuery({
+    queryKey: globalChartsQueryKey(ipcFilters),
+    queryFn: () => getGlobalChartData(ipcFilters)
   });
   const projects = portfolio.data?.projects ?? [];
 
@@ -72,12 +78,40 @@ export function GlobalSessionsPage() {
         onDateRangePersist={persistDefaultRange}
       />
       <FilterChipsRow filters={filters} projects={projects} onChange={setFilters} onClearAll={clearFilters} />
-      <section className="global-chart-placeholder" aria-label="Global session charts">
-        <div>
-          <h2>Global charts</h2>
-          <p>Charts for the active filters are added in Plan 05-11.</p>
-        </div>
-      </section>
+      <div className="charts-grid" aria-label="Global session charts">
+        <ChartCard
+          title="Sessions by source"
+          subtitle="Daily Claude and Codex session volume"
+          loading={charts.isLoading}
+          empty={!charts.data?.sessionsPerDayBySource?.length}
+        >
+          <div />
+        </ChartCard>
+        <ChartCard
+          title="Tokens by project"
+          subtitle="Daily tokens for top projects"
+          loading={charts.isLoading}
+          empty={!charts.data?.tokensPerDayByProject?.length}
+        >
+          <div />
+        </ChartCard>
+        <ChartCard
+          title="Time of day"
+          subtitle="Sessions by local start hour"
+          loading={charts.isLoading}
+          empty={!charts.data?.timeOfDayHistogram?.some((bucket) => bucket.count > 0)}
+        >
+          <div />
+        </ChartCard>
+        <ChartCard
+          title="Day of week"
+          subtitle="Sessions by local weekday"
+          loading={charts.isLoading}
+          empty={!charts.data?.dayOfWeekDistribution?.some((bucket) => bucket.count > 0)}
+        >
+          <div />
+        </ChartCard>
+      </div>
       {sessions.isLoading ? (
         <section className="chart-card">
           <div className="table-skeleton" aria-label="Loading sessions" />
