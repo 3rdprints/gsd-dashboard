@@ -108,7 +108,7 @@ Plans:
 - [x] 05-05-PLAN.md — Project Detail milestones, sessions, and charts backend commands
 - [x] 05-06-PLAN.md — daily_activity rebuild/load lifecycle and Portfolio heatmap backend
 - [x] 05-07-PLAN.md — Global Sessions table/chart backend commands and command registration
-- [ ] 05-08-PLAN.md — Project Detail tab shell and Overview tab UI
+- [x] 05-08-PLAN.md — Project Detail tab shell and Overview tab UI
 - [ ] 05-09-PLAN.md — Project Detail Sessions and Charts tabs UI
 - [ ] 05-10-PLAN.md — Global Sessions route, URL filters, chips, and server-paged table UI
 - [ ] 05-11-PLAN.md — Global Sessions charts UI wired to active filters
