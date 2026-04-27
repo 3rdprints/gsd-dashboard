@@ -59,16 +59,16 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Project Detail View
 
 - [x] **DET-01**: Detail view shows project name, root path, and action buttons: "Open in Finder", "Open in VS Code", "Copy next command"
-- [ ] **DET-02**: Milestone timeline renders one horizontal bar per milestone, shaded by completion; expanding a milestone reveals its phase list
+- [x] **DET-02**: Milestone timeline renders one horizontal bar per milestone, shaded by completion; expanding a milestone reveals its phase list
 - [x] **DET-03**: Current phase panel shows phase number/name, plan checklist from PLAN.md, path links, and a STATE.md excerpt
-- [ ] **DET-04**: Sessions tab shows all Claude + Codex sessions attributed to this project in a sortable table
-- [ ] **DET-05**: Charts tab shows sessions/day (30d), tokens/day, average session duration, and milestone velocity for this project
+- [x] **DET-04**: Sessions tab shows all Claude + Codex sessions attributed to this project in a sortable table
+- [x] **DET-05**: Charts tab shows sessions/day (30d), tokens/day, average session duration, and milestone velocity for this project
 
 ### Global Sessions View
 
 - [x] **GLOB-01**: Filterable table across all sessions with filters for source (Claude/Codex), project, date range, duration, and tokens
-- [ ] **GLOB-02**: "Unmatched" filter surfaces sessions we couldn't attribute
-- [ ] **GLOB-03**: Top charts: sessions/day stacked by source, tokens/day stacked by top-5 projects + "other", time-of-day histogram, day-of-week distribution
+- [x] **GLOB-02**: "Unmatched" filter surfaces sessions we couldn't attribute
+- [x] **GLOB-03**: Top charts: sessions/day stacked by source, tokens/day stacked by top-5 projects + "other", time-of-day histogram, day-of-week distribution
 
 ### Tray Icon
 
@@ -211,13 +211,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PORT-06 | Phase 3 | Complete |
 | PORT-07 | Phase 3 | Complete |
 | DET-01 | Phase 3 | Complete |
-| DET-02 | Phase 5 | Pending |
+| DET-02 | Phase 5 | Complete |
 | DET-03 | Phase 5 | Complete |
-| DET-04 | Phase 5 | Pending |
-| DET-05 | Phase 5 | Pending |
+| DET-04 | Phase 5 | Complete |
+| DET-05 | Phase 5 | Complete |
 | GLOB-01 | Phase 5 | Complete |
-| GLOB-02 | Phase 5 | Pending |
-| GLOB-03 | Phase 5 | Pending |
+| GLOB-02 | Phase 5 | Complete |
+| GLOB-03 | Phase 5 | Complete |
 | TRAY-01 | Phase 6 | Pending |
 | TRAY-02 | Phase 6 | Pending |
 | TRAY-03 | Phase 6 | Pending |

@@ -102,7 +102,7 @@ Plans:
 **Plans**: 12 plans
 Plans:
 - [x] 05-01-PLAN.md — Schema, settings, and DailyActivityUpdated event contracts
-- [ ] 05-02-PLAN.md — Backend foundation test scaffolds
+- [x] 05-02-PLAN.md — Backend foundation test scaffolds
 - [ ] 05-03-PLAN.md — Frontend foundation test scaffolds
 - [ ] 05-04-PLAN.md — Project Detail checklist and STATE excerpt backend lifecycle
 - [ ] 05-05-PLAN.md — Project Detail milestones, sessions, and charts backend commands
