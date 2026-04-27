@@ -98,6 +98,54 @@ describe("Project Detail IPC contracts", () => {
     expect(invokeMock).toHaveBeenCalledWith("get_project_milestones", { projectId: "gsd-dashboard" });
     expect(invokeMock).toHaveBeenCalledWith("get_project_phase_panel", { projectId: "gsd-dashboard" });
   });
+
+  it("exposes typed project sessions and chart wrappers with stable query keys", async () => {
+    const ipc = await import("../lib/ipc");
+    const queryClient = await import("../lib/queryClient");
+    invokeMock.mockResolvedValue({});
+
+    expect(typeof (ipc as Record<string, unknown>).listProjectSessions).toBe("function");
+    expect(typeof (ipc as Record<string, unknown>).getProjectChartData).toBe("function");
+    expect(typeof (queryClient as Record<string, unknown>).projectSessionsQueryKey).toBe("function");
+    expect(typeof (queryClient as Record<string, unknown>).projectChartsQueryKey).toBe("function");
+
+    await (ipc as {
+      listProjectSessions: (
+        id: string,
+        sort: string,
+        direction: string,
+        page: number,
+        pageSize: number
+      ) => Promise<unknown>;
+    }).listProjectSessions("gsd-dashboard", "startedAt", "desc", 2, 50);
+    await (ipc as { getProjectChartData: (id: string, range: string) => Promise<unknown> }).getProjectChartData(
+      "gsd-dashboard",
+      "30d"
+    );
+
+    expect(invokeMock).toHaveBeenCalledWith("list_project_sessions", {
+      projectId: "gsd-dashboard",
+      sort: "startedAt",
+      direction: "desc",
+      page: 2,
+      pageSize: 50
+    });
+    expect(invokeMock).toHaveBeenCalledWith("get_project_chart_data", {
+      projectId: "gsd-dashboard",
+      range: "30d"
+    });
+    expect((queryClient as { projectSessionsQueryKey: (...args: unknown[]) => unknown[] }).projectSessionsQueryKey(
+      "gsd-dashboard",
+      "startedAt",
+      "desc",
+      2,
+      50
+    )).toEqual(["project", "gsd-dashboard", "sessions", "startedAt", "desc", 2, 50]);
+    expect((queryClient as { projectChartsQueryKey: (...args: unknown[]) => unknown[] }).projectChartsQueryKey(
+      "gsd-dashboard",
+      "30d"
+    )).toEqual(["project", "gsd-dashboard", "charts", "30d"]);
+  });
 });
 
 function renderProjectDetail() {
