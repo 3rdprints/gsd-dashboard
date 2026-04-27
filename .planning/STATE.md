@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-04-27T14:29:34.209Z"
+last_updated: "2026-04-27T14:38:56.071Z"
 progress:
   total_phases: 9
   completed_phases: 4
   total_plans: 30
-  completed_plans: 23
-  percent: 77
+  completed_plans: 24
+  percent: 80
 ---
 
 # State: GSD Dashboard
@@ -23,13 +23,13 @@ progress:
 ## Current Position
 
 Phase: 05 (project-detail-global-sessions-charts) — EXECUTING
-Plan: 5 of 12
+Plan: 6 of 12
 **Milestone:** v1.0 MVP
 **Phase:** 5
-**Plan:** 5 of 12
+**Plan:** 6 of 12
 **Status:** Ready to execute
 
-**Progress:** [████████░░] 77%
+**Progress:** [████████░░] 80%
 
 ```
 Milestone: [████......] 4/9 phases
@@ -69,6 +69,7 @@ Overall:   [████......] 44%
 - Plan 05-01 duration: 5 min; tasks: 2; files modified: 13
 - Plan 05-02 duration: 1 min; tasks: 1; files modified: 10
 - Plan 05-03 duration: 2 min; tasks: 1; files modified: 7
+- Plan 05-05 duration: 6 min; tasks: 1; files modified: 15
 
 ## Accumulated Context
 
@@ -123,6 +124,8 @@ Overall:   [████......] 44%
 - [Phase 05]: Plan 05-03 uses Vitest it.todo consistently for frontend scaffold tests so TypeScript stays green while later implementation plans replace the todos.
 - [Phase 05]: Plan 05-04 uses discovered PLAN.md paths as the shared key for phase_plans and plan_items.
 - [Phase 05]: Plan 05-04 stores STATE Current Position excerpts as derived project snapshot data without mutating source markdown.
+- [Phase 05]: Plan 05-05 keeps Project Detail command SQL in focused sessions modules so command/repo files remain below the 500-line AGENTS.md limit.
+- [Phase 05]: Plan 05-05 whitelists exact project session sort keys and asc/desc directions before interpolating ORDER BY SQL identifiers.
 
 ### Todos
 
@@ -147,9 +150,9 @@ Overall:   [████......] 44%
 
 ## Session Continuity
 
-**Last session:** 2026-04-27T14:29:34.205Z
+**Last session:** 2026-04-27T14:38:02.325Z
 
-**Next session should:** Execute Phase 05 Plan 04.
+**Next session should:** Execute Phase 05 Plan 06.
 
 ---
 *State initialized: 2026-04-23*
