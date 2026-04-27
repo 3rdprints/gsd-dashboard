@@ -38,6 +38,15 @@ fn app_event_settings_changed_uses_tagged_contract() {
     assert_eq!(boot_value["data"]["cache_path"], "/tmp/cache.db");
 }
 
+#[test]
+fn daily_activity_updated_serializes() {
+    let value =
+        serde_json::to_value(AppEvent::DailyActivityUpdated).expect("event should serialize");
+
+    assert_eq!(value["event"], "daily_activity_updated");
+    assert!(value.get("data").is_none());
+}
+
 #[tokio::test]
 async fn bootstrap_paths_create_cache_and_ready_boot_status() {
     let temp_dir = tempfile::tempdir().expect("temp dir should be created");
