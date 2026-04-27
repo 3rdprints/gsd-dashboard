@@ -138,6 +138,8 @@ export type ProjectPhasePanel = {
 
 export type ProjectSessionRow = {
   id: string;
+  projectId?: string | null;
+  projectName?: string | null;
   source: "claude" | "codex";
   sourcePath: string;
   startedAt: number | null;

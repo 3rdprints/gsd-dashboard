@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
 import { OverviewTab } from "../components/ProjectDetail/OverviewTab";
+import { ProjectSessionsTab } from "../components/ProjectDetail/ProjectSessionsTab";
 import { copyNextCommand, openProjectInFinder, openProjectInVsCode } from "../lib/actions";
 import { getProject, getProjectMilestones, getProjectPhasePanel } from "../lib/ipc";
 import { projectMilestonesQueryKey, projectPhasePanelQueryKey, projectQueryKey } from "../lib/queryClient";
@@ -210,7 +211,7 @@ export function ProjectDetailPage() {
                 error={milestones.isError || phasePanel.isError}
               />
             ) : null}
-            {tab.id === "sessions" ? <div className="chart-card">Sessions</div> : null}
+            {tab.id === "sessions" ? <ProjectSessionsTab projectId={id} /> : null}
             {tab.id === "charts" ? <div className="chart-card">Charts</div> : null}
           </section>
         ))}
