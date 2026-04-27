@@ -104,7 +104,7 @@ Plans:
 - [x] 05-01-PLAN.md — Schema, settings, and DailyActivityUpdated event contracts
 - [x] 05-02-PLAN.md — Backend foundation test scaffolds
 - [x] 05-03-PLAN.md — Frontend foundation test scaffolds
-- [ ] 05-04-PLAN.md — Project Detail checklist and STATE excerpt backend lifecycle
+- [x] 05-04-PLAN.md — Project Detail checklist and STATE excerpt backend lifecycle
 - [ ] 05-05-PLAN.md — Project Detail milestones, sessions, and charts backend commands
 - [ ] 05-06-PLAN.md — daily_activity rebuild/load lifecycle and Portfolio heatmap backend
 - [ ] 05-07-PLAN.md — Global Sessions table/chart backend commands and command registration
