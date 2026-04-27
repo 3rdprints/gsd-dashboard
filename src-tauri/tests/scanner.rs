@@ -159,6 +159,29 @@ fn scanner_skips_planning_dirs_under_hidden_workspaces() {
 }
 
 #[test]
+fn scanner_skips_git_worktree_roots() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let home_dir = temp_dir.path();
+    let scan_root = home_dir.join("workspace");
+    let real_project_root = scan_root.join("project-a");
+    let worktree_root = scan_root.join("project-a-worktree");
+
+    create_planning_dir(&real_project_root);
+    create_planning_dir(&worktree_root);
+    fs::write(
+        worktree_root.join(".git"),
+        "gitdir: ../project-a/.git/worktrees/project-a-worktree\n",
+    )
+    .expect("worktree git file should be written");
+
+    let candidates =
+        discover_planning_dirs(&scan_root, home_dir).expect("scan root should be discoverable");
+
+    assert_eq!(candidates.len(), 1);
+    assert_eq!(candidates[0].project_root, real_project_root);
+}
+
+#[test]
 fn scanner_rejects_bare_home_root() {
     let temp_dir = tempfile::tempdir().expect("temp dir should be created");
     let home_dir = temp_dir.path();

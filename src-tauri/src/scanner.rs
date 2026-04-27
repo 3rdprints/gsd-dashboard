@@ -60,6 +60,9 @@ pub fn discover_planning_dirs(
         if has_hidden_component_under_root(&project_root, root) {
             continue;
         }
+        if is_git_worktree_root(&project_root) {
+            continue;
+        }
         let dedupe_key = dedupe_path(&planning_path);
 
         if seen_paths.insert(dedupe_key) {
@@ -82,6 +85,10 @@ fn has_hidden_component_under_root(path: &Path, root: &Path) -> bool {
             .to_str()
             .is_some_and(|name| name.starts_with('.'))
     })
+}
+
+fn is_git_worktree_root(path: &Path) -> bool {
+    path.join(".git").is_file()
 }
 
 fn dedupe_path(path: &Path) -> String {

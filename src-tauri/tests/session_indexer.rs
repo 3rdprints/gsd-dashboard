@@ -318,6 +318,36 @@ fn matcher_prefers_cwd_and_retains_unmatched() {
 }
 
 #[test]
+fn matcher_attributes_worktree_cwd_to_base_project() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let base_project = temp_dir.path().join("deckpilot-web");
+    let worktree = temp_dir.path().join("worktrees/agent-a485842780e148052");
+    let worktree_subdir = worktree.join("src");
+    fs::create_dir_all(base_project.join(".git/worktrees/agent-a485842780e148052"))
+        .expect("base git metadata should be created");
+    fs::create_dir_all(&worktree_subdir).expect("worktree subdir should be created");
+    fs::write(
+        worktree.join(".git"),
+        format!(
+            "gitdir: {}/.git/worktrees/agent-a485842780e148052\n",
+            base_project.display()
+        ),
+    )
+    .expect("worktree git file should be written");
+    let known_projects = vec![ProjectRoot {
+        id: "deckpilot-web".to_string(),
+        root_path: base_project.display().to_string(),
+    }];
+    let mut session = empty_session(SessionSource::Codex, "/tmp/codex.jsonl");
+    session.cwd = Some(worktree_subdir.display().to_string());
+
+    match_project(&mut session, &known_projects);
+
+    assert_eq!(session.project_id.as_deref(), Some("deckpilot-web"));
+    assert_eq!(session.attribution_method, "worktree_cwd");
+}
+
+#[test]
 fn claude_path_fallback_decodes_directory_encoding_against_known_roots() {
     let known_projects = vec![ProjectRoot {
         id: "gsd-dashboard".to_string(),
