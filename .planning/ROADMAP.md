@@ -99,7 +99,20 @@ Plans:
   2. Project Detail Charts tab shows sessions/day over 30 days, tokens/day, average session duration, and milestone velocity, all driven by real indexed session data.
   3. A Global Sessions view presents a filterable table across Claude and Codex sessions with filters for source, project, date range, duration, tokens, and unmatched-only, plus top charts (sessions/day stacked by source, tokens/day stacked by top-5 projects + "other", time-of-day histogram, day-of-week distribution).
   4. The Portfolio landing view now includes a 90-day GitHub-style activity heatmap rendered from pre-aggregated daily counts.
-**Plans**: TBD
+**Plans**: 12 plans
+Plans:
+- [x] 05-01-PLAN.md — Schema, settings, and DailyActivityUpdated event contracts
+- [ ] 05-02-PLAN.md — Backend foundation test scaffolds
+- [ ] 05-03-PLAN.md — Frontend foundation test scaffolds
+- [ ] 05-04-PLAN.md — Project Detail checklist and STATE excerpt backend lifecycle
+- [ ] 05-05-PLAN.md — Project Detail milestones, sessions, and charts backend commands
+- [ ] 05-06-PLAN.md — daily_activity rebuild/load lifecycle and Portfolio heatmap backend
+- [ ] 05-07-PLAN.md — Global Sessions table/chart backend commands and command registration
+- [ ] 05-08-PLAN.md — Project Detail tab shell and Overview tab UI
+- [ ] 05-09-PLAN.md — Project Detail Sessions and Charts tabs UI
+- [ ] 05-10-PLAN.md — Global Sessions route, URL filters, chips, and server-paged table UI
+- [ ] 05-11-PLAN.md — Global Sessions charts UI wired to active filters
+- [ ] 05-12-PLAN.md — Portfolio activity heatmap UI and daily_activity_updated invalidation
 **UI hint**: yes
 
 ### Phase 6: Tray Icon with Milestone Bars
@@ -157,7 +170,7 @@ Plans:
 | 2. Planning Parser & Scanner | 4/4 | Complete | 2026-04-25 |
 | 3. Portfolio Vertical Slice | 6/6 | Complete | 2026-04-26 |
 | 4. Session Indexer | 4/4 | Complete | 2026-04-26 |
-| 5. Project Detail, Global Sessions & Charts | 0/? | Not started | - |
+| 5. Project Detail, Global Sessions & Charts | 0/12 | Not started | - |
 | 6. Tray Icon with Milestone Bars | 0/? | Not started | - |
 | 7. Live Updates | 0/? | Not started | - |
 | 8. Autostart & OS Polish | 0/? | Not started | - |

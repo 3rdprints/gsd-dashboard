@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: "Phase 04 shipped — PR #6"
-last_updated: "2026-04-26T21:46:55.061Z"
+status: executing
+last_updated: "2026-04-27T14:08:53.522Z"
 progress:
   total_phases: 9
   completed_phases: 4
-  total_plans: 18
-  completed_plans: 18
-  percent: 44
+  total_plans: 30
+  completed_plans: 19
+  percent: 63
 ---
 
 # State: GSD Dashboard
@@ -18,18 +18,18 @@ progress:
 
 **Core Value:** At a glance, the user knows what every GSD project is doing right now — which milestone, which phase, how far along — without opening a terminal or reading markdown files.
 
-**Current Focus:** Phase 05 — Project Detail, Global Sessions & Charts
+**Current Focus:** Phase 05 — project-detail-global-sessions-charts
 
 ## Current Position
 
-Phase: 05 (Project Detail, Global Sessions & Charts) — READY TO PLAN
-Plan: Not started
+Phase: 05 (project-detail-global-sessions-charts) — EXECUTING
+Plan: 2 of 12
 **Milestone:** v1.0 MVP
 **Phase:** 5
-**Plan:** Not started
-**Status:** Phase 04 shipped — PR #6
+**Plan:** 2 of 12
+**Status:** Ready to execute
 
-**Progress:** [████......] 44%
+**Progress:** [██████░░░░] 63%
 
 ```
 Milestone: [████......] 4/9 phases
@@ -66,6 +66,7 @@ Overall:   [████......] 44%
 - Plan 04-02 duration: 6 min; tasks: 3; files modified: 11
 - Plan 04-03 duration: 7 min; tasks: 3; files modified: 11
 - Plan 04-04 duration: 18 min; tasks: 3; files modified: 11
+- Plan 05-01 duration: 5 min; tasks: 2; files modified: 13
 
 ## Accumulated Context
 
@@ -114,6 +115,8 @@ Overall:   [████......] 44%
 - Portfolio stats and cards read session aggregates from SQLite via load_portfolio_session_summary.
 - Index Sessions uses a Tauri Channel and invalidates portfolioQueryKey only after command completion.
 - Project card sparklines use seven fixed CSS bars instead of adding a charting dependency.
+- [Phase 05]: Plan 05-01 keys plan_items by (project_id, plan_path, ord) with a composite FK to phase_plans(project_id, plan_path).
+- [Phase 05]: Plan 05-01 persists globalSessionsDefaultRange in settings and coerces invalid values to 7d.
 
 ### Todos
 
@@ -138,9 +141,9 @@ Overall:   [████......] 44%
 
 ## Session Continuity
 
-**Last session:** 2026-04-26T12:45:34.789Z
+**Last session:** 2026-04-27T14:08:16.928Z
 
-**Next session should:** Run `/gsd-next` to advance after Phase 04 completion.
+**Next session should:** Execute Phase 05 Plan 02.
 
 ---
 *State initialized: 2026-04-23*
