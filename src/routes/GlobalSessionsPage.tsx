@@ -3,6 +3,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 
 import { ChartCard } from "../components/charts/ChartCard";
+import { DayOfWeekChart } from "../components/charts/DayOfWeekChart";
+import { StackedProjectsChart } from "../components/charts/StackedProjectsChart";
+import { StackedSourcesChart } from "../components/charts/StackedSourcesChart";
+import { TimeOfDayHistogram } from "../components/charts/TimeOfDayHistogram";
 import { FilterBar } from "../components/sessions/FilterBar";
 import { FilterChipsRow } from "../components/sessions/FilterChipsRow";
 import { SessionsTable } from "../components/sessions/SessionsTable";
@@ -62,6 +66,7 @@ export function GlobalSessionsPage() {
   }
 
   const pageData = sessions.data ?? { rows: [], total: 0, page: filters.page, pageSize };
+  const chartData = charts.data;
 
   return (
     <div className="page-stack global-sessions-page">
@@ -85,7 +90,7 @@ export function GlobalSessionsPage() {
           loading={charts.isLoading}
           empty={!charts.data?.sessionsPerDayBySource?.length}
         >
-          <div />
+          <StackedSourcesChart data={chartData?.sessionsPerDayBySource ?? []} />
         </ChartCard>
         <ChartCard
           title="Tokens by project"
@@ -93,7 +98,7 @@ export function GlobalSessionsPage() {
           loading={charts.isLoading}
           empty={!charts.data?.tokensPerDayByProject?.length}
         >
-          <div />
+          <StackedProjectsChart data={chartData?.tokensPerDayByProject ?? []} />
         </ChartCard>
         <ChartCard
           title="Time of day"
@@ -101,7 +106,7 @@ export function GlobalSessionsPage() {
           loading={charts.isLoading}
           empty={!charts.data?.timeOfDayHistogram?.some((bucket) => bucket.count > 0)}
         >
-          <div />
+          <TimeOfDayHistogram data={chartData?.timeOfDayHistogram ?? []} />
         </ChartCard>
         <ChartCard
           title="Day of week"
@@ -109,7 +114,7 @@ export function GlobalSessionsPage() {
           loading={charts.isLoading}
           empty={!charts.data?.dayOfWeekDistribution?.some((bucket) => bucket.count > 0)}
         >
-          <div />
+          <DayOfWeekChart data={chartData?.dayOfWeekDistribution ?? []} />
         </ChartCard>
       </div>
       {sessions.isLoading ? (

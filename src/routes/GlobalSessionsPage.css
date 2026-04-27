@@ -140,6 +140,26 @@
   gap: 24px;
 }
 
+.chart-legend-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.chart-legend-chip {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  padding: 0 8px;
+  color: #4B5563;
+  background: #F3F4F6;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 @media (max-width: 700px) {
   .filter-control,
   .filter-control.compact {
