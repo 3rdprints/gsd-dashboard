@@ -17,6 +17,8 @@ pub struct ProjectSnapshot {
     pub current_milestone: Option<MilestoneIdentity>,
     pub current_phase: Option<PhaseIdentity>,
     pub milestone_progress_pct: u8,
+    #[serde(default)]
+    pub roadmap_phases: Vec<roadmap::RoadmapPhase>,
     pub phase_plans: Vec<PhasePlan>,
     pub state_excerpt: Option<String>,
     pub next_command: String,
@@ -257,6 +259,7 @@ mod tests {
                 name: "Inserted follow-up".to_string(),
             }),
             milestone_progress_pct: 42,
+            roadmap_phases: Vec::new(),
             phase_plans: vec![PhasePlan {
                 phase: PhaseIdentity {
                     number: "06.1".to_string(),

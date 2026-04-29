@@ -11,6 +11,7 @@ use gsd_dashboard::{
     events::ScanEvent,
     scan_service,
     scanner::discover_planning_dirs,
+    sessions::project_detail,
     store::{self, project_repo},
 };
 
@@ -383,6 +384,103 @@ type: execute
             .expect("project should be persisted");
 
             assert!((project.milestone_progress_pct - 50.0).abs() < f64::EPSILON);
+
+            Ok::<_, AppError>(())
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("project should load");
+}
+
+#[tokio::test]
+async fn completed_archived_project_uses_state_progress_and_roadmap_timeline() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let home_dir = temp_dir.path();
+    let scan_root = home_dir.join("workspace");
+    let project_root = scan_root.join("listingguru");
+    let planning_dir = project_root.join(".planning");
+    let pool = migrated_pool(&temp_dir.path().join("cache.db")).await;
+
+    fs::create_dir_all(&planning_dir).expect("planning dir should be created");
+    fs::write(
+        planning_dir.join("ROADMAP.md"),
+        r#"# Roadmap: ListingGuru
+
+## Milestones
+
+- ✅ **v1.2 Optimizer Rework** — Phases 15-19 (shipped 2026-03-30)
+
+## Phases
+
+<details>
+<summary>✅ v1.2 Optimizer Rework (Phases 15-19) — SHIPPED 2026-03-30</summary>
+
+- [x] Phase 15: Pipeline & Etsy API Verification (3/3 plans) — completed 2026-03-28
+- [x] Phase 16: Optimizer Modal UX (2/2 plans) — completed 2026-03-29
+- [x] Phase 17: Admin Analysis Stats (2/2 plans) — completed 2026-03-29
+- [x] Phase 18: Rename to Optimizer (2/2 plans) — completed 2026-03-29
+- [x] Phase 19: Performance Validation (1/1 plan) — completed 2026-03-30
+
+</details>
+"#,
+    )
+    .expect("roadmap should be written");
+    fs::write(
+        planning_dir.join("STATE.md"),
+        r#"---
+gsd_state_version: 1.0
+milestone: v1.2
+milestone_name: Optimizer Rework
+status: completed
+progress:
+  total_phases: 5
+  completed_phases: 5
+  total_plans: 10
+  completed_plans: 10
+  percent: 100
+---
+
+# Project State
+
+## Current Position
+
+Milestone: v1.2 Optimizer Rework — SHIPPED
+Status: Milestone archived, preparing for next
+"#,
+    )
+    .expect("state should be written");
+
+    scan_service::scan_roots(
+        pool.clone(),
+        vec![scan_root],
+        home_dir.to_path_buf(),
+        |_| Ok(()),
+    )
+    .await
+    .expect("scan should parse archived project");
+
+    let connection = pool.get().await.expect("connection should be available");
+    connection
+        .interact(move |connection| {
+            let project = project_repo::load_project_by_root(
+                connection,
+                project_root.to_string_lossy().as_ref(),
+            )?
+            .expect("project should be persisted");
+
+            assert_eq!(
+                project.current_milestone_name.as_deref(),
+                Some("v1.2 Optimizer Rework")
+            );
+            assert_eq!(project.current_phase_number, None);
+            assert!((project.milestone_progress_pct - 100.0).abs() < f64::EPSILON);
+
+            let milestones = project_detail::load_project_milestones(connection, &project.id)?;
+
+            assert_eq!(milestones.len(), 1);
+            assert_eq!(milestones[0].phase_count, 5);
+            assert_eq!(milestones[0].completed_phase_count, 5);
+            assert!((milestones[0].progress_pct - 100.0).abs() < f64::EPSILON);
 
             Ok::<_, AppError>(())
         })

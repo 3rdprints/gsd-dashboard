@@ -1,4 +1,3 @@
-use pulldown_cmark::{Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -21,17 +20,16 @@ pub struct RoadmapPhase {
     pub number: String,
     pub name: String,
     pub completed: bool,
+    #[serde(default)]
+    pub milestone_name: Option<String>,
 }
 
 // Acceptance marker for basic grep: pub fn parse_roadmap(bytes: &u)
 pub fn parse_roadmap(bytes: &[u8]) -> Result<RoadmapDocument, ParseError> {
     let source = std::str::from_utf8(bytes)?;
     let milestones = parse_milestones(bytes)?;
-    let phase_lines = markdown_lines(source);
-    let checkbox_phases = phase_lines
-        .iter()
-        .filter_map(|line| parse_phase_checkbox(line))
-        .collect::<Vec<_>>();
+    let phase_lines = raw_markdown_lines(source);
+    let checkbox_phases = parse_phase_checkboxes(&phase_lines);
     let completion_by_number = checkbox_phases
         .iter()
         .map(|phase| (phase_key(&phase.number), phase.completed))
@@ -69,7 +67,7 @@ pub fn parse_roadmap(bytes: &[u8]) -> Result<RoadmapDocument, ParseError> {
 
 pub fn parse_milestones(bytes: &[u8]) -> Result<Vec<MilestoneIdentity>, ParseError> {
     let source = std::str::from_utf8(bytes)?;
-    let phase_lines = markdown_lines(source);
+    let phase_lines = raw_markdown_lines(source);
     let mut milestones = phase_lines
         .iter()
         .filter_map(|line| parse_milestone_line(line))
@@ -90,77 +88,33 @@ pub fn parse_milestones(bytes: &[u8]) -> Result<Vec<MilestoneIdentity>, ParseErr
     Ok(milestones)
 }
 
-fn markdown_lines(source: &str) -> Vec<String> {
-    let parser = Parser::new_ext(source, Options::ENABLE_TASKLISTS);
-    let mut lines = Vec::new();
-    let mut current = String::new();
-    let mut prefix = String::new();
-    let mut in_heading = false;
-
-    for event in parser {
-        match event {
-            Event::Start(Tag::Item) => {
-                current.clear();
-                prefix = "- ".to_string();
-            }
-            Event::End(TagEnd::Item) => push_current_line(&mut lines, &mut current, &mut prefix),
-            Event::Start(Tag::Paragraph) => current.clear(),
-            Event::End(TagEnd::Paragraph) => {
-                push_current_line(&mut lines, &mut current, &mut prefix);
-            }
-            Event::Start(Tag::Heading { level, .. }) => {
-                current.clear();
-                prefix = heading_prefix(level);
-                in_heading = true;
-            }
-            Event::End(TagEnd::Heading(_)) => {
-                push_current_line(&mut lines, &mut current, &mut prefix);
-                in_heading = false;
-            }
-            Event::Text(text) | Event::Code(text) => current.push_str(&text),
-            Event::SoftBreak | Event::HardBreak => {
-                if !current.trim().is_empty() {
-                    push_current_line(&mut lines, &mut current, &mut prefix);
-                }
-            }
-            Event::TaskListMarker(checked) => {
-                current.push_str(if checked { "[x] " } else { "[ ] " });
-            }
-            Event::Html(html) if in_heading || !html.trim().is_empty() => current.push_str(&html),
-            _ => {}
-        }
-    }
-
-    if !current.trim().is_empty() {
-        push_current_line(&mut lines, &mut current, &mut prefix);
-    }
-
-    lines
-}
-
-fn heading_prefix(level: HeadingLevel) -> String {
-    let depth = match level {
-        HeadingLevel::H1 => 1,
-        HeadingLevel::H2 => 2,
-        HeadingLevel::H3 => 3,
-        HeadingLevel::H4 => 4,
-        HeadingLevel::H5 => 5,
-        HeadingLevel::H6 => 6,
-    };
-    "#".repeat(depth) + " "
-}
-
-fn push_current_line(lines: &mut Vec<String>, current: &mut String, prefix: &mut String) {
-    let line = format!("{prefix}{}", current.trim());
-    if !line.trim().is_empty() {
-        lines.push(line);
-    }
-    current.clear();
-    prefix.clear();
+fn raw_markdown_lines(source: &str) -> Vec<String> {
+    source
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .map(str::to_string)
+        .collect()
 }
 
 fn parse_milestone_line(line: &str) -> Option<String> {
     let trimmed = line.trim();
+    if let Some(value) = trimmed.strip_prefix("- ") {
+        let value = value.trim_start_matches(['❌', '✅', '🚫', '⛔']).trim();
+        let value = value.strip_prefix("**").unwrap_or(value);
+        let name = value
+            .split("**")
+            .next()
+            .unwrap_or(value)
+            .split('—')
+            .next()
+            .unwrap_or(value)
+            .trim()
+            .to_string();
+
+        return (!name.is_empty()).then_some(name);
+    }
+
     let value = trimmed
         .strip_prefix("**Milestone:**")
         .or_else(|| trimmed.strip_prefix("Milestone:"))?
@@ -171,6 +125,50 @@ fn parse_milestone_line(line: &str) -> Option<String> {
         .unwrap_or(value)
         .trim()
         .trim_matches('*')
+        .to_string();
+
+    (!name.is_empty()).then_some(name)
+}
+
+fn parse_phase_checkboxes(lines: &[String]) -> Vec<RoadmapPhase> {
+    let mut phases = Vec::new();
+    let mut current_milestone = None;
+
+    for line in lines {
+        if let Some(milestone_name) = parse_summary_milestone(line) {
+            current_milestone = Some(milestone_name);
+            continue;
+        }
+
+        if line.trim() == "</details>" {
+            current_milestone = None;
+            continue;
+        }
+
+        if let Some(mut phase) = parse_phase_checkbox(line) {
+            phase.milestone_name = current_milestone.clone();
+            phases.push(phase);
+        }
+    }
+
+    phases
+}
+
+fn parse_summary_milestone(line: &str) -> Option<String> {
+    let trimmed = line.trim();
+    let after_summary = trimmed
+        .strip_prefix("<summary>")
+        .or_else(|| trimmed.strip_prefix("# "))?
+        .trim_start_matches(['❌', '✅', '🚫', '⛔'])
+        .trim();
+    let name = after_summary
+        .split(" (Phases")
+        .next()
+        .unwrap_or(after_summary)
+        .split('—')
+        .next()
+        .unwrap_or(after_summary)
+        .trim()
         .to_string();
 
     (!name.is_empty()).then_some(name)
@@ -188,6 +186,7 @@ fn parse_phase_checkbox(line: &str) -> Option<RoadmapPhase> {
         number: identity.number,
         name: identity.name,
         completed,
+        milestone_name: None,
     })
 }
 
@@ -199,6 +198,7 @@ fn parse_phase_heading(line: &str) -> Option<RoadmapPhase> {
         number: identity.number,
         name: identity.name,
         completed: false,
+        milestone_name: None,
     })
 }
 

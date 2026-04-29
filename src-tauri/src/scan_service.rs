@@ -177,6 +177,16 @@ fn parse_candidate_files(candidate: &PlanningProjectCandidate) -> Result<Project
     )?;
     let roadmap = roadmap.unwrap_or_else(|| empty_roadmap(milestones));
     let progress = derive_project_progress(&roadmap, &plans, phase_file_progress);
+    let milestone_progress_pct = state
+        .as_ref()
+        .and_then(|state| {
+            state
+                .status
+                .as_deref()
+                .is_some_and(is_completed_status)
+                .then_some(100)
+        })
+        .unwrap_or(progress.percent);
     let current_milestone = state
         .as_ref()
         .and_then(|state| state.current_milestone.as_ref())
@@ -184,7 +194,7 @@ fn parse_candidate_files(candidate: &PlanningProjectCandidate) -> Result<Project
             roadmap
                 .milestones
                 .iter()
-                .find(|milestone| milestone.name == state_milestone.name)
+                .find(|milestone| milestone_names_match(&milestone.name, &state_milestone.name))
                 .cloned()
                 .or_else(|| Some(state_milestone.clone()))
         })
@@ -193,14 +203,22 @@ fn parse_candidate_files(candidate: &PlanningProjectCandidate) -> Result<Project
         .as_ref()
         .and_then(|state| state.current_phase.clone())
         .or_else(|| {
-            roadmap
-                .phases
-                .iter()
-                .find(|phase| !phase.completed)
-                .map(|phase| PhaseIdentity {
-                    number: phase.number.clone(),
-                    name: phase.name.clone(),
-                })
+            if state
+                .as_ref()
+                .and_then(|state| state.status.as_deref())
+                .is_some_and(is_completed_status)
+            {
+                None
+            } else {
+                roadmap
+                    .phases
+                    .iter()
+                    .find(|phase| !phase.completed)
+                    .map(|phase| PhaseIdentity {
+                        number: phase.number.clone(),
+                        name: phase.name.clone(),
+                    })
+            }
         });
 
     Ok(ProjectScan {
@@ -211,7 +229,8 @@ fn parse_candidate_files(candidate: &PlanningProjectCandidate) -> Result<Project
             planning_path: display_path(&candidate.planning_path),
             current_milestone,
             current_phase,
-            milestone_progress_pct: progress.percent,
+            milestone_progress_pct,
+            roadmap_phases: roadmap.phases.clone(),
             phase_plans: plans
                 .iter()
                 .filter_map(project_phase_plan)
@@ -340,6 +359,38 @@ fn derive_project_progress(
     }
 
     parser::derive_progress(roadmap, plans)
+}
+
+fn is_completed_status(status: &str) -> bool {
+    let normalized = status.trim().to_ascii_lowercase();
+    normalized == "completed"
+        || normalized == "complete"
+        || normalized.contains("milestone achieved")
+        || normalized.contains("milestone archived")
+        || normalized.contains("shipped")
+}
+
+fn milestone_names_match(left: &str, right: &str) -> bool {
+    let left = normalize_milestone_name(left);
+    let right = normalize_milestone_name(right);
+
+    left == right || left.contains(&right) || right.contains(&left)
+}
+
+fn normalize_milestone_name(value: &str) -> String {
+    value
+        .chars()
+        .map(|character| {
+            if character.is_ascii_alphanumeric() {
+                character.to_ascii_lowercase()
+            } else {
+                ' '
+            }
+        })
+        .collect::<String>()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn percent(completed: usize, total: usize) -> u8 {

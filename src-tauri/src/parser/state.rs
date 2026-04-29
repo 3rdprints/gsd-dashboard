@@ -9,12 +9,14 @@ pub struct StateDocument {
     pub current_milestone: Option<MilestoneIdentity>,
     pub current_phase: Option<PhaseIdentity>,
     pub next_command: String,
+    pub status: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
 struct StateFrontmatter {
     milestone: Option<String>,
     milestone_name: Option<String>,
+    status: Option<String>,
 }
 
 // Acceptance marker for basic grep: pub fn parse_state(bytes: &u)
@@ -30,6 +32,7 @@ pub fn parse_state(bytes: &[u8]) -> Result<StateDocument, ParseError> {
     let frontmatter = parsed.data.unwrap_or_default();
     let current_milestone = parse_milestone(&parsed.content, &frontmatter);
     let current_phase = parse_phase(&parsed.content);
+    let status = parse_status(&parsed.content, &frontmatter);
     let next_command =
         parse_next_command(&parsed.content).unwrap_or_else(|| default_next_command(&current_phase));
 
@@ -37,6 +40,7 @@ pub fn parse_state(bytes: &[u8]) -> Result<StateDocument, ParseError> {
         current_milestone,
         current_phase,
         next_command,
+        status,
     })
 }
 
@@ -98,9 +102,9 @@ fn cap_excerpt(lines: Vec<&str>, max_lines: usize, max_bytes: usize) -> String {
 }
 
 fn parse_milestone(body: &str, frontmatter: &StateFrontmatter) -> Option<MilestoneIdentity> {
-    let body_value = body
-        .lines()
-        .find_map(|line| field_value(line, "**Milestone:**"));
+    let body_value = body.lines().find_map(|line| {
+        field_value(line, "**Milestone:**").or_else(|| field_value(line, "Milestone:"))
+    });
     let fallback_value = frontmatter
         .milestone_name
         .as_ref()
@@ -136,6 +140,12 @@ fn parse_phase(body: &str) -> Option<PhaseIdentity> {
         .unwrap_or_default();
 
     Some(PhaseIdentity { number, name })
+}
+
+fn parse_status(body: &str, frontmatter: &StateFrontmatter) -> Option<String> {
+    body.lines()
+        .find_map(|line| field_value(line, "**Status:**").or_else(|| field_value(line, "Status:")))
+        .or_else(|| frontmatter.status.clone())
 }
 
 fn parse_next_command(body: &str) -> Option<String> {

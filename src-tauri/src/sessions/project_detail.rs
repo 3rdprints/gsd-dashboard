@@ -84,7 +84,10 @@ pub fn load_project_milestones(
     project_id: &str,
 ) -> Result<Vec<ProjectMilestoneDto>, AppError> {
     let snapshot = load_project(connection, project_id)?;
-    let phases = load_phase_progress(connection, project_id)?;
+    let mut phases = load_phase_progress(connection, project_id)?;
+    if phases.is_empty() {
+        phases = load_roadmap_phase_progress(&snapshot);
+    }
     if phases.is_empty() {
         return Ok(Vec::new());
     }
@@ -321,6 +324,64 @@ fn load_phase_progress(
     }
 
     Ok(phases)
+}
+
+fn load_roadmap_phase_progress(snapshot: &StoredProjectSnapshot) -> Vec<ProjectMilestonePhaseDto> {
+    let parsed = match serde_json::from_str::<ProjectSnapshot>(&snapshot.parsed_blob) {
+        Ok(parsed) => parsed,
+        Err(_) => return Vec::new(),
+    };
+    let current_milestone_name = snapshot.current_milestone_name.as_deref();
+    let current_phase_number = snapshot.current_phase_number.as_deref();
+
+    parsed
+        .roadmap_phases
+        .into_iter()
+        .filter(|phase| {
+            current_milestone_name.is_none_or(|milestone_name| {
+                phase
+                    .milestone_name
+                    .as_deref()
+                    .is_none_or(|phase_milestone| {
+                        milestone_names_match(phase_milestone, milestone_name)
+                    })
+            })
+        })
+        .map(|phase| {
+            let completed_plan_count = i64::from(phase.completed);
+            ProjectMilestonePhaseDto {
+                number: phase.number.clone(),
+                name: Some(phase.name),
+                is_current: Some(phase.number.as_str()) == current_phase_number,
+                completed_at: phase.completed.then_some(0),
+                completed_plan_count,
+                total_plan_count: 1,
+            }
+        })
+        .collect()
+}
+
+fn milestone_names_match(left: &str, right: &str) -> bool {
+    let left = normalize_milestone_name(left);
+    let right = normalize_milestone_name(right);
+
+    left == right || left.contains(&right) || right.contains(&left)
+}
+
+fn normalize_milestone_name(value: &str) -> String {
+    value
+        .chars()
+        .map(|character| {
+            if character.is_ascii_alphanumeric() {
+                character.to_ascii_lowercase()
+            } else {
+                ' '
+            }
+        })
+        .collect::<String>()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn sort_column(value: &str) -> Result<&'static str, AppError> {
