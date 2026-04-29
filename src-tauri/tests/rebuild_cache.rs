@@ -44,6 +44,7 @@ fn phase_plan(project_id: &str) -> project_repo::StoredPhasePlan {
         phase_name: Some("Portfolio Vertical Slice".to_string()),
         plan_number: Some("02".to_string()),
         plan_path: ".planning/phases/03-portfolio-vertical-slice/03-02-PLAN.md".to_string(),
+        completed_at: None,
         checklist_json: r#"[{"label":"rebuild cache","done":false}]"#.to_string(),
         updated_at: 0,
     }

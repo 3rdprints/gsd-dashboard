@@ -490,6 +490,166 @@ Status: Milestone archived, preparing for next
 }
 
 #[tokio::test]
+async fn active_project_uses_state_progress_and_summary_backed_plan_counts() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let home_dir = temp_dir.path();
+    let scan_root = home_dir.join("workspace");
+    let project_root = scan_root.join("deckpilot-web");
+    let planning_dir = project_root.join(".planning");
+    let phase_dir = planning_dir.join("phases/38-human-uat-platform-tech-debt-close-out");
+    let pool = migrated_pool(&temp_dir.path().join("cache.db")).await;
+
+    fs::create_dir_all(&phase_dir).expect("phase dir should be created");
+    fs::write(
+        planning_dir.join("ROADMAP.md"),
+        r#"# Roadmap: Deckpilot
+
+<details>
+<summary>🔄 v2.0 Full Product Vision Rewrite (Phases 22-39)</summary>
+
+- [x] Phase 22: platform-foundation (3/3 plans)
+- [x] Phase 23: regional-code-system (2/2 plans)
+- [ ] Phase 38: human-uat-platform-tech-debt-close-out (1/3 plans)
+- [ ] Phase 39: multi-span-joist-planning (0/2 plans)
+
+### Phase 22: platform-foundation
+
+**Plans:** 3/3 plans complete
+
+### Phase 23: regional-code-system
+
+**Plans:** 2/2 plans complete
+
+### Phase 38: human-uat-platform-tech-debt-close-out
+
+**Plans:** 3 plans
+
+### Phase 39: multi-span-joist-planning
+
+**Plans:** 0/2 plans complete
+
+</details>
+"#,
+    )
+    .expect("roadmap should be written");
+    fs::write(
+        planning_dir.join("STATE.md"),
+        r#"---
+milestone: v2.0
+milestone_name: Full Product Vision Rewrite
+status: executing
+progress:
+  total_phases: 22
+  completed_phases: 20
+  total_plans: 112
+  completed_plans: 110
+  percent: 98
+---
+
+## Current Position
+
+Milestone: v2.0 Full Product Vision Rewrite
+Phase: 38 (human-uat-platform-tech-debt-close-out) — EXECUTING
+Plan: 2 of 3 (Plan 01 complete pending operator branch-protection step)
+
+```
+v2.0 Progress [ ] 0% (0/11 phases)
+```
+"#,
+    )
+    .expect("state should be written");
+
+    for plan_number in ["01", "02", "03"] {
+        fs::write(
+            phase_dir.join(format!("38-{plan_number}-PLAN.md")),
+            format!(
+                r#"---
+phase: 38
+plan: {plan_number}
+type: execute
+---
+
+# Plan {plan_number}
+"#
+            ),
+        )
+        .expect("plan should be written");
+    }
+    fs::write(
+        phase_dir.join("38-01-SUMMARY.md"),
+        "# Summary\n\nPlan 01 complete.\n",
+    )
+    .expect("summary should be written");
+    for (phase_number, plan_total, summary_total) in [("22", 3, 3), ("23", 2, 2), ("39", 2, 0)] {
+        let sibling_phase_dir = planning_dir.join(format!("phases/{phase_number}-phase"));
+        fs::create_dir_all(&sibling_phase_dir).expect("phase dir should be created");
+        for plan_index in 1..=plan_total {
+            fs::write(
+                sibling_phase_dir.join(format!("{phase_number}-{plan_index:02}-PLAN.md")),
+                format!(
+                    r#"---
+phase: {phase_number}
+plan: {plan_index:02}
+type: execute
+---
+"#
+                ),
+            )
+            .expect("plan should be written");
+        }
+        for plan_index in 1..=summary_total {
+            fs::write(
+                sibling_phase_dir.join(format!("{phase_number}-{plan_index:02}-SUMMARY.md")),
+                "# Summary\n",
+            )
+            .expect("summary should be written");
+        }
+    }
+
+    scan_service::scan_roots(
+        pool.clone(),
+        vec![scan_root],
+        home_dir.to_path_buf(),
+        |_| Ok(()),
+    )
+    .await
+    .expect("scan should parse active project");
+
+    let connection = pool.get().await.expect("connection should be available");
+    connection
+        .interact(move |connection| {
+            let project = project_repo::load_project_by_root(
+                connection,
+                project_root.to_string_lossy().as_ref(),
+            )?
+            .expect("project should be persisted");
+
+            assert_eq!(project.current_phase_number.as_deref(), Some("38"));
+            assert!((project.milestone_progress_pct - 98.0).abs() < f64::EPSILON);
+
+            let panel = project_detail::load_project_phase_panel(connection, &project.id)?;
+            assert_eq!(panel.completed_item_count, 1);
+            assert_eq!(panel.total_item_count, 3);
+
+            let milestones = project_detail::load_project_milestones(connection, &project.id)?;
+            assert_eq!(milestones[0].phase_count, 4);
+            assert_eq!(milestones[0].completed_phase_count, 2);
+            let phase_38 = milestones[0]
+                .phases
+                .iter()
+                .find(|phase| phase.number == "38")
+                .expect("phase 38 should be included");
+            assert_eq!(phase_38.completed_plan_count, 1);
+            assert_eq!(phase_38.total_plan_count, 3);
+
+            Ok::<_, AppError>(())
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("project should load");
+}
+
+#[tokio::test]
 async fn state_milestone_index_resolves_against_roadmap() {
     let temp_dir = tempfile::tempdir().expect("temp dir should be created");
     let home_dir = temp_dir.path();

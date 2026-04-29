@@ -22,6 +22,10 @@ pub struct RoadmapPhase {
     pub completed: bool,
     #[serde(default)]
     pub milestone_name: Option<String>,
+    #[serde(default)]
+    pub completed_plan_count: Option<usize>,
+    #[serde(default)]
+    pub total_plan_count: Option<usize>,
 }
 
 // Acceptance marker for basic grep: pub fn parse_roadmap(bytes: &u)
@@ -34,18 +38,29 @@ pub fn parse_roadmap(bytes: &[u8]) -> Result<RoadmapDocument, ParseError> {
         .iter()
         .map(|phase| (phase_key(&phase.number), phase.completed))
         .collect::<BTreeMap<_, _>>();
+    let plan_counts_by_number = parse_phase_plan_counts(&phase_lines);
     let heading_phases = phase_lines
         .iter()
         .filter_map(|line| parse_phase_heading(line))
         .map(|mut phase| {
-            if let Some(completed) = completion_by_number.get(&phase_key(&phase.number)) {
+            let key = phase_key(&phase.number);
+            if let Some(completed) = completion_by_number.get(&key) {
                 phase.completed = *completed;
             }
+            apply_plan_counts(&mut phase, plan_counts_by_number.get(&key));
             phase
         })
         .collect::<Vec<_>>();
     let phases = if heading_phases.is_empty() {
-        checkbox_phases.clone()
+        checkbox_phases
+            .clone()
+            .into_iter()
+            .map(|mut phase| {
+                let key = phase_key(&phase.number);
+                apply_plan_counts(&mut phase, plan_counts_by_number.get(&key));
+                phase
+            })
+            .collect()
     } else {
         heading_phases
     };
@@ -187,6 +202,8 @@ fn parse_phase_checkbox(line: &str) -> Option<RoadmapPhase> {
         name: identity.name,
         completed,
         milestone_name: None,
+        completed_plan_count: None,
+        total_plan_count: None,
     })
 }
 
@@ -199,7 +216,81 @@ fn parse_phase_heading(line: &str) -> Option<RoadmapPhase> {
         name: identity.name,
         completed: false,
         milestone_name: None,
+        completed_plan_count: None,
+        total_plan_count: None,
     })
+}
+
+fn parse_phase_plan_counts(lines: &[String]) -> BTreeMap<String, (Option<usize>, usize)> {
+    let mut counts = BTreeMap::new();
+    let mut current_phase = None;
+
+    for line in lines {
+        if let Some(phase) = parse_phase_heading(line).or_else(|| parse_phase_checkbox(line)) {
+            current_phase = Some(phase_key(&phase.number));
+            if let Some(count) = parse_plan_count(line) {
+                counts.insert(phase_key(&phase.number), count);
+            }
+            continue;
+        }
+
+        if line.starts_with("**Plans:**") {
+            if let (Some(key), Some(count)) = (current_phase.as_ref(), parse_plan_count(line)) {
+                counts.insert(key.clone(), count);
+            }
+        }
+    }
+
+    counts
+}
+
+fn parse_plan_count(line: &str) -> Option<(Option<usize>, usize)> {
+    let lower = line.to_ascii_lowercase();
+    if !lower.contains("plan") {
+        return None;
+    }
+
+    if let Some((completed, total)) = parse_slash_count(line) {
+        return Some((Some(completed), total));
+    }
+
+    let numbers = line
+        .split(|character: char| !character.is_ascii_digit())
+        .filter(|part| !part.is_empty())
+        .filter_map(|part| part.parse::<usize>().ok())
+        .collect::<Vec<_>>();
+
+    numbers.first().copied().map(|total| (None, total))
+}
+
+fn parse_slash_count(line: &str) -> Option<(usize, usize)> {
+    let slash_index = line.find('/')?;
+    let before = line[..slash_index]
+        .chars()
+        .rev()
+        .take_while(|character| character.is_ascii_digit())
+        .collect::<String>()
+        .chars()
+        .rev()
+        .collect::<String>();
+    let after = line[slash_index + 1..]
+        .chars()
+        .take_while(|character| character.is_ascii_digit())
+        .collect::<String>();
+
+    if before.is_empty() || after.is_empty() {
+        return None;
+    }
+
+    Some((before.parse().ok()?, after.parse().ok()?))
+}
+
+fn apply_plan_counts(phase: &mut RoadmapPhase, count: Option<&(Option<usize>, usize)>) {
+    let Some((completed, total)) = count else {
+        return;
+    };
+    phase.total_plan_count = Some(*total);
+    phase.completed_plan_count = completed.or_else(|| phase.completed.then_some(*total));
 }
 
 fn parse_phase_identity(label: &str) -> Option<PhaseIdentity> {
@@ -311,6 +402,7 @@ mod tests {
             plan: None,
             plan_type: None,
             source_path: None,
+            completed: false,
             tasks: Vec::new(),
             checklist: vec![
                 PlanChecklistItem {
@@ -346,6 +438,7 @@ mod tests {
             plan: None,
             plan_type: None,
             source_path: None,
+            completed: false,
             tasks: Vec::new(),
             checklist: vec![PlanChecklistItem {
                 label: "Done".to_string(),
@@ -395,8 +488,12 @@ mod tests {
         assert_eq!(roadmap.phases.len(), 2);
         assert_eq!(roadmap.phases[0].number, "01");
         assert!(roadmap.phases[0].completed);
+        assert_eq!(roadmap.phases[0].completed_plan_count, Some(1));
+        assert_eq!(roadmap.phases[0].total_plan_count, Some(1));
         assert_eq!(roadmap.phases[1].number, "02");
         assert!(!roadmap.phases[1].completed);
+        assert_eq!(roadmap.phases[1].completed_plan_count, Some(0));
+        assert_eq!(roadmap.phases[1].total_plan_count, Some(2));
     }
 
     #[test]

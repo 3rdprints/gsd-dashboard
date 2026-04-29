@@ -27,6 +27,29 @@ Plan: 4 of 12
 }
 
 #[test]
+fn state_excerpt_omits_fenced_progress_blocks() {
+    let excerpt = gsd_dashboard::parser::state::extract_state_excerpt(
+        r#"## Current Position
+
+Phase: 38 (human-uat-platform-tech-debt-close-out)
+Plan: 2 of 3
+
+```
+v2.0 Progress [ ] 0% (0/11 phases)
+```
+"#,
+        20,
+        2048,
+    )
+    .expect("excerpt should parse");
+
+    assert!(excerpt.contains("Phase: 38"));
+    assert!(excerpt.contains("Plan: 2 of 3"));
+    assert!(!excerpt.contains("0/11 phases"));
+    assert!(!excerpt.contains("```"));
+}
+
+#[test]
 fn state_excerpt_caps_lines_and_falls_back_without_heading() {
     let body = (1..=30)
         .map(|line| format!("line {line}"))

@@ -156,6 +156,7 @@ fn stored_phase_plans(
                 phase_name: Some(plan.phase.name),
                 plan_number: Some(plan_number),
                 plan_path,
+                completed_at: plan.completed.then_some(0),
                 checklist_json: serde_json::to_string(&plan.checklist)
                     .unwrap_or_else(|_| "[]".to_string()),
                 updated_at: 0,

@@ -29,6 +29,7 @@ pub struct StoredPhasePlan {
     pub phase_name: Option<String>,
     pub plan_number: Option<String>,
     pub plan_path: String,
+    pub completed_at: Option<i64>,
     pub checklist_json: String,
     pub updated_at: i64,
 }
@@ -141,16 +142,18 @@ pub fn upsert_project_snapshot(
                     phase_name,
                     plan_number,
                     plan_path,
+                    completed_at,
                     checklist_json,
                     updated_at
                 )
-                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
                 params![
                     phase_plan.project_id,
                     phase_plan.phase_number,
                     phase_plan.phase_name,
                     phase_plan.plan_number,
                     phase_plan.plan_path,
+                    phase_plan.completed_at,
                     phase_plan.checklist_json,
                     now,
                 ],
@@ -283,6 +286,7 @@ pub fn load_phase_plans(
                     phase_name,
                     plan_number,
                     plan_path,
+                    completed_at,
                     checklist_json,
                     updated_at
              FROM phase_plans
@@ -379,6 +383,9 @@ pub fn set_plan_completed_at_if_all_checked(
         )
         .map_err(AppError::from)?;
     let value = (total > 0 && total == checked).then_some(completed_at);
+    if total == 0 {
+        return Ok(());
+    }
 
     connection
         .execute(
@@ -452,8 +459,9 @@ fn read_phase_plan(row: &rusqlite::Row<'_>) -> rusqlite::Result<StoredPhasePlan>
         phase_name: row.get(2)?,
         plan_number: row.get(3)?,
         plan_path: row.get(4)?,
-        checklist_json: row.get(5)?,
-        updated_at: row.get(6)?,
+        completed_at: row.get(5)?,
+        checklist_json: row.get(6)?,
+        updated_at: row.get(7)?,
     })
 }
 

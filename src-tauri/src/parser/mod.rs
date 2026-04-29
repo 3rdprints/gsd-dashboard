@@ -48,6 +48,8 @@ pub struct PhasePlan {
     pub plan_type: String,
     #[serde(default)]
     pub plan_path: String,
+    #[serde(default)]
+    pub completed: bool,
     pub checklist: Vec<PlanChecklistItem>,
     #[serde(default)]
     pub items: Vec<PlanItem>,
@@ -68,6 +70,8 @@ pub struct PlanDocument {
     pub plan_type: Option<String>,
     #[serde(default)]
     pub source_path: Option<String>,
+    #[serde(default)]
+    pub completed: bool,
     pub tasks: Vec<PlanTask>,
     pub checklist: Vec<PlanChecklistItem>,
     #[serde(default)]
@@ -268,6 +272,7 @@ mod tests {
                 plan: "01".to_string(),
                 plan_type: "execute".to_string(),
                 plan_path: ".planning/phases/06.1/06.1-01-PLAN.md".to_string(),
+                completed: false,
                 checklist: vec![PlanChecklistItem {
                     label: "Parser contracts compile".to_string(),
                     completed: true,

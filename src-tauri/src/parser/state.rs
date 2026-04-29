@@ -10,6 +10,23 @@ pub struct StateDocument {
     pub current_phase: Option<PhaseIdentity>,
     pub next_command: String,
     pub status: Option<String>,
+    #[serde(default)]
+    pub progress: Option<StateProgress>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StateProgress {
+    #[serde(default)]
+    pub total_phases: Option<usize>,
+    #[serde(default)]
+    pub completed_phases: Option<usize>,
+    #[serde(default)]
+    pub total_plans: Option<usize>,
+    #[serde(default)]
+    pub completed_plans: Option<usize>,
+    #[serde(default)]
+    pub percent: Option<u8>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -17,6 +34,7 @@ struct StateFrontmatter {
     milestone: Option<String>,
     milestone_name: Option<String>,
     status: Option<String>,
+    progress: Option<StateProgress>,
 }
 
 // Acceptance marker for basic grep: pub fn parse_state(bytes: &u)
@@ -41,6 +59,7 @@ pub fn parse_state(bytes: &[u8]) -> Result<StateDocument, ParseError> {
         current_phase,
         next_command,
         status,
+        progress: frontmatter.progress,
     })
 }
 
@@ -65,11 +84,28 @@ fn current_position_section(body: &str) -> Option<Vec<&str>> {
         .map(|relative_index| section_start + relative_index)
         .unwrap_or(lines.len());
 
-    Some(lines[section_start..section_end].to_vec())
+    Some(without_fenced_blocks(&lines[section_start..section_end]))
 }
 
 fn first_lines(body: &str) -> Vec<&str> {
-    body.lines().collect()
+    without_fenced_blocks(&body.lines().collect::<Vec<_>>())
+}
+
+fn without_fenced_blocks<'a>(lines: &[&'a str]) -> Vec<&'a str> {
+    let mut filtered = Vec::new();
+    let mut in_fence = false;
+
+    for line in lines {
+        if line.trim_start().starts_with("```") {
+            in_fence = !in_fence;
+            continue;
+        }
+        if !in_fence {
+            filtered.push(*line);
+        }
+    }
+
+    filtered
 }
 
 fn heading_text(line: &str) -> Option<&str> {

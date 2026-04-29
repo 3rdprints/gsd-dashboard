@@ -32,6 +32,7 @@ fn phase(number: &str) -> StoredPhasePlan {
         phase_name: Some(format!("Phase {number}")),
         plan_number: Some("01".to_string()),
         plan_path: format!(".planning/phases/{number}/PLAN.md"),
+        completed_at: None,
         checklist_json: "[]".to_string(),
         updated_at: 0,
     }

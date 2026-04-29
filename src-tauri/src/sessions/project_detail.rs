@@ -159,13 +159,30 @@ pub fn load_project_phase_panel(
         rows.collect::<Result<Vec<_>, _>>()
             .map_err(AppError::from)?
     };
-    let completed_item_count = items.iter().filter(|item| item.checked).count() as i64;
-    let total_item_count = items.len() as i64;
-    let plan_path = items.first().map(|item| item.plan_path.clone()).or_else(|| {
-        first_phase_plan_path(connection, project_id, snapshot.current_phase_number.as_deref())
+    let (completed_item_count, total_item_count) = if items.is_empty() {
+        current_phase_plan_counts(
+            connection,
+            project_id,
+            snapshot.current_phase_number.as_deref(),
+        )?
+    } else {
+        (
+            items.iter().filter(|item| item.checked).count() as i64,
+            items.len() as i64,
+        )
+    };
+    let plan_path = items
+        .first()
+        .map(|item| item.plan_path.clone())
+        .or_else(|| {
+            first_phase_plan_path(
+                connection,
+                project_id,
+                snapshot.current_phase_number.as_deref(),
+            )
             .ok()
             .flatten()
-    });
+        });
     let state_excerpt = serde_json::from_str::<ProjectSnapshot>(&snapshot.parsed_blob)
         .ok()
         .and_then(|parsed| parsed.state_excerpt);
@@ -193,7 +210,9 @@ pub fn list_project_sessions(
     let sort_column = sort_column(sort.unwrap_or("startedAt"))?;
     let sort_direction = sort_direction(direction.unwrap_or("desc"))?;
     let page = page.unwrap_or(1).max(1);
-    let page_size = page_size.unwrap_or(DEFAULT_PAGE_SIZE).clamp(1, MAX_PAGE_SIZE);
+    let page_size = page_size
+        .unwrap_or(DEFAULT_PAGE_SIZE)
+        .clamp(1, MAX_PAGE_SIZE);
     let offset = (page - 1) * page_size;
     let total = connection
         .query_row(
@@ -242,7 +261,9 @@ pub fn list_project_sessions(
         .map_err(AppError::from)?;
 
     Ok(ProjectSessionsPageDto {
-        rows: rows.collect::<Result<Vec<_>, _>>().map_err(AppError::from)?,
+        rows: rows
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(AppError::from)?,
         total,
         page,
         page_size,
@@ -285,9 +306,27 @@ fn load_phase_progress(
         .prepare(
             "SELECT phase_plans.phase_number,
                     MAX(phase_plans.phase_name),
-                    MAX(phase_plans.completed_at),
-                    COALESCE(SUM(plan_items.checked), 0),
-                    COUNT(plan_items.ord)
+                    CASE
+                        WHEN COUNT(DISTINCT phase_plans.plan_path) > 0
+                         AND COUNT(DISTINCT phase_plans.plan_path)
+                           = COUNT(DISTINCT CASE
+                               WHEN phase_plans.completed_at IS NOT NULL THEN phase_plans.plan_path
+                               ELSE NULL
+                             END)
+                        THEN MAX(phase_plans.completed_at)
+                        ELSE NULL
+                    END,
+                    CASE
+                        WHEN COUNT(plan_items.ord) > 0 THEN COALESCE(SUM(plan_items.checked), 0)
+                        ELSE COUNT(DISTINCT CASE
+                            WHEN phase_plans.completed_at IS NOT NULL THEN phase_plans.plan_path
+                            ELSE NULL
+                          END)
+                    END,
+                    CASE
+                        WHEN COUNT(plan_items.ord) > 0 THEN COUNT(plan_items.ord)
+                        ELSE COUNT(DISTINCT phase_plans.plan_path)
+                    END
              FROM phase_plans
              LEFT JOIN plan_items
                ON plan_items.project_id = phase_plans.project_id
@@ -348,17 +387,39 @@ fn load_roadmap_phase_progress(snapshot: &StoredProjectSnapshot) -> Vec<ProjectM
             })
         })
         .map(|phase| {
-            let completed_plan_count = i64::from(phase.completed);
+            let total_plan_count = phase.total_plan_count.unwrap_or(1) as i64;
+            let completed_plan_count = phase
+                .completed_plan_count
+                .unwrap_or_else(|| usize::from(phase.completed))
+                .min(total_plan_count as usize) as i64;
             ProjectMilestonePhaseDto {
                 number: phase.number.clone(),
                 name: Some(phase.name),
                 is_current: Some(phase.number.as_str()) == current_phase_number,
                 completed_at: phase.completed.then_some(0),
                 completed_plan_count,
-                total_plan_count: 1,
+                total_plan_count,
             }
         })
         .collect()
+}
+
+fn current_phase_plan_counts(
+    connection: &mut rusqlite::Connection,
+    project_id: &str,
+    phase_number: Option<&str>,
+) -> Result<(i64, i64), AppError> {
+    connection
+        .query_row(
+            "SELECT COALESCE(SUM(CASE WHEN completed_at IS NOT NULL THEN 1 ELSE 0 END), 0),
+                    COUNT(*)
+             FROM phase_plans
+             WHERE project_id = ?1
+               AND (?2 IS NULL OR phase_number = ?2)",
+            params![project_id, phase_number],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .map_err(AppError::from)
 }
 
 fn milestone_names_match(left: &str, right: &str) -> bool {

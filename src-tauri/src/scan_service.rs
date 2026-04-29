@@ -179,12 +179,16 @@ fn parse_candidate_files(candidate: &PlanningProjectCandidate) -> Result<Project
     let progress = derive_project_progress(&roadmap, &plans, phase_file_progress);
     let milestone_progress_pct = state
         .as_ref()
-        .and_then(|state| {
-            state
-                .status
-                .as_deref()
-                .is_some_and(is_completed_status)
-                .then_some(100)
+        .and_then(|state| state.progress.as_ref())
+        .and_then(|progress| progress.percent)
+        .or_else(|| {
+            state.as_ref().and_then(|state| {
+                state
+                    .status
+                    .as_deref()
+                    .is_some_and(is_completed_status)
+                    .then_some(100)
+            })
         })
         .unwrap_or(progress.percent);
     let current_milestone = state
@@ -328,6 +332,7 @@ fn collect_plan_files_recursive(
             Ok(bytes) => match parse_plan(&bytes) {
                 Ok(mut plan) => {
                     plan.source_path = Some(display_path(&entry_path));
+                    plan.completed = matching_summary_path(&entry_path).exists();
                     plans.push(plan);
                 }
                 Err(error) => parse_issues.push(error.issue(display_path(&entry_path))),
@@ -440,9 +445,23 @@ fn project_phase_plan(plan: &PlanDocument) -> Option<parser::PhasePlan> {
         plan: plan.plan.clone().unwrap_or_default(),
         plan_type: plan.plan_type.clone().unwrap_or_default(),
         plan_path: plan.source_path.clone().unwrap_or_default(),
+        completed: plan.completed,
         checklist: plan.checklist.clone(),
         items: plan.items.clone(),
     })
+}
+
+fn matching_summary_path(plan_path: &Path) -> PathBuf {
+    let Some(file_name) = plan_path.file_name().and_then(|name| name.to_str()) else {
+        return plan_path.with_file_name("SUMMARY.md");
+    };
+    let summary_name = if file_name == "PLAN.md" {
+        "SUMMARY.md".to_string()
+    } else {
+        file_name.replace("-PLAN.md", "-SUMMARY.md")
+    };
+
+    plan_path.with_file_name(summary_name)
 }
 
 fn infer_project_identity(candidate: &PlanningProjectCandidate) -> ProjectIdentity {
