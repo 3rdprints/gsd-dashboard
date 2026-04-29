@@ -167,18 +167,25 @@ export function PortfolioPage() {
         }
       />
 
-      <ScanProgressPanel state={scanState} />
-      {sessionIndexState.status !== "ready" ? (
-        <SessionIndexProgressPanel state={sessionIndexState} />
-      ) : null}
-
-      {portfolioHeatmap.isLoading ? (
-        <div className="chart-card" aria-label="Loading activity heatmap">
-          <div className="heatmap-skeleton" />
+      <div className="portfolio-activity-row">
+        <div className="portfolio-status-stack">
+          <ScanProgressPanel state={scanState} />
+          {sessionIndexState.status !== "ready" ? (
+            <SessionIndexProgressPanel state={sessionIndexState} />
+          ) : null}
         </div>
-      ) : (
-        <ActivityHeatmap days={portfolioHeatmap.data ?? []} />
-      )}
+
+        {portfolioHeatmap.isLoading ? (
+          <div
+            className="chart-card activity-heatmap-card"
+            aria-label="Loading activity heatmap"
+          >
+            <div className="heatmap-skeleton" />
+          </div>
+        ) : (
+          <ActivityHeatmap days={portfolioHeatmap.data ?? []} />
+        )}
+      </div>
 
       <div className="portfolio-layout">
         <section className="project-grid" aria-label="Projects">
