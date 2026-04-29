@@ -19,8 +19,8 @@ export function ChartTooltip({ active, label, payload, valueFormatter = String }
   return (
     <div className="chart-tooltip">
       {label ? <p className="chart-tooltip-label">{label}</p> : null}
-      {payload.map((entry) => (
-        <p key={`${entry.name ?? "value"}-${entry.value}`} className="chart-tooltip-row">
+      {payload.map((entry, index) => (
+        <p key={`${entry.name ?? "value"}-${entry.value}-${index}`} className="chart-tooltip-row">
           <span className="chart-tooltip-dot" style={{ background: entry.color ?? "#2563EB" }} />
           <span>{entry.name ?? "Value"}</span>
           <strong>{valueFormatter(entry.value ?? 0)}</strong>

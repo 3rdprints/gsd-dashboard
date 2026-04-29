@@ -55,6 +55,7 @@ export function StackedProjectsChart({ data }: StackedProjectsChartProps) {
 
 function toStackedProjectData(data: GlobalTokensByProjectDay[]) {
   const projectIds = Array.from(new Set(data.filter((row) => row.projectId).map((row) => row.projectId as string))).slice(0, 5);
+  const projectIdSet = new Set(projectIds);
   const series: ProjectSeries[] = projectIds.map((projectId, index) => {
     const row = data.find((item) => item.projectId === projectId);
     return {
@@ -64,7 +65,7 @@ function toStackedProjectData(data: GlobalTokensByProjectDay[]) {
     };
   });
 
-  if (data.some((row) => !row.projectId)) {
+  if (data.some((row) => !row.projectId || !projectIdSet.has(row.projectId))) {
     series.push({ key: "other", name: "Other", fill: "#9CA3AF" });
   }
 
@@ -72,7 +73,7 @@ function toStackedProjectData(data: GlobalTokensByProjectDay[]) {
   const rowsByDate = new Map<string, Record<string, number | string>>();
   for (const row of data) {
     const chartRow = rowsByDate.get(row.date) ?? { date: row.date };
-    const key = row.projectId ? projectKeyById.get(row.projectId) : "other";
+    const key = row.projectId && projectIdSet.has(row.projectId) ? projectKeyById.get(row.projectId) : "other";
     if (key) {
       chartRow[key] = Number(chartRow[key] ?? 0) + row.tokens;
     }

@@ -171,11 +171,19 @@ fn parse_phase_checkboxes(lines: &[String]) -> Vec<RoadmapPhase> {
 
 fn parse_summary_milestone(line: &str) -> Option<String> {
     let trimmed = line.trim();
-    let after_summary = trimmed
-        .strip_prefix("<summary>")
-        .or_else(|| trimmed.strip_prefix("# "))?
-        .trim_start_matches(['❌', '✅', '🚫', '⛔'])
-        .trim();
+    let after_summary = match trimmed.strip_prefix("<summary>") {
+        Some(summary) => summary,
+        None => {
+            let heading = trimmed.strip_prefix("# ")?;
+            let normalized_heading = heading.trim().to_ascii_lowercase();
+            if normalized_heading == "roadmap" || normalized_heading.starts_with("roadmap ") {
+                return None;
+            }
+            heading
+        }
+    }
+    .trim_start_matches(['❌', '✅', '🚫', '⛔'])
+    .trim();
     let name = after_summary
         .split(" (Phases")
         .next()

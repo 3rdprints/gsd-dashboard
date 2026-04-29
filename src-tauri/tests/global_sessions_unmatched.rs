@@ -52,7 +52,7 @@ fn session(id: &str, project_id: Option<&str>, started_at: i64) -> IndexedSessio
 }
 
 #[tokio::test]
-async fn global_sessions_unmatched_uses_partial_index_and_rejects_injection() {
+async fn global_sessions_unmatched_uses_partial_index() {
     let temp_dir = tempfile::tempdir().expect("temp dir should be created");
     let state = bootstrap::bootstrap_from_paths(
         temp_dir.path().join("app-data"),

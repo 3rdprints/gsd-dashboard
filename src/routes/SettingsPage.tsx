@@ -29,6 +29,7 @@ export function SettingsPage() {
   const [scanState, setScanState] = useState(initialScanState);
   const [confirmedRebuild, setConfirmedRebuild] = useState(false);
   const [confirmedClearSessionIndex, setConfirmedClearSessionIndex] = useState(false);
+  const [clearSessionIndexError, setClearSessionIndexError] = useState<string | null>(null);
   const rebuildCacheMutation = useMutation({
     mutationFn: () =>
       rebuildCache((event) => {
@@ -56,6 +57,9 @@ export function SettingsPage() {
   const isRebuilding = scanState.status === "scanning" || rebuildCacheMutation.isPending;
   const clearSessionIndexMutation = useMutation({
     mutationFn: clearSessionIndex,
+    onMutate: () => {
+      setClearSessionIndexError(null);
+    },
     onSuccess: async () => {
       setConfirmedClearSessionIndex(false);
       await Promise.all([
@@ -67,6 +71,10 @@ export function SettingsPage() {
             query.queryKey[0] === "project"
         })
       ]);
+    },
+    onError: (error) => {
+      setConfirmedClearSessionIndex(false);
+      setClearSessionIndexError(error instanceof Error ? error.message : String(error || "Clear session index failed"));
     }
   });
 
@@ -184,6 +192,11 @@ export function SettingsPage() {
           )}
           Clear Session Index
         </button>
+        {clearSessionIndexError ? (
+          <div className="parse-error-alert" role="alert">
+            <p>{clearSessionIndexError}</p>
+          </div>
+        ) : null}
         <label className="checkbox-row disabled-row">
           <input type="checkbox" disabled />
           Index tool usage

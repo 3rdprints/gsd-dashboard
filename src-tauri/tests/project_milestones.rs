@@ -25,6 +25,37 @@ fn snapshot() -> StoredProjectSnapshot {
     }
 }
 
+fn roadmap_snapshot() -> StoredProjectSnapshot {
+    StoredProjectSnapshot {
+        current_milestone_name: Some("Beta".to_string()),
+        current_milestone_index: Some(1),
+        current_phase_number: Some("03".to_string()),
+        current_phase_name: Some("Phase 03".to_string()),
+        parsed_blob: r#"{
+            "projectId": "project-1",
+            "projectName": "Project One",
+            "rootPath": "/tmp/project-one",
+            "planningPath": "/tmp/project-one/.planning",
+            "currentMilestone": { "index": 1, "name": "Beta" },
+            "currentPhase": { "number": "03", "name": "Phase 03" },
+            "milestoneProgressPct": 0,
+            "roadmapPhases": [
+                { "number": "01", "name": "Phase 01", "completed": true, "milestoneName": "Alpha" },
+                { "number": "02", "name": "Phase 02", "completed": false, "milestoneName": "Alpha" },
+                { "number": "03", "name": "Phase 03", "completed": false, "milestoneName": "Beta" },
+                { "number": "04", "name": "Phase 04", "completed": false, "milestoneName": "Beta" }
+            ],
+            "phasePlans": [],
+            "stateExcerpt": null,
+            "nextCommand": "/gsd-next",
+            "config": null,
+            "parseIssues": []
+        }"#
+        .to_string(),
+        ..snapshot()
+    }
+}
+
 fn phase(number: &str) -> StoredPhasePlan {
     StoredPhasePlan {
         project_id: "project-1".to_string(),
@@ -48,7 +79,11 @@ async fn hybrid_progress_math_uses_roadmap_and_plan_fallbacks() {
     .await
     .expect("bootstrap should succeed");
 
-    let connection = state.pool.get().await.expect("connection should be available");
+    let connection = state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available");
     connection
         .interact(|connection| {
             project_repo::upsert_project_snapshot(
@@ -87,10 +122,48 @@ async fn hybrid_progress_math_uses_roadmap_and_plan_fallbacks() {
     assert_eq!(milestones[0].name.as_deref(), Some("v1.0"));
     assert_eq!(milestones[0].phase_count, 3);
     assert_eq!(milestones[0].completed_phase_count, 1);
-    assert!((milestones[0].progress_pct - 50.0).abs() < f64::EPSILON);
+    assert!((milestones[0].progress_pct - 50.0).abs() < 1e-6);
     assert_eq!(milestones[0].phases[1].completed_plan_count, 2);
     assert_eq!(milestones[0].phases[1].total_plan_count, 4);
     assert!(milestones[0].phases[1].is_current);
+}
+
+#[tokio::test]
+async fn milestone_progress_returns_all_roadmap_milestones() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let state = bootstrap::bootstrap_from_paths(
+        temp_dir.path().join("app-data"),
+        temp_dir.path().join("home"),
+    )
+    .await
+    .expect("bootstrap should succeed");
+
+    let connection = state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available");
+    connection
+        .interact(|connection| {
+            project_repo::upsert_project_snapshot(connection, roadmap_snapshot(), Vec::new(), 1)?;
+            Ok::<_, gsd_dashboard::error::AppError>(())
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("fixtures should insert");
+
+    let milestones = get_project_milestones_for_app(&state, "project-1")
+        .await
+        .expect("milestones should load");
+
+    assert_eq!(milestones.len(), 2);
+    assert_eq!(milestones[0].name.as_deref(), Some("Alpha"));
+    assert_eq!(milestones[0].phase_count, 2);
+    assert_eq!(milestones[0].completed_phase_count, 1);
+    assert!((milestones[0].progress_pct - 50.0).abs() < 1e-6);
+    assert_eq!(milestones[1].name.as_deref(), Some("Beta"));
+    assert_eq!(milestones[1].phase_count, 2);
+    assert!(milestones[1].phases[0].is_current);
 }
 
 fn item(ord: i64, checked: bool) -> StoredPlanItem {

@@ -38,7 +38,7 @@ export function PortfolioPage() {
   const settings = useQuery({ queryKey: settingsQueryKey, queryFn: getSettings });
   const portfolio = useQuery({ queryKey: portfolioQueryKey, queryFn: getPortfolio });
   const portfolioHeatmap = useQuery({
-    queryKey: portfolioHeatmapQueryKey,
+    queryKey: portfolioHeatmapQueryKey(90),
     queryFn: () => getPortfolioHeatmap(90)
   });
   const saveSettings = useMutation(createSaveSettingsMutationOptions(queryClient));
@@ -82,7 +82,7 @@ export function PortfolioPage() {
       setSessionIndexState((current) => completeSessionIndexState(current, summary));
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: portfolioQueryKey }),
-        queryClient.invalidateQueries({ queryKey: portfolioHeatmapQueryKey })
+        queryClient.invalidateQueries({ queryKey: portfolioHeatmapQueryKey(90) })
       ]);
     },
     onError: () => {

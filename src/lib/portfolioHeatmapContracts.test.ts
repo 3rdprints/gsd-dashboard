@@ -27,13 +27,13 @@ describe("portfolio heatmap IPC contracts", () => {
     const typesModule = await import("./types");
 
     expect(typeof (ipc as Record<string, unknown>).getPortfolioHeatmap).toBe("function");
-    expect(Array.isArray((queryClient as Record<string, unknown>).portfolioHeatmapQueryKey)).toBe(true);
+    expect(typeof (queryClient as Record<string, unknown>).portfolioHeatmapQueryKey).toBe("function");
     expect(typesModule).toBeDefined();
 
     await (ipc as { getPortfolioHeatmap: (days: number) => Promise<unknown> }).getPortfolioHeatmap(90);
 
     expect(invokeMock).toHaveBeenCalledWith("get_portfolio_heatmap", { days: 90 });
-    expect((queryClient as { portfolioHeatmapQueryKey: readonly unknown[] }).portfolioHeatmapQueryKey).toEqual([
+    expect((queryClient as { portfolioHeatmapQueryKey: (days: number) => readonly unknown[] }).portfolioHeatmapQueryKey(90)).toEqual([
       "portfolioHeatmap",
       90
     ]);

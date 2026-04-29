@@ -402,9 +402,16 @@ async fn index_session_file(
                     merge_incremental_session(previous_session, accumulator.session);
             }
         }
-        match_project(&mut accumulator.session, known_projects);
-        if accumulator.session.project_id.is_some() {
-            vec![accumulator.session]
+        let mut session = accumulator.session;
+        let known_projects = known_projects.to_vec();
+        let session = tokio::task::spawn_blocking(move || {
+            match_project(&mut session, &known_projects);
+            session
+        })
+        .await
+        .map_err(AppError::io)?;
+        if session.project_id.is_some() {
+            vec![session]
         } else {
             skipped_unmatched_session = true;
             Vec::new()

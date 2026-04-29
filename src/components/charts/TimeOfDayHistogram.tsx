@@ -37,7 +37,10 @@ export function TimeOfDayHistogram({ data }: TimeOfDayHistogramProps) {
 }
 
 function normalizeHours(data: GlobalHistogramBucket[]) {
-  const counts = new Map(data.map((row) => [row.hour, row.count]));
+  const counts = new Map<number, number>();
+  for (const row of data) {
+    counts.set(row.hour, (counts.get(row.hour) ?? 0) + row.count);
+  }
   return Array.from({ length: 24 }, (_value, hour) => ({
     hour,
     count: counts.get(hour) ?? 0

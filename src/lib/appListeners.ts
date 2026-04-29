@@ -13,7 +13,7 @@ export function registerAppListeners() {
     ]);
   });
   const unlistenDailyActivityUpdated = listen("daily_activity_updated", async () => {
-    await queryClient.invalidateQueries({ queryKey: portfolioHeatmapQueryKey });
+    await queryClient.invalidateQueries({ queryKey: portfolioHeatmapQueryKey(90) });
   });
 
   return () => {

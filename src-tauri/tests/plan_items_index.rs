@@ -123,7 +123,7 @@ async fn plan_items_insert_replace_and_scan_integration() {
                 connection,
                 &project.id,
                 &plan_path,
-                1_777_000_000,
+                1_777_000_000_000,
             )?;
             let completed_at: Option<i64> = connection.query_row(
                 "SELECT completed_at FROM phase_plans WHERE project_id = ?1 AND plan_path = ?2",
@@ -144,14 +144,14 @@ async fn plan_items_insert_replace_and_scan_integration() {
                 connection,
                 &project.id,
                 &plan_path,
-                1_777_000_001,
+                1_777_000_001_000,
             )?;
             let completed_at: Option<i64> = connection.query_row(
                 "SELECT completed_at FROM phase_plans WHERE project_id = ?1 AND plan_path = ?2",
                 [&project.id, &plan_path],
                 |row| row.get(0),
             )?;
-            assert_eq!(completed_at, Some(1_777_000_001));
+            assert_eq!(completed_at, Some(1_777_000_001_000));
 
             Ok::<_, gsd_dashboard::error::AppError>(())
         })

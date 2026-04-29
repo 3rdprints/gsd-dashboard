@@ -24,6 +24,10 @@ export function FilterBar({ filters, projects, onChange, onDateRangePersist }: F
     setTokensMax(toInputValue(filters.tokensMax));
   }, [filters.durationMinMinutes, filters.durationMaxMinutes, filters.tokensMin, filters.tokensMax]);
 
+  useEffect(() => {
+    return () => window.clearTimeout(debounceRef.current);
+  }, []);
+
   function update(next: Partial<SessionFilters>) {
     onChange({ ...filters, ...next, page: 1 });
   }

@@ -1,9 +1,11 @@
+use std::collections::BTreeMap;
+
 use rusqlite::{params, OptionalExtension};
 use serde::Serialize;
 
 use crate::{
     error::AppError,
-    parser::ProjectSnapshot,
+    parser::{roadmap::RoadmapPhase, ProjectSnapshot},
     store::project_repo::{self, StoredProjectSnapshot},
 };
 
@@ -84,15 +86,39 @@ pub fn load_project_milestones(
     project_id: &str,
 ) -> Result<Vec<ProjectMilestoneDto>, AppError> {
     let snapshot = load_project(connection, project_id)?;
-    let mut phases = load_phase_progress(connection, project_id)?;
-    if phases.is_empty() {
-        phases = load_roadmap_phase_progress(&snapshot);
-    }
-    if phases.is_empty() {
-        return Ok(Vec::new());
-    }
+    let db_phases = load_phase_progress(connection, project_id)?;
+    let parsed_snapshot = serde_json::from_str::<ProjectSnapshot>(&snapshot.parsed_blob).ok();
+    let roadmap_phases = parsed_snapshot
+        .map(|parsed| parsed.roadmap_phases)
+        .unwrap_or_default();
+    let groups = if roadmap_phases.is_empty() {
+        match db_phases.is_empty() {
+            true => Vec::new(),
+            false => vec![MilestonePhaseGroup {
+                name: snapshot.current_milestone_name.clone(),
+                phases: db_phases,
+            }],
+        }
+    } else {
+        group_milestone_phases(&snapshot, db_phases, roadmap_phases)
+    };
 
-    let current_phase_number = snapshot.current_phase_number.as_deref();
+    Ok(groups
+        .into_iter()
+        .filter(|group| !group.phases.is_empty())
+        .map(|group| build_project_milestone(group.name, group.phases))
+        .collect())
+}
+
+struct MilestonePhaseGroup {
+    name: Option<String>,
+    phases: Vec<ProjectMilestonePhaseDto>,
+}
+
+fn build_project_milestone(
+    name: Option<String>,
+    phases: Vec<ProjectMilestonePhaseDto>,
+) -> ProjectMilestoneDto {
     let phase_count = phases.len() as i64;
     let completed_phase_count = phases
         .iter()
@@ -100,7 +126,7 @@ pub fn load_project_milestones(
         .count() as i64;
     let current_fraction = phases
         .iter()
-        .find(|phase| Some(phase.number.as_str()) == current_phase_number)
+        .find(|phase| phase.is_current)
         .map(|phase| {
             if phase.total_plan_count == 0 {
                 0.0
@@ -113,13 +139,76 @@ pub fn load_project_milestones(
         .clamp(0.0, 1.0)
         * 100.0;
 
-    Ok(vec![ProjectMilestoneDto {
-        name: snapshot.current_milestone_name,
+    ProjectMilestoneDto {
+        name,
         progress_pct,
         phase_count,
         completed_phase_count,
         phases,
-    }])
+    }
+}
+
+fn group_milestone_phases(
+    snapshot: &StoredProjectSnapshot,
+    db_phases: Vec<ProjectMilestonePhaseDto>,
+    roadmap_phases: Vec<RoadmapPhase>,
+) -> Vec<MilestonePhaseGroup> {
+    let current_phase_number = snapshot.current_phase_number.as_deref();
+    let mut groups = Vec::new();
+    let mut db_phase_by_number = db_phases
+        .into_iter()
+        .map(|phase| (phase.number.clone(), phase))
+        .collect::<BTreeMap<_, _>>();
+
+    for roadmap_phase in roadmap_phases {
+        let group_name = roadmap_phase
+            .milestone_name
+            .clone()
+            .or_else(|| snapshot.current_milestone_name.clone());
+        let phase = db_phase_by_number
+            .remove(&roadmap_phase.number)
+            .map(|mut phase| {
+                phase.is_current = Some(phase.number.as_str()) == current_phase_number;
+                phase
+            })
+            .unwrap_or_else(|| {
+                roadmap_phase_to_milestone_phase(&roadmap_phase, current_phase_number)
+            });
+        push_group_phase(&mut groups, group_name, phase);
+    }
+
+    for (_phase_number, phase) in db_phase_by_number {
+        push_group_phase(&mut groups, snapshot.current_milestone_name.clone(), phase);
+    }
+
+    groups
+}
+
+fn push_group_phase(
+    groups: &mut Vec<MilestonePhaseGroup>,
+    name: Option<String>,
+    phase: ProjectMilestonePhaseDto,
+) {
+    if let Some(group) = groups
+        .iter_mut()
+        .find(|group| milestone_group_names_match(group.name.as_deref(), name.as_deref()))
+    {
+        group.phases.push(phase);
+        return;
+    }
+
+    groups.push(MilestonePhaseGroup {
+        name,
+        phases: vec![phase],
+    });
+}
+
+fn milestone_group_names_match(left: Option<&str>, right: Option<&str>) -> bool {
+    match (left, right) {
+        (Some(left), Some(right)) => milestone_names_match(left, right),
+        (None, None) => true,
+        _ => false,
+    }
 }
 
 pub fn load_project_phase_panel(
@@ -365,43 +454,24 @@ fn load_phase_progress(
     Ok(phases)
 }
 
-fn load_roadmap_phase_progress(snapshot: &StoredProjectSnapshot) -> Vec<ProjectMilestonePhaseDto> {
-    let parsed = match serde_json::from_str::<ProjectSnapshot>(&snapshot.parsed_blob) {
-        Ok(parsed) => parsed,
-        Err(_) => return Vec::new(),
-    };
-    let current_milestone_name = snapshot.current_milestone_name.as_deref();
-    let current_phase_number = snapshot.current_phase_number.as_deref();
+fn roadmap_phase_to_milestone_phase(
+    phase: &RoadmapPhase,
+    current_phase_number: Option<&str>,
+) -> ProjectMilestonePhaseDto {
+    let total_plan_count = phase.total_plan_count.unwrap_or(1) as i64;
+    let completed_plan_count = phase
+        .completed_plan_count
+        .unwrap_or_else(|| usize::from(phase.completed))
+        .min(total_plan_count as usize) as i64;
 
-    parsed
-        .roadmap_phases
-        .into_iter()
-        .filter(|phase| {
-            current_milestone_name.is_none_or(|milestone_name| {
-                phase
-                    .milestone_name
-                    .as_deref()
-                    .is_none_or(|phase_milestone| {
-                        milestone_names_match(phase_milestone, milestone_name)
-                    })
-            })
-        })
-        .map(|phase| {
-            let total_plan_count = phase.total_plan_count.unwrap_or(1) as i64;
-            let completed_plan_count = phase
-                .completed_plan_count
-                .unwrap_or_else(|| usize::from(phase.completed))
-                .min(total_plan_count as usize) as i64;
-            ProjectMilestonePhaseDto {
-                number: phase.number.clone(),
-                name: Some(phase.name),
-                is_current: Some(phase.number.as_str()) == current_phase_number,
-                completed_at: phase.completed.then_some(0),
-                completed_plan_count,
-                total_plan_count,
-            }
-        })
-        .collect()
+    ProjectMilestonePhaseDto {
+        number: phase.number.clone(),
+        name: Some(phase.name.clone()),
+        is_current: Some(phase.number.as_str()) == current_phase_number,
+        completed_at: phase.completed.then_some(0),
+        completed_plan_count,
+        total_plan_count,
+    }
 }
 
 fn current_phase_plan_counts(
@@ -453,12 +523,10 @@ fn sort_column(value: &str) -> Result<&'static str, AppError> {
         "messageCount" => Ok("message_count"),
         "tokensIn" => Ok("COALESCE(tokens_in, 0)"),
         "tokensOut" => Ok("COALESCE(tokens_out, 0)"),
-        "tokenTotal" => Ok(
-            "COALESCE(tokens_in, 0)
+        "tokenTotal" => Ok("COALESCE(tokens_in, 0)
                 + COALESCE(tokens_out, 0)
                 + COALESCE(cache_read_tokens, 0)
-                + COALESCE(cache_creation_tokens, 0)",
-        ),
+                + COALESCE(cache_creation_tokens, 0)"),
         _ => Err(AppError::store("invalid session sort")),
     }
 }

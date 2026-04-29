@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ClipboardCopy, ExternalLink, FolderOpen } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -23,6 +23,11 @@ export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [actionError, setActionError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ProjectDetailTab>("overview");
+  const tabRefs = useRef<Record<ProjectDetailTab, HTMLButtonElement | null>>({
+    overview: null,
+    sessions: null,
+    charts: null
+  });
   const project = useQuery({
     queryKey: projectQueryKey(id ?? ""),
     queryFn: () => getProject(id ?? ""),
@@ -51,7 +56,12 @@ export function ProjectDetailPage() {
   function selectTabByOffset(offset: number) {
     const currentIndex = detailTabs.findIndex((tab) => tab.id === activeTab);
     const nextIndex = (currentIndex + offset + detailTabs.length) % detailTabs.length;
-    setActiveTab(detailTabs[nextIndex].id);
+    selectTab(detailTabs[nextIndex].id);
+  }
+
+  function selectTab(tab: ProjectDetailTab) {
+    setActiveTab(tab);
+    tabRefs.current[tab]?.focus();
   }
 
   function handleTabKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
@@ -63,10 +73,10 @@ export function ProjectDetailPage() {
       selectTabByOffset(1);
     } else if (event.key === "Home") {
       event.preventDefault();
-      setActiveTab(detailTabs[0].id);
+      selectTab(detailTabs[0].id);
     } else if (event.key === "End") {
       event.preventDefault();
-      setActiveTab(detailTabs[detailTabs.length - 1].id);
+      selectTab(detailTabs[detailTabs.length - 1].id);
     }
   }
 
@@ -181,12 +191,15 @@ export function ProjectDetailPage() {
                 key={tab.id}
                 type="button"
                 id={`project-tab-${tab.id}-tab`}
+                ref={(element) => {
+                  tabRefs.current[tab.id] = element;
+                }}
                 className="tab-btn"
                 role="tab"
                 aria-selected={selected}
                 aria-controls={`project-tab-${tab.id}`}
                 tabIndex={selected ? 0 : -1}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => selectTab(tab.id)}
                 onKeyDown={handleTabKeyDown}
               >
                 {tab.label}

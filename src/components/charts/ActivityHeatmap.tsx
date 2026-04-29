@@ -42,7 +42,7 @@ export function ActivityHeatmap({ days, endDate = new Date() }: ActivityHeatmapP
     topProjectName: day.topProjectName
   }));
   const startDate = new Date(endDate);
-  startDate.setDate(startDate.getDate() - 90);
+  startDate.setDate(startDate.getDate() - 89);
 
   return (
     <section

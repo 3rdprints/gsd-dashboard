@@ -146,7 +146,9 @@ fn latest_activity_date(
 }
 
 fn current_local_date() -> time::Date {
-    time::OffsetDateTime::now_utc().date()
+    time::OffsetDateTime::now_local()
+        .unwrap_or_else(|_| time::OffsetDateTime::now_utc())
+        .date()
 }
 
 fn parse_date_key(date: &str) -> Result<time::Date, AppError> {
