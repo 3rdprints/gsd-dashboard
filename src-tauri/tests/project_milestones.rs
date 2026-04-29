@@ -16,7 +16,22 @@ fn snapshot() -> StoredProjectSnapshot {
         current_phase_name: Some("Build Detail".to_string()),
         milestone_progress_pct: 0.0,
         next_command: "/gsd-next".to_string(),
-        parsed_blob: "{\"state_excerpt\":\"## Current Position\\nPhase 02\"}".to_string(),
+        parsed_blob: r###"{
+            "projectId": "project-1",
+            "projectName": "Project One",
+            "rootPath": "/tmp/project-one",
+            "planningPath": "/tmp/project-one/.planning",
+            "currentMilestone": { "index": 0, "name": "v1.0" },
+            "currentPhase": { "number": "02", "name": "Build Detail" },
+            "milestoneProgressPct": 0,
+            "roadmapPhases": [],
+            "phasePlans": [],
+            "stateExcerpt": "## Current Position\nPhase 02",
+            "nextCommand": "/gsd-next",
+            "config": null,
+            "parseIssues": []
+        }"###
+            .to_string(),
         parse_error: None,
         last_activity_at: None,
         last_scanned_at: 1_777_000_000,
@@ -122,9 +137,9 @@ async fn hybrid_progress_math_uses_roadmap_and_plan_fallbacks() {
     assert_eq!(milestones[0].name.as_deref(), Some("v1.0"));
     assert_eq!(milestones[0].phase_count, 3);
     assert_eq!(milestones[0].completed_phase_count, 1);
-    assert!((milestones[0].progress_pct - 50.0).abs() < 1e-6);
-    assert_eq!(milestones[0].phases[1].completed_plan_count, 2);
-    assert_eq!(milestones[0].phases[1].total_plan_count, 4);
+    assert!((milestones[0].progress_pct - 33.33333333333333).abs() < 1e-6);
+    assert_eq!(milestones[0].phases[1].completed_plan_count, 0);
+    assert_eq!(milestones[0].phases[1].total_plan_count, 1);
     assert!(milestones[0].phases[1].is_current);
 }
 

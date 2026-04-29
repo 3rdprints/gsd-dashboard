@@ -64,10 +64,20 @@ pub async fn clear_session_index_for_app(
 pub async fn list_global_sessions(
     state: State<'_, AppState>,
     filters: GlobalSessionFilters,
+    sort: Option<String>,
+    direction: Option<String>,
     page: Option<i64>,
     page_size: Option<i64>,
 ) -> Result<GlobalSessionsPageDto, AppError> {
-    list_global_sessions_for_app(&state, filters, page, page_size).await
+    list_global_sessions_for_app(
+        &state,
+        filters,
+        sort.as_deref(),
+        direction.as_deref(),
+        page,
+        page_size,
+    )
+    .await
 }
 
 #[tauri::command]
@@ -81,13 +91,24 @@ pub async fn get_global_chart_data(
 pub async fn list_global_sessions_for_app(
     state: &AppState,
     filters: GlobalSessionFilters,
+    sort: Option<&str>,
+    direction: Option<&str>,
     page: Option<i64>,
     page_size: Option<i64>,
 ) -> Result<GlobalSessionsPageDto, AppError> {
     let connection = state.pool.get().await.map_err(AppError::store)?;
+    let sort = sort.map(str::to_string);
+    let direction = direction.map(str::to_string);
     connection
         .interact(move |connection| {
-            global::list_global_sessions(connection, &filters, page, page_size)
+            global::list_global_sessions(
+                connection,
+                &filters,
+                sort.as_deref(),
+                direction.as_deref(),
+                page,
+                page_size,
+            )
         })
         .await
         .map_err(AppError::store)?

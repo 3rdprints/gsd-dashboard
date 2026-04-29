@@ -106,12 +106,6 @@ pub(crate) struct ProjectScan {
     pub(crate) parse_issues: Vec<ParseIssue>,
 }
 
-#[derive(Debug, Clone, Copy, Default)]
-struct PhaseFileProgress {
-    plan_count: usize,
-    summary_count: usize,
-}
-
 async fn read_and_parse_candidate(
     candidate: PlanningProjectCandidate,
 ) -> Result<ProjectScan, AppError> {
@@ -173,14 +167,9 @@ fn parse_candidate_files(candidate: &PlanningProjectCandidate) -> Result<Project
         .ok()
         .flatten();
 
-    let mut phase_file_progress = PhaseFileProgress::default();
-    let plans = parse_plan_files(
-        &candidate.planning_path,
-        &mut parse_issues,
-        &mut phase_file_progress,
-    )?;
+    let plans = parse_plan_files(&candidate.planning_path, &mut parse_issues)?;
     let roadmap = roadmap.unwrap_or_else(|| empty_roadmap(milestones));
-    let progress = derive_project_progress(&roadmap, &plans, phase_file_progress);
+    let progress = derive_project_progress(&roadmap, &plans);
     let milestone_progress_pct = state
         .as_ref()
         .and_then(|state| state.progress.as_ref())
@@ -258,7 +247,6 @@ fn parse_candidate_files(candidate: &PlanningProjectCandidate) -> Result<Project
 fn parse_plan_files(
     planning_path: &Path,
     parse_issues: &mut Vec<ParseIssue>,
-    phase_file_progress: &mut PhaseFileProgress,
 ) -> Result<Vec<PlanDocument>, AppError> {
     let phases_path = planning_path.join("phases");
     let mut plans = Vec::new();
@@ -267,7 +255,7 @@ fn parse_plan_files(
         return Ok(plans);
     }
 
-    collect_plan_files_recursive(&phases_path, parse_issues, &mut plans, phase_file_progress);
+    collect_plan_files_recursive(&phases_path, parse_issues, &mut plans);
     Ok(plans)
 }
 
@@ -275,7 +263,6 @@ fn collect_plan_files_recursive(
     directory: &Path,
     parse_issues: &mut Vec<ParseIssue>,
     plans: &mut Vec<PlanDocument>,
-    phase_file_progress: &mut PhaseFileProgress,
 ) {
     let entries = match std::fs::read_dir(directory) {
         Ok(entries) => entries,
@@ -314,7 +301,7 @@ fn collect_plan_files_recursive(
             }
         };
         if file_type.is_dir() {
-            collect_plan_files_recursive(&entry_path, parse_issues, plans, phase_file_progress);
+            collect_plan_files_recursive(&entry_path, parse_issues, plans);
             continue;
         }
 
@@ -322,7 +309,6 @@ fn collect_plan_files_recursive(
             continue;
         };
         if file_name == "SUMMARY.md" || file_name.ends_with("-SUMMARY.md") {
-            phase_file_progress.summary_count += 1;
             continue;
         }
 
@@ -330,7 +316,6 @@ fn collect_plan_files_recursive(
         if !is_plan {
             continue;
         }
-        phase_file_progress.plan_count += 1;
 
         match std::fs::read(&entry_path) {
             Ok(bytes) => match parse_plan(&bytes) {
@@ -355,16 +340,11 @@ fn collect_plan_files_recursive(
 fn derive_project_progress(
     roadmap: &roadmap::RoadmapDocument,
     plans: &[PlanDocument],
-    phase_file_progress: PhaseFileProgress,
 ) -> parser::ProgressSummary {
-    if phase_file_progress.plan_count > 0 {
+    if !plans.is_empty() {
+        let completed_plan_count = plans.iter().filter(|plan| plan.completed).count();
         return parser::ProgressSummary {
-            percent: percent(
-                phase_file_progress
-                    .summary_count
-                    .min(phase_file_progress.plan_count),
-                phase_file_progress.plan_count,
-            ),
+            percent: percent(completed_plan_count, plans.len()),
             source: "planSummaryCompletion".to_string(),
         };
     }

@@ -92,17 +92,21 @@ pub struct GlobalDayOfWeekBucketDto {
 pub fn list_global_sessions(
     connection: &mut rusqlite::Connection,
     filters: &GlobalSessionFilters,
+    sort: Option<&str>,
+    direction: Option<&str>,
     page: Option<i64>,
     page_size: Option<i64>,
 ) -> Result<GlobalSessionsPageDto, AppError> {
     let source = validated_source(filters.source.as_deref())?;
+    let token_total_expression = token_total_sql(has_cache_token_columns(connection)?);
+    let sort_column = sort_column(sort.unwrap_or("startedAt"), token_total_expression)?;
+    let sort_direction = sort_direction(direction.unwrap_or("desc"))?;
     let unmatched_only = filters.unmatched_only.unwrap_or(false) as i64;
     let page = page.unwrap_or(1).max(1);
     let page_size = page_size
         .unwrap_or(DEFAULT_PAGE_SIZE)
         .clamp(1, MAX_PAGE_SIZE);
     let offset = page.saturating_sub(1).saturating_mul(page_size);
-    let token_total_expression = token_total_sql(has_cache_token_columns(connection)?);
     let filter = build_filter_sql(filters, source, unmatched_only, token_total_expression);
 
     let total = connection
@@ -137,7 +141,7 @@ pub fn list_global_sessions(
              FROM {}
              LEFT JOIN projects ON projects.id = s.project_id
              {}
-             ORDER BY s.started_at DESC NULLS LAST, s.id ASC
+             ORDER BY {sort_column} {sort_direction}, s.id ASC
              LIMIT ? OFFSET ?",
             token_total_expression, filter.table_sql, filter.where_sql,
         ))
@@ -401,6 +405,30 @@ fn validated_source(source: Option<&str>) -> Result<Option<&str>, AppError> {
         SessionSource::try_from(source).map_err(|_| AppError::store("invalid session source"))?;
     }
     Ok(source)
+}
+
+fn sort_column(
+    value: &str,
+    token_total_expression: &'static str,
+) -> Result<&'static str, AppError> {
+    match value {
+        "startedAt" => Ok("COALESCE(s.started_at, 0)"),
+        "source" => Ok("s.source"),
+        "durationMs" => Ok("COALESCE(s.duration_ms, 0)"),
+        "messageCount" => Ok("COALESCE(s.message_count, 0)"),
+        "tokensIn" => Ok("COALESCE(s.tokens_in, 0)"),
+        "tokensOut" => Ok("COALESCE(s.tokens_out, 0)"),
+        "tokenTotal" => Ok(token_total_expression),
+        _ => Err(AppError::store("invalid session sort")),
+    }
+}
+
+fn sort_direction(value: &str) -> Result<&'static str, AppError> {
+    match value {
+        "asc" => Ok("ASC"),
+        "desc" => Ok("DESC"),
+        _ => Err(AppError::store("invalid session sort direction")),
+    }
 }
 
 fn has_cache_token_columns(connection: &rusqlite::Connection) -> Result<bool, AppError> {

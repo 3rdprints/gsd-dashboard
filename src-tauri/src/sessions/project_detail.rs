@@ -88,10 +88,8 @@ pub fn load_project_milestones(
 ) -> Result<Vec<ProjectMilestoneDto>, AppError> {
     let snapshot = load_project(connection, project_id)?;
     let db_phases = load_phase_progress(connection, project_id)?;
-    let parsed_snapshot = serde_json::from_str::<ProjectSnapshot>(&snapshot.parsed_blob).ok();
-    let roadmap_phases = parsed_snapshot
-        .map(|parsed| parsed.roadmap_phases)
-        .unwrap_or_default();
+    let parsed_snapshot = serde_json::from_str::<ProjectSnapshot>(&snapshot.parsed_blob)?;
+    let roadmap_phases = parsed_snapshot.roadmap_phases;
     let groups = if roadmap_phases.is_empty() {
         match db_phases.is_empty() {
             true => Vec::new(),
@@ -288,9 +286,8 @@ pub fn load_project_phase_panel(
             snapshot.current_phase_number.as_deref(),
         )?
     };
-    let state_excerpt = serde_json::from_str::<ProjectSnapshot>(&snapshot.parsed_blob)
-        .ok()
-        .and_then(|parsed| parsed.state_excerpt);
+    let parsed_snapshot = serde_json::from_str::<ProjectSnapshot>(&snapshot.parsed_blob)?;
+    let state_excerpt = parsed_snapshot.state_excerpt;
 
     Ok(ProjectPhasePanelDto {
         phase_number: snapshot.current_phase_number,
@@ -421,21 +418,12 @@ fn load_phase_progress(
                         THEN MAX(phase_plans.completed_at)
                         ELSE NULL
                     END,
-                    CASE
-                        WHEN COUNT(plan_items.ord) > 0 THEN COALESCE(SUM(plan_items.checked), 0)
-                        ELSE COUNT(DISTINCT CASE
-                            WHEN phase_plans.completed_at IS NOT NULL THEN phase_plans.plan_path
-                            ELSE NULL
-                          END)
-                    END,
-                    CASE
-                        WHEN COUNT(plan_items.ord) > 0 THEN COUNT(plan_items.ord)
-                        ELSE COUNT(DISTINCT phase_plans.plan_path)
-                    END
+                    COUNT(DISTINCT CASE
+                        WHEN phase_plans.completed_at IS NOT NULL THEN phase_plans.plan_path
+                        ELSE NULL
+                    END),
+                    COUNT(DISTINCT phase_plans.plan_path)
              FROM phase_plans
-             LEFT JOIN plan_items
-               ON plan_items.project_id = phase_plans.project_id
-              AND plan_items.plan_path = phase_plans.plan_path
              WHERE phase_plans.project_id = ?1
              GROUP BY phase_plans.phase_number
              ORDER BY phase_plans.phase_number",

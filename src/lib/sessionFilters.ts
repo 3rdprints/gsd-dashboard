@@ -1,4 +1,4 @@
-import type { AppSettings, GlobalSessionFilters, GlobalSessionsDefaultRange } from "./types";
+import type { AppSettings, GlobalSessionFilters, GlobalSessionsDefaultRange, ProjectSessionSortKey, SortDirection } from "./types";
 
 export type SessionFilters = {
   source?: "claude" | "codex";
@@ -11,12 +11,16 @@ export type SessionFilters = {
   tokensMin?: number;
   tokensMax?: number;
   unmatchedOnly: boolean;
+  sort: ProjectSessionSortKey;
+  direction: SortDirection;
   page: number;
 };
 
 const sourceValues = new Set(["claude", "codex"]);
 const defaultRangeValues = new Set(["7d", "30d", "90d", "all"]);
 const dateRangeValues = new Set(["today", "7d", "30d", "90d", "all", "custom"]);
+const sortValues = new Set(["startedAt", "source", "durationMs", "messageCount", "tokensIn", "tokensOut", "tokenTotal"]);
+const directionValues = new Set(["asc", "desc"]);
 
 export function DEFAULT_FILTERS(settings?: Pick<AppSettings, "globalSessionsDefaultRange">): SessionFilters {
   const dateRange = settings?.globalSessionsDefaultRange ?? "7d";
@@ -26,6 +30,8 @@ export function DEFAULT_FILTERS(settings?: Pick<AppSettings, "globalSessionsDefa
     from: dates.from,
     to: dates.to,
     unmatchedOnly: false,
+    sort: "startedAt",
+    direction: "desc",
     page: 1
   };
 }
@@ -54,6 +60,8 @@ export function parseFiltersFromUrl(
     tokensMin: parseFiniteNumber(params.get("tmin")),
     tokensMax: parseFiniteNumber(params.get("tmax")),
     unmatchedOnly: params.get("unmatched") === "true",
+    sort: parseSort(params.get("sort")) ?? defaults.sort,
+    direction: parseDirection(params.get("dir")) ?? defaults.direction,
     page: parsePage(params.get("page"))
   };
 }
@@ -70,6 +78,8 @@ export function serializeFiltersToUrl(filters: SessionFilters): URLSearchParams 
   setNumberParam(params, "tmin", filters.tokensMin);
   setNumberParam(params, "tmax", filters.tokensMax);
   if (filters.unmatchedOnly) params.set("unmatched", "true");
+  if (filters.sort !== "startedAt") params.set("sort", filters.sort);
+  if (filters.direction !== "desc") params.set("dir", filters.direction);
   if (filters.page > 1) params.set("page", String(filters.page));
   return params;
 }
@@ -126,6 +136,14 @@ function parseSource(value: string | null) {
 
 function parseDateRange(value: string | null) {
   return value && dateRangeValues.has(value) ? (value as SessionFilters["dateRange"]) : undefined;
+}
+
+function parseSort(value: string | null) {
+  return value && sortValues.has(value) ? (value as ProjectSessionSortKey) : undefined;
+}
+
+function parseDirection(value: string | null) {
+  return value && directionValues.has(value) ? (value as SortDirection) : undefined;
 }
 
 function parseString(value: string | null) {

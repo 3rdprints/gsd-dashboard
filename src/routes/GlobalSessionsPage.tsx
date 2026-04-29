@@ -38,10 +38,12 @@ export function GlobalSessionsPage() {
   const saveSettings = useMutation(createSaveSettingsMutationOptions(queryClient));
   const defaultFilters = useMemo(
     () =>
-      settings.isSuccess
+      settings.isSuccess && settings.data
         ? DEFAULT_FILTERS({ globalSessionsDefaultRange: settings.data.globalSessionsDefaultRange })
+        : settings.isError
+          ? DEFAULT_FILTERS({ globalSessionsDefaultRange: "7d" })
         : undefined,
-    [settings.data, settings.isSuccess]
+    [settings.data, settings.isError, settings.isSuccess]
   );
   const filters = useMemo(
     () => (defaultFilters ? parseFiltersFromUrl(searchParams, defaultFilters) : undefined),
@@ -49,14 +51,20 @@ export function GlobalSessionsPage() {
   );
   const ipcFilters = useMemo(() => (filters ? filtersToGlobalSessionFilters(filters) : undefined), [filters]);
   const sessions = useQuery({
-    queryKey: globalSessionsQueryKey(ipcFilters ?? {}, filters?.page ?? 1, pageSize),
-    queryFn: () => listGlobalSessions(ipcFilters!, filters!.page, pageSize),
-    enabled: settings.isSuccess && !!ipcFilters && !!filters
+    queryKey: globalSessionsQueryKey(
+      ipcFilters ?? {},
+      filters?.sort ?? "startedAt",
+      filters?.direction ?? "desc",
+      filters?.page ?? 1,
+      pageSize
+    ),
+    queryFn: () => listGlobalSessions(ipcFilters!, filters!.sort, filters!.direction, filters!.page, pageSize),
+    enabled: !!ipcFilters && !!filters
   });
   const charts = useQuery({
     queryKey: globalChartsQueryKey(ipcFilters ?? {}),
     queryFn: () => getGlobalChartData(ipcFilters!),
-    enabled: settings.isSuccess && !!ipcFilters
+    enabled: !!ipcFilters
   });
   const projects = portfolio.data?.projects ?? [];
 
@@ -163,11 +171,10 @@ export function GlobalSessionsPage() {
             total={pageData.total}
             page={pageData.page}
             pageSize={pageData.pageSize}
-            sort="startedAt"
-            direction="desc"
+            sort={filters.sort}
+            direction={filters.direction}
             showProject
-            disableSorting
-            onSortChange={() => undefined}
+            onSortChange={(sort, direction) => setFilters({ ...filters, sort, direction, page: 1 })}
             onPageChange={(page) => setFilters({ ...filters, page })}
           />
         </section>

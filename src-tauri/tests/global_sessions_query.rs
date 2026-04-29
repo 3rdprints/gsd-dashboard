@@ -178,6 +178,8 @@ async fn global_sessions_query_combines_filters() {
             unmatched_only: Some(false),
         },
         None,
+        None,
+        None,
         Some(500),
     )
     .await
@@ -202,6 +204,8 @@ async fn global_sessions_query_combines_filters() {
             source: Some("claude'; DROP TABLE sessions; --".to_string()),
             ..GlobalSessionFilters::default()
         },
+        None,
+        None,
         None,
         None,
     )

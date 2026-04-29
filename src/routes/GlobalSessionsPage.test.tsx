@@ -39,10 +39,23 @@ describe("GlobalSessionsPage", () => {
     const { globalSessionsQueryKey } = await import("../lib/queryClient");
     const filters = { source: "claude" as const, unmatchedOnly: true };
 
-    await listGlobalSessions(filters, 2, 100);
+    await listGlobalSessions(filters, "startedAt", "desc", 2, 100);
 
-    expect(invoke).toHaveBeenCalledWith("list_global_sessions", { filters, page: 2, page_size: 100 });
-    expect(globalSessionsQueryKey(filters, 2, 100)).toEqual(["globalSessions", filters, 2, 100]);
+    expect(invoke).toHaveBeenCalledWith("list_global_sessions", {
+      filters,
+      sort: "startedAt",
+      direction: "desc",
+      page: 2,
+      page_size: 100
+    });
+    expect(globalSessionsQueryKey(filters, "startedAt", "desc", 2, 100)).toEqual([
+      "globalSessions",
+      filters,
+      "startedAt",
+      "desc",
+      2,
+      100
+    ]);
   });
 
   it("coerces URL filters and rejects invalid numeric and source values", async () => {

@@ -100,6 +100,8 @@ async fn global_sessions_unmatched_uses_partial_index() {
             unmatched_only: Some(true),
             ..GlobalSessionFilters::default()
         },
+        None,
+        None,
         Some(1),
         Some(100),
     )

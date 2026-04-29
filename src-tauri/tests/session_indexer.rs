@@ -27,6 +27,10 @@ struct StoredSessionStats {
     tokens_out: Option<i64>,
 }
 
+type SessionEventStore = Arc<Mutex<Vec<SessionIndexEvent>>>;
+type SessionEventRecorder =
+    Box<dyn Fn(SessionIndexEvent) -> Result<(), AppError> + Send + Sync + 'static>;
+
 fn fixture_path(name: &str) -> &'static str {
     match name {
         "claude-basic" => concat!(
@@ -115,20 +119,20 @@ fn copy_fixture_roots(home_dir: &Path) -> (PathBuf, PathBuf) {
     (claude_path, codex_path)
 }
 
-fn collect_session_events() -> (
-    Arc<Mutex<Vec<SessionIndexEvent>>>,
-    impl Fn(SessionIndexEvent) -> Result<(), AppError> + Send + Sync + 'static,
-) {
+fn collect_session_events() -> (SessionEventStore, SessionEventRecorder) {
     let events = Arc::new(Mutex::new(Vec::new()));
     let recorded_events = Arc::clone(&events);
 
-    (events, move |event| {
-        recorded_events
-            .lock()
-            .expect("events lock should not be poisoned")
-            .push(event);
-        Ok(())
-    })
+    (
+        events,
+        Box::new(move |event| {
+            recorded_events
+                .lock()
+                .expect("events lock should not be poisoned")
+                .push(event);
+            Ok(())
+        }),
+    )
 }
 
 async fn load_session_stats(
