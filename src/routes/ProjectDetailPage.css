@@ -374,6 +374,10 @@
   cursor: pointer;
 }
 
+.sessions-table .inert-sortable {
+  cursor: default;
+}
+
 .sessions-table th[aria-sort="ascending"] .sortable,
 .sessions-table th[aria-sort="descending"] .sortable {
   color: #2563EB;

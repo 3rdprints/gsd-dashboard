@@ -63,17 +63,18 @@ export function ProjectSessionsTab({ projectId }: ProjectSessionsTabProps) {
           <h3>No sessions for this project</h3>
           <p>Sessions attributed to this project will appear here after indexing.</p>
         </div>
-      ) : null}
-      <SessionsTable
-        rows={pageData.rows}
-        total={pageData.total}
-        page={pageData.page}
-        pageSize={pageData.pageSize}
-        sort={sort}
-        direction={direction}
-        onSortChange={handleSortChange}
-        onPageChange={setPage}
-      />
+      ) : (
+        <SessionsTable
+          rows={pageData.rows}
+          total={pageData.total}
+          page={pageData.page}
+          pageSize={pageData.pageSize}
+          sort={sort}
+          direction={direction}
+          onSortChange={handleSortChange}
+          onPageChange={setPage}
+        />
+      )}
     </section>
   );
 }

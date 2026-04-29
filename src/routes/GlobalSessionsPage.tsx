@@ -130,12 +130,6 @@ export function GlobalSessionsPage() {
       ) : null}
       {!sessions.isLoading && !sessions.isError ? (
         <section className="chart-card">
-          {pageData.total === 0 ? (
-            <div className="empty-state">
-              <h3>No sessions found</h3>
-              <p>Try widening the date range or removing active filters.</p>
-            </div>
-          ) : null}
           <SessionsTable
             rows={pageData.rows}
             total={pageData.total}
@@ -144,6 +138,7 @@ export function GlobalSessionsPage() {
             sort="startedAt"
             direction="desc"
             showProject
+            disableSorting
             onSortChange={() => undefined}
             onPageChange={(page) => setFilters({ ...filters, page })}
           />

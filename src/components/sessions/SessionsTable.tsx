@@ -26,6 +26,7 @@ export type SessionsTableProps = {
   sort: ProjectSessionSortKey;
   direction: SortDirection;
   showProject?: boolean;
+  disableSorting?: boolean;
   onSortChange: (sort: ProjectSessionSortKey, direction: SortDirection) => void;
   onPageChange: (page: number) => void;
 };
@@ -38,6 +39,7 @@ export function SessionsTable({
   sort,
   direction,
   showProject = false,
+  disableSorting = false,
   onSortChange,
   onPageChange
 }: SessionsTableProps) {
@@ -65,14 +67,21 @@ export function SessionsTable({
                 const SortIcon = active ? (direction === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
                 return (
                   <th key={column.key} aria-sort={ariaSort} className={column.numeric ? "numeric-cell" : undefined}>
-                    <button
-                      type="button"
-                      className="sortable"
-                      onClick={() => onSortChange(column.key, nextDirection(column.key))}
-                    >
-                      {column.label}
-                      <SortIcon aria-hidden="true" size={14} strokeWidth={2} />
-                    </button>
+                    {disableSorting ? (
+                      <span className="sortable inert-sortable">
+                        {column.label}
+                        <SortIcon aria-hidden="true" size={14} strokeWidth={2} />
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="sortable"
+                        onClick={() => onSortChange(column.key, nextDirection(column.key))}
+                      >
+                        {column.label}
+                        <SortIcon aria-hidden="true" size={14} strokeWidth={2} />
+                      </button>
+                    )}
                   </th>
                 );
               })}
