@@ -52,7 +52,11 @@ pub fn load_project_chart_data(
     Ok(ProjectChartDataDto {
         sessions_per_day: load_sessions_per_day(connection, project_id, lower_bound)?,
         tokens_per_day: load_tokens_per_day(connection, project_id, lower_bound)?,
-        average_duration_per_day: load_average_duration_per_day(connection, project_id, lower_bound)?,
+        average_duration_per_day: load_average_duration_per_day(
+            connection,
+            project_id,
+            lower_bound,
+        )?,
         milestone_velocity: load_milestone_velocity(connection, project_id, lower_bound)?,
     })
 }

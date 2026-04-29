@@ -55,7 +55,11 @@ async fn project_sessions_support_paging_sorting_and_reject_injection() {
     )
     .await
     .expect("bootstrap should succeed");
-    let connection = state.pool.get().await.expect("connection should be available");
+    let connection = state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available");
     connection
         .interact(|connection| {
             project_repo::upsert_project_snapshot(connection, snapshot(), Vec::new(), 1)?;
@@ -84,10 +88,16 @@ async fn project_sessions_support_paging_sorting_and_reject_injection() {
         .expect("interaction should complete")
         .expect("fixtures should insert");
 
-    let first_page =
-        list_project_sessions_for_app(&state, "project-1", Some("tokensIn"), Some("desc"), None, None)
-            .await
-            .expect("sessions should load");
+    let first_page = list_project_sessions_for_app(
+        &state,
+        "project-1",
+        Some("tokensIn"),
+        Some("desc"),
+        None,
+        None,
+    )
+    .await
+    .expect("sessions should load");
     assert_eq!(first_page.page_size, 50);
     assert_eq!(first_page.total, 3);
     assert_eq!(first_page.rows[0].id, "new-high");
@@ -138,11 +148,17 @@ async fn project_sessions_support_paging_sorting_and_reject_injection() {
     .expect_err("injected sort should be rejected");
     assert!(error.to_string().contains("invalid session sort"));
 
-    let connection = state.pool.get().await.expect("connection should be available");
+    let connection = state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available");
     let count = connection
         .interact(|connection| {
             connection
-                .query_row("SELECT COUNT(*) FROM sessions", [], |row| row.get::<_, i64>(0))
+                .query_row("SELECT COUNT(*) FROM sessions", [], |row| {
+                    row.get::<_, i64>(0)
+                })
                 .map_err(gsd_dashboard::error::AppError::from)
         })
         .await

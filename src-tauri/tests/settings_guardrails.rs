@@ -136,7 +136,10 @@ async fn empty_scan_roots_coerce_to_default() {
 
     let conn = pool.get().await.expect("connection should be available");
     conn.interact(|conn| {
-        conn.execute("UPDATE settings SET scan_roots_json = '[]' WHERE id = 1", [])
+        conn.execute(
+            "UPDATE settings SET scan_roots_json = '[]' WHERE id = 1",
+            [],
+        )
     })
     .await
     .expect("interaction should complete")

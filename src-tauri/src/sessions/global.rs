@@ -100,7 +100,8 @@ pub fn list_global_sessions(
         .unwrap_or(DEFAULT_PAGE_SIZE)
         .clamp(1, MAX_PAGE_SIZE);
     let offset = (page - 1) * page_size;
-    let filter = build_filter_sql(filters, source, unmatched_only);
+    let token_total_expression = token_total_sql(has_cache_token_columns(connection)?);
+    let filter = build_filter_sql(filters, source, unmatched_only, token_total_expression);
 
     let total = connection
         .query_row(
@@ -136,9 +137,7 @@ pub fn list_global_sessions(
              {}
              ORDER BY s.started_at DESC NULLS LAST, s.id ASC
              LIMIT ? OFFSET ?",
-            token_total_sql(),
-            filter.table_sql,
-            filter.where_sql,
+            token_total_expression, filter.table_sql, filter.where_sql,
         ))
         .map_err(AppError::from)?;
     let rows = statement
@@ -177,6 +176,7 @@ pub fn load_global_chart_data(
 ) -> Result<GlobalChartDataDto, AppError> {
     let source = validated_source(filters.source.as_deref())?;
     let unmatched_only = filters.unmatched_only.unwrap_or(false) as i64;
+    let token_total_expression = token_total_sql(has_cache_token_columns(connection)?);
 
     Ok(GlobalChartDataDto {
         sessions_per_day_by_source: load_sessions_per_day_by_source(
@@ -184,24 +184,28 @@ pub fn load_global_chart_data(
             filters,
             source,
             unmatched_only,
+            token_total_expression,
         )?,
         tokens_per_day_by_project: load_tokens_per_day_by_project(
             connection,
             filters,
             source,
             unmatched_only,
+            token_total_expression,
         )?,
         time_of_day_histogram: load_time_of_day_histogram(
             connection,
             filters,
             source,
             unmatched_only,
+            token_total_expression,
         )?,
         day_of_week_distribution: load_day_of_week_distribution(
             connection,
             filters,
             source,
             unmatched_only,
+            token_total_expression,
         )?,
     })
 }
@@ -211,8 +215,9 @@ fn load_sessions_per_day_by_source(
     filters: &GlobalSessionFilters,
     source: Option<&str>,
     unmatched_only: i64,
+    token_total_expression: &'static str,
 ) -> Result<Vec<GlobalSessionsBySourceDayDto>, AppError> {
-    let filter = build_filter_sql(filters, source, unmatched_only);
+    let filter = build_filter_sql(filters, source, unmatched_only, token_total_expression);
     let mut statement = connection
         .prepare(&format!(
             "SELECT date(s.started_at / 1000, 'unixepoch', 'localtime'),
@@ -244,8 +249,9 @@ fn load_tokens_per_day_by_project(
     filters: &GlobalSessionFilters,
     source: Option<&str>,
     unmatched_only: i64,
+    token_total_expression: &'static str,
 ) -> Result<Vec<GlobalTokensByProjectDayDto>, AppError> {
-    let filter = build_filter_sql(filters, source, unmatched_only);
+    let filter = build_filter_sql(filters, source, unmatched_only, token_total_expression);
     let mut statement = connection
         .prepare(&format!(
             "WITH filtered AS (
@@ -281,9 +287,7 @@ fn load_tokens_per_day_by_project(
              LEFT JOIN projects ON projects.id = filtered.project_id
              GROUP BY 1, 2, 3
              ORDER BY 1, 3",
-            token_total_sql(),
-            filter.table_sql,
-            filter.where_sql,
+            token_total_expression, filter.table_sql, filter.where_sql,
         ))
         .map_err(AppError::from)?;
     let rows = statement
@@ -305,8 +309,9 @@ fn load_time_of_day_histogram(
     filters: &GlobalSessionFilters,
     source: Option<&str>,
     unmatched_only: i64,
+    token_total_expression: &'static str,
 ) -> Result<Vec<GlobalHistogramBucketDto>, AppError> {
-    let filter = build_filter_sql(filters, source, unmatched_only);
+    let filter = build_filter_sql(filters, source, unmatched_only, token_total_expression);
     let mut counts = [0_i64; 24];
     let mut statement = connection
         .prepare(&format!(
@@ -347,8 +352,9 @@ fn load_day_of_week_distribution(
     filters: &GlobalSessionFilters,
     source: Option<&str>,
     unmatched_only: i64,
+    token_total_expression: &'static str,
 ) -> Result<Vec<GlobalDayOfWeekBucketDto>, AppError> {
-    let filter = build_filter_sql(filters, source, unmatched_only);
+    let filter = build_filter_sql(filters, source, unmatched_only, token_total_expression);
     let mut counts = [0_i64; 7];
     let mut statement = connection
         .prepare(&format!(
@@ -391,11 +397,35 @@ fn validated_source(source: Option<&str>) -> Result<Option<&str>, AppError> {
     }
 }
 
-fn token_total_sql() -> &'static str {
-    "COALESCE(s.tokens_in, 0)
-        + COALESCE(s.tokens_out, 0)
-        + COALESCE(s.cache_read_tokens, 0)
-        + COALESCE(s.cache_creation_tokens, 0)"
+fn has_cache_token_columns(connection: &rusqlite::Connection) -> Result<bool, AppError> {
+    let mut statement = connection
+        .prepare("PRAGMA table_info(sessions)")
+        .map_err(AppError::from)?;
+    let columns = statement
+        .query_map([], |row| row.get::<_, String>(1))
+        .map_err(AppError::from)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(AppError::from)?;
+
+    Ok(columns.iter().any(|column| column == "cache_read_tokens")
+        && columns
+            .iter()
+            .any(|column| column == "cache_creation_tokens"))
+}
+
+fn token_total_sql(has_cache_token_columns: bool) -> &'static str {
+    if has_cache_token_columns {
+        "COALESCE(s.tokens_in, 0)
+            + COALESCE(s.tokens_out, 0)
+            + COALESCE(s.cache_read_tokens, 0)
+            + COALESCE(s.cache_creation_tokens, 0)"
+    } else {
+        // TODO: restore cache token columns here once every supported sessions schema has them.
+        "COALESCE(s.tokens_in, 0)
+            + COALESCE(s.tokens_out, 0)
+            + 0
+            + 0"
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -409,6 +439,7 @@ fn build_filter_sql(
     filters: &GlobalSessionFilters,
     source: Option<&str>,
     unmatched_only: i64,
+    token_total_expression: &'static str,
 ) -> FilterSql {
     let mut where_sql = String::from("WHERE 1 = 1");
     let mut values = Vec::new();
@@ -444,13 +475,13 @@ fn build_filter_sql(
     }
     if let Some(tokens_min) = filters.tokens_min {
         where_sql.push_str(" AND (");
-        where_sql.push_str(token_total_sql());
+        where_sql.push_str(token_total_expression);
         where_sql.push_str(") >= ?");
         values.push(Value::Integer(tokens_min));
     }
     if let Some(tokens_max) = filters.tokens_max {
         where_sql.push_str(" AND (");
-        where_sql.push_str(token_total_sql());
+        where_sql.push_str(token_total_expression);
         where_sql.push_str(") <= ?");
         values.push(Value::Integer(tokens_max));
     }

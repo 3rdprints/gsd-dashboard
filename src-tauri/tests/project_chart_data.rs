@@ -41,7 +41,13 @@ fn phase(plan_number: &str) -> StoredPhasePlan {
     }
 }
 
-fn session(id: &str, started_at: i64, duration_ms: i64, tokens_in: i64, tokens_out: i64) -> IndexedSession {
+fn session(
+    id: &str,
+    started_at: i64,
+    duration_ms: i64,
+    tokens_in: i64,
+    tokens_out: i64,
+) -> IndexedSession {
     IndexedSession {
         id: id.to_string(),
         source: SessionSource::Codex,
@@ -73,7 +79,11 @@ async fn project_chart_data_returns_four_series_aggregates() {
     let day_one = 1_777_000_000_000_i64;
     let day_two = day_one + DAY_MS;
 
-    let connection = state.pool.get().await.expect("connection should be available");
+    let connection = state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available");
     connection
         .interact(move |connection| {
             project_repo::upsert_project_snapshot(
@@ -125,8 +135,22 @@ async fn project_chart_data_returns_four_series_aggregates() {
         .await
         .expect("chart data should load");
 
-    assert_eq!(chart_data.sessions_per_day.iter().map(|row| row.count).sum::<i64>(), 3);
-    assert_eq!(chart_data.tokens_per_day.iter().map(|row| row.tokens).sum::<i64>(), 52);
+    assert_eq!(
+        chart_data
+            .sessions_per_day
+            .iter()
+            .map(|row| row.count)
+            .sum::<i64>(),
+        3
+    );
+    assert_eq!(
+        chart_data
+            .tokens_per_day
+            .iter()
+            .map(|row| row.tokens)
+            .sum::<i64>(),
+        52
+    );
     assert!(chart_data
         .average_duration_per_day
         .iter()

@@ -9,9 +9,7 @@ use crate::{
     sessions::{
         self,
         project_charts::ProjectChartDataDto,
-        project_detail::{
-            ProjectMilestoneDto, ProjectPhasePanelDto, ProjectSessionsPageDto,
-        },
+        project_detail::{ProjectMilestoneDto, ProjectPhasePanelDto, ProjectSessionsPageDto},
         repo::UnmatchedSessionSummary,
         SessionSource,
     },
