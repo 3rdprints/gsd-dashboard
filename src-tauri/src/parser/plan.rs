@@ -55,6 +55,7 @@ pub fn parse_plan(bytes: &[u8]) -> Result<PlanDocument, ParseError> {
         plan_type: frontmatter_value(frontmatter.plan_type, &matter_source, "type"),
         source_path: None,
         completed: false,
+        completed_at: None,
         tasks,
         checklist,
         items,

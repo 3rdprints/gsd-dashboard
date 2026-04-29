@@ -384,6 +384,17 @@ type: execute
             .expect("project should be persisted");
 
             assert!((project.milestone_progress_pct - 50.0).abs() < f64::EPSILON);
+            let phase_plans = project_repo::load_phase_plans(connection, &project.id)?;
+            let completed_plan = phase_plans
+                .iter()
+                .find(|plan| plan.plan_number.as_deref() == Some("01"))
+                .expect("completed plan should be persisted");
+            assert!(
+                completed_plan
+                    .completed_at
+                    .is_some_and(|timestamp| timestamp > 1_000_000_000_000),
+                "completed plan should store a millisecond timestamp for chart ranges"
+            );
 
             Ok::<_, AppError>(())
         })

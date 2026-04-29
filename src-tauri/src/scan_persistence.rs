@@ -20,11 +20,13 @@ pub(crate) async fn persist_project_scan(
     project_scan: ProjectScan,
 ) -> Result<(), AppError> {
     let now = unix_timestamp();
+    let now_ms = unix_timestamp_ms();
     let first_issue = project_scan.parse_issues.first().cloned();
     let scan_log_issues = project_scan.parse_issues.clone();
     let errors_json = serde_json::to_string(&project_scan.parse_issues)?;
     let stored_snapshot = stored_snapshot(project_scan.snapshot, first_issue.as_ref(), now)?;
-    let phase_plans = stored_phase_plans(&stored_snapshot.id, &stored_snapshot.parsed_blob)?;
+    let phase_plans =
+        stored_phase_plans(&stored_snapshot.id, &stored_snapshot.parsed_blob, now_ms)?;
     let root_path = display_path(&candidate.project_root);
     let planning_path = display_path(&candidate.planning_path);
     let project_id = identity.id.clone();
@@ -42,7 +44,7 @@ pub(crate) async fn persist_project_scan(
                                 connection,
                                 &project_id,
                                 &plan_path,
-                                now,
+                                now_ms,
                             )
                         })
                 {
@@ -126,6 +128,7 @@ fn stored_snapshot(
 fn stored_phase_plans(
     project_id: &str,
     parsed_blob: &str,
+    now_ms: i64,
 ) -> Result<Vec<StoredPhasePlan>, AppError> {
     let snapshot: ProjectSnapshot = serde_json::from_str(parsed_blob)?;
 
@@ -156,7 +159,9 @@ fn stored_phase_plans(
                 phase_name: Some(plan.phase.name),
                 plan_number: Some(plan_number),
                 plan_path,
-                completed_at: plan.completed.then_some(0),
+                completed_at: plan
+                    .completed_at
+                    .or_else(|| plan.completed.then_some(now_ms)),
                 checklist_json: serde_json::to_string(&plan.checklist)
                     .unwrap_or_else(|_| "[]".to_string()),
                 updated_at: 0,
@@ -202,5 +207,12 @@ fn unix_timestamp() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_secs() as i64)
+        .unwrap_or_default()
+}
+
+fn unix_timestamp_ms() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_millis() as i64)
         .unwrap_or_default()
 }

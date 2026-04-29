@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    time::UNIX_EPOCH,
+};
 
 use deadpool_sqlite::Pool;
 
@@ -332,7 +335,9 @@ fn collect_plan_files_recursive(
             Ok(bytes) => match parse_plan(&bytes) {
                 Ok(mut plan) => {
                     plan.source_path = Some(display_path(&entry_path));
-                    plan.completed = matching_summary_path(&entry_path).exists();
+                    let summary_path = matching_summary_path(&entry_path);
+                    plan.completed = summary_path.exists();
+                    plan.completed_at = summary_modified_at_ms(&summary_path);
                     plans.push(plan);
                 }
                 Err(error) => parse_issues.push(error.issue(display_path(&entry_path))),
@@ -446,6 +451,7 @@ fn project_phase_plan(plan: &PlanDocument) -> Option<parser::PhasePlan> {
         plan_type: plan.plan_type.clone().unwrap_or_default(),
         plan_path: plan.source_path.clone().unwrap_or_default(),
         completed: plan.completed,
+        completed_at: plan.completed_at,
         checklist: plan.checklist.clone(),
         items: plan.items.clone(),
     })
@@ -462,6 +468,17 @@ fn matching_summary_path(plan_path: &Path) -> PathBuf {
     };
 
     plan_path.with_file_name(summary_name)
+}
+
+fn summary_modified_at_ms(summary_path: &Path) -> Option<i64> {
+    summary_path
+        .metadata()
+        .ok()?
+        .modified()
+        .ok()?
+        .duration_since(UNIX_EPOCH)
+        .ok()
+        .map(|duration| duration.as_millis() as i64)
 }
 
 fn infer_project_identity(candidate: &PlanningProjectCandidate) -> ProjectIdentity {
