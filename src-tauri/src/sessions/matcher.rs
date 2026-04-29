@@ -84,7 +84,9 @@ fn git_worktree_base_root(candidate_path: &Path) -> Option<PathBuf> {
         let git_file = current_path.join(".git");
         // is_file performs filesystem I/O; callers reach this through match_project's blocking contract.
         if git_file.is_file() {
-            return gitdir_base_root(&git_file, current_path);
+            if let Some(base_root) = gitdir_base_root(&git_file, current_path) {
+                return Some(base_root);
+            }
         }
 
         current_path = current_path.parent()?;
@@ -164,7 +166,8 @@ fn encoded_roots_overlap(encoded_project_dir: &str, known_root: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::base_root_from_worktree_gitdir;
+    use super::{base_root_from_worktree_gitdir, git_worktree_base_root};
+    use std::fs;
     use std::path::{Path, PathBuf};
 
     #[test]
@@ -201,5 +204,24 @@ mod tests {
             base_root_from_worktree_gitdir(Path::new(".git/worktrees/name")),
             None
         );
+    }
+
+    #[test]
+    fn git_worktree_base_root_continues_past_non_worktree_git_files() {
+        let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+        let base_root = temp_dir.path().join("repo");
+        let worktree_root = base_root.join("feature");
+        let nested_root = worktree_root.join("nested");
+        let candidate = nested_root.join("deeper");
+        fs::create_dir_all(&candidate).expect("candidate dirs should be created");
+        fs::write(
+            worktree_root.join(".git"),
+            format!("gitdir: {}/.git/worktrees/feature\n", base_root.display()),
+        )
+        .expect("outer git file should be written");
+        fs::write(nested_root.join(".git"), "gitdir: ../.git/modules/nested\n")
+            .expect("nested git file should be written");
+
+        assert_eq!(git_worktree_base_root(&candidate), Some(base_root));
     }
 }

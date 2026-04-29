@@ -37,18 +37,26 @@ export function GlobalSessionsPage() {
   const portfolio = useQuery({ queryKey: portfolioQueryKey, queryFn: getPortfolio });
   const saveSettings = useMutation(createSaveSettingsMutationOptions(queryClient));
   const defaultFilters = useMemo(
-    () => DEFAULT_FILTERS(settings.data ? { globalSessionsDefaultRange: settings.data.globalSessionsDefaultRange } : undefined),
-    [settings.data]
+    () =>
+      settings.isSuccess
+        ? DEFAULT_FILTERS({ globalSessionsDefaultRange: settings.data.globalSessionsDefaultRange })
+        : undefined,
+    [settings.data, settings.isSuccess]
   );
-  const filters = useMemo(() => parseFiltersFromUrl(searchParams, defaultFilters), [searchParams, defaultFilters]);
-  const ipcFilters = useMemo(() => filtersToGlobalSessionFilters(filters), [filters]);
+  const filters = useMemo(
+    () => (defaultFilters ? parseFiltersFromUrl(searchParams, defaultFilters) : undefined),
+    [searchParams, defaultFilters]
+  );
+  const ipcFilters = useMemo(() => (filters ? filtersToGlobalSessionFilters(filters) : undefined), [filters]);
   const sessions = useQuery({
-    queryKey: globalSessionsQueryKey(ipcFilters, filters.page, pageSize),
-    queryFn: () => listGlobalSessions(ipcFilters, filters.page, pageSize)
+    queryKey: globalSessionsQueryKey(ipcFilters ?? {}, filters?.page ?? 1, pageSize),
+    queryFn: () => listGlobalSessions(ipcFilters!, filters!.page, pageSize),
+    enabled: settings.isSuccess && !!ipcFilters && !!filters
   });
   const charts = useQuery({
-    queryKey: globalChartsQueryKey(ipcFilters),
-    queryFn: () => getGlobalChartData(ipcFilters)
+    queryKey: globalChartsQueryKey(ipcFilters ?? {}),
+    queryFn: () => getGlobalChartData(ipcFilters!),
+    enabled: settings.isSuccess && !!ipcFilters
   });
   const projects = portfolio.data?.projects ?? [];
 
@@ -63,6 +71,19 @@ export function GlobalSessionsPage() {
   function persistDefaultRange(range: GlobalSessionsDefaultRange) {
     if (!settings.data || settings.data.globalSessionsDefaultRange === range) return;
     saveSettings.mutate({ ...settings.data, globalSessionsDefaultRange: range });
+  }
+
+  if (!filters) {
+    return (
+      <div className="page-stack global-sessions-page">
+        <div className="app-header">
+          <header>
+            <h1>Sessions</h1>
+            <p>Loading settings</p>
+          </header>
+        </div>
+      </div>
+    );
   }
 
   const pageData = sessions.data ?? { rows: [], total: 0, page: filters.page, pageSize };

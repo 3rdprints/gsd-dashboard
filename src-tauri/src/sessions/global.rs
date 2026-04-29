@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::AppError;
 
+use super::SessionSource;
+
 const DEFAULT_PAGE_SIZE: i64 = 100;
 const MAX_PAGE_SIZE: i64 = 200;
 
@@ -176,42 +178,46 @@ pub fn load_global_chart_data(
 ) -> Result<GlobalChartDataDto, AppError> {
     let source = validated_source(filters.source.as_deref())?;
     let unmatched_only = filters.unmatched_only.unwrap_or(false) as i64;
-    let token_total_expression = token_total_sql(has_cache_token_columns(connection)?);
+    let transaction = connection.transaction().map_err(AppError::from)?;
+    let token_total_expression = token_total_sql(has_cache_token_columns(&transaction)?);
 
-    Ok(GlobalChartDataDto {
+    let chart_data = GlobalChartDataDto {
         sessions_per_day_by_source: load_sessions_per_day_by_source(
-            connection,
+            &transaction,
             filters,
             source,
             unmatched_only,
             token_total_expression,
         )?,
         tokens_per_day_by_project: load_tokens_per_day_by_project(
-            connection,
+            &transaction,
             filters,
             source,
             unmatched_only,
             token_total_expression,
         )?,
         time_of_day_histogram: load_time_of_day_histogram(
-            connection,
+            &transaction,
             filters,
             source,
             unmatched_only,
             token_total_expression,
         )?,
         day_of_week_distribution: load_day_of_week_distribution(
-            connection,
+            &transaction,
             filters,
             source,
             unmatched_only,
             token_total_expression,
         )?,
-    })
+    };
+
+    transaction.commit().map_err(AppError::from)?;
+    Ok(chart_data)
 }
 
 fn load_sessions_per_day_by_source(
-    connection: &mut rusqlite::Connection,
+    connection: &rusqlite::Connection,
     filters: &GlobalSessionFilters,
     source: Option<&str>,
     unmatched_only: i64,
@@ -245,7 +251,7 @@ fn load_sessions_per_day_by_source(
 }
 
 fn load_tokens_per_day_by_project(
-    connection: &mut rusqlite::Connection,
+    connection: &rusqlite::Connection,
     filters: &GlobalSessionFilters,
     source: Option<&str>,
     unmatched_only: i64,
@@ -305,7 +311,7 @@ fn load_tokens_per_day_by_project(
 }
 
 fn load_time_of_day_histogram(
-    connection: &mut rusqlite::Connection,
+    connection: &rusqlite::Connection,
     filters: &GlobalSessionFilters,
     source: Option<&str>,
     unmatched_only: i64,
@@ -348,7 +354,7 @@ fn load_time_of_day_histogram(
 }
 
 fn load_day_of_week_distribution(
-    connection: &mut rusqlite::Connection,
+    connection: &rusqlite::Connection,
     filters: &GlobalSessionFilters,
     source: Option<&str>,
     unmatched_only: i64,
@@ -391,10 +397,10 @@ fn load_day_of_week_distribution(
 }
 
 fn validated_source(source: Option<&str>) -> Result<Option<&str>, AppError> {
-    match source {
-        Some("claude" | "codex") | None => Ok(source),
-        Some(_) => Err(AppError::store("invalid session source")),
+    if let Some(source) = source {
+        SessionSource::try_from(source).map_err(|_| AppError::store("invalid session source"))?;
     }
+    Ok(source)
 }
 
 fn has_cache_token_columns(connection: &rusqlite::Connection) -> Result<bool, AppError> {

@@ -16,6 +16,7 @@ export type SessionFilters = {
 
 const sourceValues = new Set(["claude", "codex"]);
 const defaultRangeValues = new Set(["7d", "30d", "90d", "all"]);
+const dateRangeValues = new Set(["today", "7d", "30d", "90d", "all", "custom"]);
 
 export function DEFAULT_FILTERS(settings?: Pick<AppSettings, "globalSessionsDefaultRange">): SessionFilters {
   const dateRange = settings?.globalSessionsDefaultRange ?? "7d";
@@ -34,18 +35,20 @@ export function parseFiltersFromUrl(
   defaults: SessionFilters = DEFAULT_FILTERS()
 ): SessionFilters {
   const source = parseSource(params.get("source"));
+  const explicitRange = parseDateRange(params.get("range"));
   const from = parseDate(params.get("from"));
   const to = parseDate(params.get("to"));
   const hasCustomDates = from !== undefined || to !== undefined;
-  const dateRange = hasCustomDates ? inferDateRange(from, to) ?? "custom" : defaults.dateRange;
+  const explicitRangeDates = explicitRange ? datesForRange(explicitRange) : undefined;
+  const dateRange = explicitRange ?? (hasCustomDates ? inferDateRange(from, to) ?? "custom" : defaults.dateRange);
 
   return {
     ...defaults,
     source,
     projectId: parseString(params.get("project")),
     dateRange,
-    from: from ?? (hasCustomDates ? undefined : defaults.from),
-    to: to ?? (hasCustomDates ? undefined : defaults.to),
+    from: from ?? (hasCustomDates ? undefined : explicitRange ? explicitRangeDates?.from : defaults.from),
+    to: to ?? (hasCustomDates ? undefined : explicitRange ? explicitRangeDates?.to : defaults.to),
     durationMinMinutes: parseFiniteNumber(params.get("dmin")),
     durationMaxMinutes: parseFiniteNumber(params.get("dmax")),
     tokensMin: parseFiniteNumber(params.get("tmin")),
@@ -57,6 +60,7 @@ export function parseFiltersFromUrl(
 
 export function serializeFiltersToUrl(filters: SessionFilters): URLSearchParams {
   const params = new URLSearchParams();
+  params.set("range", filters.dateRange);
   setParam(params, "source", filters.source);
   setParam(params, "project", filters.projectId);
   setParam(params, "from", filters.from);
@@ -118,6 +122,10 @@ function inferDateRange(from: string | undefined, to: string | undefined): Sessi
 
 function parseSource(value: string | null) {
   return value && sourceValues.has(value) ? (value as "claude" | "codex") : undefined;
+}
+
+function parseDateRange(value: string | null) {
+  return value && dateRangeValues.has(value) ? (value as SessionFilters["dateRange"]) : undefined;
 }
 
 function parseString(value: string | null) {

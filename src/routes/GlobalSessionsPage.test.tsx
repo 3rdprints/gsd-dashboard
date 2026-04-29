@@ -46,7 +46,9 @@ describe("GlobalSessionsPage", () => {
   });
 
   it("coerces URL filters and rejects invalid numeric and source values", async () => {
-    const { DEFAULT_FILTERS, parseFiltersFromUrl, serializeFiltersToUrl } = await import("../lib/sessionFilters");
+    const { DEFAULT_FILTERS, filtersToGlobalSessionFilters, parseFiltersFromUrl, serializeFiltersToUrl } = await import(
+      "../lib/sessionFilters"
+    );
     const params = new URLSearchParams({
       source: "claude'; DROP TABLE sessions; --",
       dmin: "NaN",
@@ -67,6 +69,16 @@ describe("GlobalSessionsPage", () => {
     expect(filters.unmatchedOnly).toBe(true);
     expect(filters.page).toBe(3);
     expect(serializeFiltersToUrl(filters).get("source")).toBeNull();
+
+    const allRangeFilters = parseFiltersFromUrl(
+      new URLSearchParams({ range: "all" }),
+      DEFAULT_FILTERS({ globalSessionsDefaultRange: "7d" })
+    );
+    expect(allRangeFilters.dateRange).toBe("all");
+    expect(allRangeFilters.from).toBeUndefined();
+    expect(allRangeFilters.to).toBeUndefined();
+    expect(serializeFiltersToUrl(allRangeFilters).get("range")).toBe("all");
+    expect(filtersToGlobalSessionFilters(allRangeFilters).startedAfter).toBeUndefined();
   });
 
   it("updates URL-backed filters with debounced numeric inputs and removable chips", async () => {

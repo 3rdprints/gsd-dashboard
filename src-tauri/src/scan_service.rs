@@ -207,17 +207,17 @@ fn parse_candidate_files(candidate: &PlanningProjectCandidate) -> Result<Project
                 .or_else(|| Some(state_milestone.clone()))
         })
         .or_else(|| roadmap.milestones.first().cloned());
-    let current_phase = state
+    let project_is_completed = state
         .as_ref()
-        .and_then(|state| state.current_phase.clone())
-        .or_else(|| {
-            if state
-                .as_ref()
-                .and_then(|state| state.status.as_deref())
-                .is_some_and(is_completed_status)
-            {
-                None
-            } else {
+        .and_then(|state| state.status.as_deref())
+        .is_some_and(is_completed_status);
+    let current_phase = if project_is_completed {
+        None
+    } else {
+        state
+            .as_ref()
+            .and_then(|state| state.current_phase.clone())
+            .or_else(|| {
                 roadmap
                     .phases
                     .iter()
@@ -226,8 +226,8 @@ fn parse_candidate_files(candidate: &PlanningProjectCandidate) -> Result<Project
                         number: phase.number.clone(),
                         name: phase.name.clone(),
                     })
-            }
-        });
+            })
+    };
 
     Ok(ProjectScan {
         snapshot: ProjectSnapshot {

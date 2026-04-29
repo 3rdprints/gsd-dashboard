@@ -481,7 +481,7 @@ Status: Milestone archived, preparing for next
 
             assert_eq!(
                 project.current_milestone_name.as_deref(),
-                Some("v1.2 Optimizer Rework")
+                Some("v1.2 Optimizer Rework — SHIPPED")
             );
             assert_eq!(project.current_phase_number, None);
             assert!((project.milestone_progress_pct - 100.0).abs() < f64::EPSILON);

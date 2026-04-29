@@ -1,8 +1,8 @@
-use rusqlite::{params, OptionalExtension};
+use rusqlite::params;
+use std::collections::HashMap;
 
 use crate::error::AppError;
 
-const DAY_MS: i64 = 86_400_000;
 const MIN_DAYS: i64 = 1;
 const MAX_DAYS: i64 = 365;
 
@@ -21,17 +21,18 @@ pub fn rebuild_window(
     now_ms: i64,
 ) -> Result<(), AppError> {
     let days = clamp_days(days);
-    let today_start_ms = local_day_start_ms(connection, now_ms)?;
-    let window_start_ms = today_start_ms - ((days - 1) * DAY_MS);
+    let today = local_date_for_ms(connection, now_ms)?;
+    let window_start = today - time::Duration::days(days - 1);
+    let today_key = today.to_string();
+    let window_start_key = window_start.to_string();
     let updated_at = now_ms / 1_000;
     let transaction = connection.transaction().map_err(AppError::from)?;
 
     transaction
         .execute(
             "DELETE FROM daily_activity
-             WHERE date >= date(?1 / 1000, 'unixepoch', 'localtime')
-               AND date <= date(?2 / 1000, 'unixepoch', 'localtime')",
-            params![window_start_ms, today_start_ms],
+             WHERE date BETWEEN ?1 AND ?2",
+            params![window_start_key.as_str(), today_key.as_str()],
         )
         .map_err(AppError::from)?;
 
@@ -46,8 +47,7 @@ pub fn rebuild_window(
                             + COALESCE(cache_read_tokens, 0)
                             + COALESCE(cache_creation_tokens, 0) AS token_total
                  FROM sessions
-                 WHERE started_at >= ?1
-                   AND started_at < ?2 + ?3
+                 WHERE date(started_at / 1000, 'unixepoch', 'localtime') BETWEEN ?1 AND ?2
              ),
              day_totals AS (
                  SELECT date,
@@ -72,26 +72,31 @@ pub fn rebuild_window(
                     day_totals.session_count,
                     day_totals.token_total,
                     project_rank.project_id,
-                    ?4
+                    ?3
              FROM day_totals
              LEFT JOIN project_rank
                ON project_rank.date = day_totals.date
               AND project_rank.row_number = 1",
-            params![window_start_ms, today_start_ms, DAY_MS, updated_at],
+            params![window_start_key.as_str(), today_key.as_str(), updated_at],
         )
         .map_err(AppError::from)?;
 
     transaction.commit().map_err(AppError::from)
 }
 
-fn local_day_start_ms(connection: &mut rusqlite::Connection, now_ms: i64) -> Result<i64, AppError> {
-    connection
+fn local_date_for_ms(
+    connection: &mut rusqlite::Connection,
+    now_ms: i64,
+) -> Result<time::Date, AppError> {
+    let date = connection
         .query_row(
-            "SELECT unixepoch(date(?1 / 1000, 'unixepoch', 'localtime'), 'utc') * 1000",
+            "SELECT date(?1 / 1000, 'unixepoch', 'localtime')",
             [now_ms],
-            |row| row.get(0),
+            |row| row.get::<_, String>(0),
         )
-        .map_err(AppError::from)
+        .map_err(AppError::from)?;
+
+    parse_date_key(&date)
 }
 
 pub fn load_window(
@@ -102,36 +107,44 @@ pub fn load_window(
     let end_date = latest_activity_date(connection)?.unwrap_or_else(current_local_date);
     let start_date = end_date - time::Duration::days(days - 1);
     let mut rows = Vec::with_capacity(days as usize);
+    let start_key = start_date.to_string();
+    let end_key = end_date.to_string();
 
     let mut statement = connection
         .prepare(
-            "SELECT daily_activity.session_count,
+            "SELECT daily_activity.date,
+                    daily_activity.session_count,
                     daily_activity.token_total,
                     daily_activity.top_project_id,
                     projects.name
              FROM daily_activity
              LEFT JOIN projects ON projects.id = daily_activity.top_project_id
-             WHERE daily_activity.date = ?1",
+             WHERE daily_activity.date BETWEEN ?1 AND ?2",
         )
         .map_err(AppError::from)?;
+    let loaded_rows = statement
+        .query_map(params![start_key, end_key], |row| {
+            Ok(DailyActivityRow {
+                date: row.get(0)?,
+                session_count: row.get(1)?,
+                token_total: row.get(2)?,
+                top_project_id: row.get(3)?,
+                top_project_name: row.get(4)?,
+            })
+        })
+        .map_err(AppError::from)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(AppError::from)?;
+    let mut rows_by_date = loaded_rows
+        .into_iter()
+        .map(|row| (row.date.clone(), row))
+        .collect::<HashMap<_, _>>();
 
     for offset in 0..days {
         let date = start_date + time::Duration::days(offset);
         let date_key = date.to_string();
-        let loaded = statement
-            .query_row([date_key.as_str()], |row| {
-                Ok(DailyActivityRow {
-                    date: date_key.clone(),
-                    session_count: row.get(0)?,
-                    token_total: row.get(1)?,
-                    top_project_id: row.get(2)?,
-                    top_project_name: row.get(3)?,
-                })
-            })
-            .optional()
-            .map_err(AppError::from)?;
 
-        rows.push(loaded.unwrap_or(DailyActivityRow {
+        rows.push(rows_by_date.remove(&date_key).unwrap_or(DailyActivityRow {
             date: date_key,
             session_count: 0,
             token_total: 0,

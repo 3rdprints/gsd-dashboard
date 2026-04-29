@@ -133,7 +133,7 @@ fn build_project_milestone(
 
     let completed_phase_count = phases
         .iter()
-        .filter(|phase| phase_is_complete(phase))
+        .filter(|phase| phase_is_complete(phase) && !phase.is_current)
         .count() as i64;
     let current_fraction = phases
         .iter()
@@ -246,20 +246,23 @@ pub fn load_project_phase_panel(
                    ON phase_plans.project_id = plan_items.project_id
                   AND phase_plans.plan_path = plan_items.plan_path
                  WHERE plan_items.project_id = ?1
-                   AND (?2 IS NULL OR phase_plans.phase_number = ?2)
+                   AND (?2 IS NOT NULL AND phase_plans.phase_number = ?2)
                  ORDER BY phase_plans.plan_number, plan_items.ord",
             )
             .map_err(AppError::from)?;
         let rows = statement
-            .query_map(params![project_id, current_phase_number], |row| {
-                Ok(ProjectPlanItemDto {
-                    plan_path: row.get(0)?,
-                    ord: row.get(1)?,
-                    text: row.get(2)?,
-                    checked: row.get::<_, i64>(3)? != 0,
-                    line_no: row.get(4)?,
-                })
-            })
+            .query_map(
+                params![project_id, current_phase_number.as_deref()],
+                |row| {
+                    Ok(ProjectPlanItemDto {
+                        plan_path: row.get(0)?,
+                        ord: row.get(1)?,
+                        text: row.get(2)?,
+                        checked: row.get::<_, i64>(3)? != 0,
+                        line_no: row.get(4)?,
+                    })
+                },
+            )
             .map_err(AppError::from)?;
         rows.collect::<Result<Vec<_>, _>>()
             .map_err(AppError::from)?
@@ -276,18 +279,15 @@ pub fn load_project_phase_panel(
             items.len() as i64,
         )
     };
-    let plan_path = items
-        .first()
-        .map(|item| item.plan_path.clone())
-        .or_else(|| {
-            first_phase_plan_path(
-                connection,
-                project_id,
-                snapshot.current_phase_number.as_deref(),
-            )
-            .ok()
-            .flatten()
-        });
+    let plan_path = if let Some(item) = items.first() {
+        Some(item.plan_path.clone())
+    } else {
+        first_phase_plan_path(
+            connection,
+            project_id,
+            snapshot.current_phase_number.as_deref(),
+        )?
+    };
     let state_excerpt = serde_json::from_str::<ProjectSnapshot>(&snapshot.parsed_blob)
         .ok()
         .and_then(|parsed| parsed.state_excerpt);
@@ -318,7 +318,7 @@ pub fn list_project_sessions(
     let page_size = page_size
         .unwrap_or(DEFAULT_PAGE_SIZE)
         .clamp(1, MAX_PAGE_SIZE);
-    let offset = (page - 1) * page_size;
+    let offset = page.saturating_sub(1).saturating_mul(page_size);
     let total = connection
         .query_row(
             "SELECT COUNT(*) FROM sessions WHERE project_id = ?1",
@@ -393,7 +393,7 @@ fn first_phase_plan_path(
             "SELECT plan_path
              FROM phase_plans
              WHERE project_id = ?1
-               AND (?2 IS NULL OR phase_number = ?2)
+               AND (?2 IS NOT NULL AND phase_number = ?2)
              ORDER BY plan_number, plan_path
              LIMIT 1",
             params![project_id, phase_number],
@@ -501,7 +501,7 @@ fn current_phase_plan_counts(
                     COUNT(*)
              FROM phase_plans
              WHERE project_id = ?1
-               AND (?2 IS NULL OR phase_number = ?2)",
+               AND (?2 IS NOT NULL AND phase_number = ?2)",
             params![project_id, phase_number],
             |row| Ok((row.get(0)?, row.get(1)?)),
         )
