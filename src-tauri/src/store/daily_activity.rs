@@ -157,7 +157,10 @@ fn latest_activity_date(
 
 fn current_local_date() -> time::Date {
     time::OffsetDateTime::now_local()
-        .unwrap_or_else(|_| time::OffsetDateTime::now_utc())
+        .unwrap_or_else(|error| {
+            eprintln!("local date lookup failed, falling back to UTC date: {error}");
+            time::OffsetDateTime::now_utc()
+        })
         .date()
 }
 

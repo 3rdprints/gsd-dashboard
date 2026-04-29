@@ -1,4 +1,6 @@
 .global-sessions-page {
+  display: flex;
+  flex-direction: column;
   gap: 16px;
 }
 
@@ -72,6 +74,17 @@
   padding: 0;
   color: #4B5563;
   background: transparent;
+  cursor: pointer;
+}
+
+.filter-chip button:hover {
+  color: #111827;
+}
+
+.filter-chip button:focus,
+.filter-chip button:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: 2px;
 }
 
 .clear-all-btn {
@@ -84,6 +97,18 @@
   background: #FFFFFF;
   font-size: 12px;
   font-weight: 600;
+  cursor: pointer;
+}
+
+.clear-all-btn:hover {
+  border-color: #FCA5A5;
+  background: #FEE2E2;
+}
+
+.clear-all-btn:focus,
+.clear-all-btn:focus-visible {
+  outline: 2px solid #DC2626;
+  outline-offset: 2px;
 }
 
 .chart-card {

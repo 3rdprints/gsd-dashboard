@@ -126,7 +126,7 @@ pub fn list_global_sessions(
                     s.started_at,
                     s.ended_at,
                     s.duration_ms,
-                    s.message_count,
+                    COALESCE(s.message_count, 0),
                     COALESCE(s.tokens_in, 0),
                     COALESCE(s.tokens_out, 0),
                     {},
