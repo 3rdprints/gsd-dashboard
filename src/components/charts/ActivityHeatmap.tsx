@@ -45,7 +45,10 @@ export function ActivityHeatmap({ days, endDate = new Date() }: ActivityHeatmapP
   startDate.setDate(startDate.getDate() - 90);
 
   return (
-    <section className="chart-card" aria-label="Activity heatmap for the last 90 days">
+    <section
+      className="chart-card activity-heatmap-card"
+      aria-label="Activity heatmap for the last 90 days"
+    >
       <div className="chart-card-header">
         <div>
           <h2 className="chart-card-title">Activity — last 90 days</h2>
@@ -59,7 +62,7 @@ export function ActivityHeatmap({ days, endDate = new Date() }: ActivityHeatmapP
             endDate={endDate}
             values={values}
             showWeekdayLabels
-            gutterSize={4}
+            gutterSize={2}
             classForValue={heatmapClassForValue}
             titleForValue={heatmapTitleForValue}
           />

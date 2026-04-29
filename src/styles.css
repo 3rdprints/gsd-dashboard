@@ -323,18 +323,41 @@ input:focus-visible {
 
 .heatmap-wrapper {
   overflow-x: auto;
-  padding: 4px 0;
+  padding: 0;
 }
 
 .heatmap-container {
-  min-width: 760px;
+  width: max-content;
+  min-width: 0;
   color: #4B5563;
   font-size: 12px;
 }
 
+.activity-heatmap-card {
+  padding: 20px 24px 16px;
+}
+
+.activity-heatmap-card .chart-card-header {
+  margin-bottom: 8px;
+}
+
+.activity-heatmap-card .chart-card-title {
+  font-size: 18px;
+}
+
+.activity-heatmap-card .chart-card-subtitle {
+  font-size: 13px;
+}
+
+.heatmap-container .react-calendar-heatmap {
+  display: block;
+  width: 640px;
+  height: 112px;
+}
+
 .heatmap-container .react-calendar-heatmap text {
   fill: #4B5563;
-  font-size: 12px;
+  font-size: 9px;
   font-weight: 400;
 }
 
@@ -343,10 +366,10 @@ input:focus-visible {
 }
 
 .heatmap-container .react-calendar-heatmap rect {
-  width: 12px;
-  height: 12px;
-  rx: 2px;
-  ry: 2px;
+  width: 10px;
+  height: 10px;
+  rx: 1px;
+  ry: 1px;
   stroke: #FFFFFF;
   stroke-width: 1px;
 }
