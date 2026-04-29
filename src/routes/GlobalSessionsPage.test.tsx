@@ -41,7 +41,7 @@ describe("GlobalSessionsPage", () => {
 
     await listGlobalSessions(filters, 2, 100);
 
-    expect(invoke).toHaveBeenCalledWith("list_global_sessions", { filters, page: 2, pageSize: 100 });
+    expect(invoke).toHaveBeenCalledWith("list_global_sessions", { filters, page: 2, page_size: 100 });
     expect(globalSessionsQueryKey(filters, 2, 100)).toEqual(["globalSessions", filters, 2, 100]);
   });
 

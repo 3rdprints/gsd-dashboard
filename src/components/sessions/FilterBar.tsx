@@ -18,6 +18,7 @@ export function FilterBar({ filters, projects, onChange, onDateRangePersist }: F
   const [tokensMax, setTokensMax] = useState(toInputValue(filters.tokensMax));
 
   useEffect(() => {
+    window.clearTimeout(debounceRef.current);
     setDurationMin(toInputValue(filters.durationMinMinutes));
     setDurationMax(toInputValue(filters.durationMaxMinutes));
     setTokensMin(toInputValue(filters.tokensMin));

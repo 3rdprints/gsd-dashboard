@@ -120,6 +120,16 @@ fn build_project_milestone(
     phases: Vec<ProjectMilestonePhaseDto>,
 ) -> ProjectMilestoneDto {
     let phase_count = phases.len() as i64;
+    if phase_count == 0 {
+        return ProjectMilestoneDto {
+            name,
+            progress_pct: 0.0,
+            phase_count,
+            completed_phase_count: 0,
+            phases,
+        };
+    }
+
     let completed_phase_count = phases
         .iter()
         .filter(|phase| phase.completed_at.is_some())

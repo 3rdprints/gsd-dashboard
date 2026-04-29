@@ -150,11 +150,11 @@ function setNumberParam(params: URLSearchParams, key: string, value: number | un
 }
 
 function dateToStartMs(value: string | undefined) {
-  return value ? new Date(`${value}T00:00:00`).getTime() : undefined;
+  return value ? new Date(`${value}T00:00:00Z`).getTime() : undefined;
 }
 
 function dateToEndMs(value: string | undefined) {
-  return value ? new Date(`${value}T23:59:59.999`).getTime() : undefined;
+  return value ? new Date(`${value}T23:59:59.999Z`).getTime() : undefined;
 }
 
 function minutesToMs(value: number | undefined) {

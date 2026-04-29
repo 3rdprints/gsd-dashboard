@@ -70,7 +70,7 @@ export function listProjectSessions(
   page: number,
   pageSize: number
 ): Promise<ProjectSessionsPage> {
-  return invoke<ProjectSessionsPage>("list_project_sessions", { projectId, sort, direction, page, pageSize });
+  return invoke<ProjectSessionsPage>("list_project_sessions", { projectId, sort, direction, page, page_size: pageSize });
 }
 
 export function listGlobalSessions(
@@ -78,7 +78,7 @@ export function listGlobalSessions(
   page: number,
   pageSize: number
 ): Promise<GlobalSessionsPage> {
-  return invoke<GlobalSessionsPage>("list_global_sessions", { filters, page, pageSize });
+  return invoke<GlobalSessionsPage>("list_global_sessions", { filters, page, page_size: pageSize });
 }
 
 export function getGlobalChartData(filters: GlobalSessionFilters): Promise<GlobalChartData> {

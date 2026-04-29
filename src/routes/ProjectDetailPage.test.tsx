@@ -128,7 +128,7 @@ describe("Project Detail IPC contracts", () => {
       sort: "startedAt",
       direction: "desc",
       page: 2,
-      pageSize: 50
+      page_size: 50
     });
     expect(invokeMock).toHaveBeenCalledWith("get_project_chart_data", {
       projectId: "gsd-dashboard",
