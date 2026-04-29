@@ -27,9 +27,25 @@ fn snapshot() -> StoredProjectSnapshot {
 }
 
 fn session(id: &str, started_at: i64, duration_ms: i64, tokens_in: i64) -> IndexedSession {
+    session_with_source(
+        id,
+        SessionSource::Claude,
+        started_at,
+        duration_ms,
+        tokens_in,
+    )
+}
+
+fn session_with_source(
+    id: &str,
+    source: SessionSource,
+    started_at: i64,
+    duration_ms: i64,
+    tokens_in: i64,
+) -> IndexedSession {
     IndexedSession {
         id: id.to_string(),
-        source: SessionSource::Claude,
+        source,
         source_path: format!("/tmp/{id}.jsonl"),
         source_session_id: Some(id.to_string()),
         project_id: Some("project-1".to_string()),
@@ -68,7 +84,7 @@ async fn project_sessions_support_paging_sorting_and_reject_injection() {
                 &[
                     session("old-low", 1_777_000_000, 1_000, 10),
                     session("new-high", 1_777_002_000, 4_000, 80),
-                    session("mid", 1_777_001_000, 2_000, 30),
+                    session_with_source("mid", SessionSource::Codex, 1_777_001_000, 2_000, 30),
                 ],
                 &SessionIndexState {
                     source_path: "/tmp/source.jsonl".to_string(),
@@ -123,6 +139,8 @@ async fn project_sessions_support_paging_sorting_and_reject_injection() {
             .expect("source sort should load");
     assert_eq!(source_sorted.total, 3);
     assert_eq!(source_sorted.rows[0].source, "claude");
+    assert_eq!(source_sorted.rows[1].source, "claude");
+    assert_eq!(source_sorted.rows[2].source, "codex");
 
     let token_total_sorted = list_project_sessions_for_app(
         &state,
@@ -156,9 +174,11 @@ async fn project_sessions_support_paging_sorting_and_reject_injection() {
     let count = connection
         .interact(|connection| {
             connection
-                .query_row("SELECT COUNT(*) FROM sessions", [], |row| {
-                    row.get::<_, i64>(0)
-                })
+                .query_row(
+                    "SELECT COUNT(*) FROM sessions WHERE project_id = ?1",
+                    ["project-1"],
+                    |row| row.get::<_, i64>(0),
+                )
                 .map_err(gsd_dashboard::error::AppError::from)
         })
         .await

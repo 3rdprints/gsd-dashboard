@@ -99,7 +99,7 @@ pub fn list_global_sessions(
     let page_size = page_size
         .unwrap_or(DEFAULT_PAGE_SIZE)
         .clamp(1, MAX_PAGE_SIZE);
-    let offset = (page - 1) * page_size;
+    let offset = page.saturating_sub(1).saturating_mul(page_size);
     let token_total_expression = token_total_sql(has_cache_token_columns(connection)?);
     let filter = build_filter_sql(filters, source, unmatched_only, token_total_expression);
 
