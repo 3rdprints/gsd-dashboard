@@ -65,7 +65,7 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
                   {milestone.phases.map((phase) => (
                     <span
                       key={phase.number}
-                      className={`timeline-segment ${segmentClass(phase.completedAt, phase.isCurrent)}`}
+                      className={`timeline-segment ${segmentClass(phase)}`}
                     />
                   ))}
                 </span>
@@ -93,11 +93,11 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
   );
 }
 
-function segmentClass(completedAt: number | null, isCurrent: boolean) {
-  if (completedAt !== null) {
+function segmentClass(phase: ProjectMilestone["phases"][number]) {
+  if (phase.completedAt !== null || (phase.totalPlanCount > 0 && phase.completedPlanCount >= phase.totalPlanCount)) {
     return "completed";
   }
-  if (isCurrent) {
+  if (phase.isCurrent) {
     return "current";
   }
   return "future";

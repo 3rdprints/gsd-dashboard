@@ -5,6 +5,7 @@ use serde::Serialize;
 
 use crate::{
     error::AppError,
+    milestone_match::milestone_names_match,
     parser::{roadmap::RoadmapPhase, ProjectSnapshot},
     store::project_repo::{self, StoredProjectSnapshot},
 };
@@ -132,7 +133,7 @@ fn build_project_milestone(
 
     let completed_phase_count = phases
         .iter()
-        .filter(|phase| phase.completed_at.is_some())
+        .filter(|phase| phase_is_complete(phase))
         .count() as i64;
     let current_fraction = phases
         .iter()
@@ -156,6 +157,11 @@ fn build_project_milestone(
         completed_phase_count,
         phases,
     }
+}
+
+fn phase_is_complete(phase: &ProjectMilestonePhaseDto) -> bool {
+    phase.completed_at.is_some()
+        || (phase.total_plan_count > 0 && phase.completed_plan_count >= phase.total_plan_count)
 }
 
 fn group_milestone_phases(
@@ -478,7 +484,7 @@ fn roadmap_phase_to_milestone_phase(
         number: phase.number.clone(),
         name: Some(phase.name.clone()),
         is_current: Some(phase.number.as_str()) == current_phase_number,
-        completed_at: phase.completed.then_some(0),
+        completed_at: None,
         completed_plan_count,
         total_plan_count,
     }
@@ -500,42 +506,6 @@ fn current_phase_plan_counts(
             |row| Ok((row.get(0)?, row.get(1)?)),
         )
         .map_err(AppError::from)
-}
-
-fn milestone_names_match(left: &str, right: &str) -> bool {
-    let left = normalize_milestone_name(left);
-    let right = normalize_milestone_name(right);
-
-    left == right
-        || contains_milestone_token(&left, &right)
-        || contains_milestone_token(&right, &left)
-}
-
-fn contains_milestone_token(haystack: &str, needle: &str) -> bool {
-    let needle_tokens = needle.split_whitespace().collect::<Vec<_>>();
-    !needle_tokens.is_empty()
-        && needle.len() >= 3
-        && haystack
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .windows(needle_tokens.len())
-            .any(|window| window == needle_tokens.as_slice())
-}
-
-fn normalize_milestone_name(value: &str) -> String {
-    value
-        .chars()
-        .map(|character| {
-            if character.is_ascii_alphanumeric() {
-                character.to_ascii_lowercase()
-            } else {
-                ' '
-            }
-        })
-        .collect::<String>()
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
 }
 
 fn sort_column(value: &str) -> Result<&'static str, AppError> {

@@ -36,8 +36,8 @@ export function FilterBar({ filters, projects, onChange, onDateRangePersist }: F
   function updateNumber(key: keyof Pick<SessionFilters, "durationMinMinutes" | "durationMaxMinutes" | "tokensMin" | "tokensMax">, value: string) {
     window.clearTimeout(debounceRef.current);
     debounceRef.current = window.setTimeout(() => {
-      const parsed = value === "" ? undefined : Number(value);
-      update({ [key]: Number.isFinite(parsed) && parsed !== undefined && parsed >= 0 ? parsed : undefined });
+      const parsed = value === "" ? NaN : Number(value);
+      update({ [key]: Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined });
     }, 300);
   }
 

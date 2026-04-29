@@ -3,6 +3,7 @@ pub mod bootstrap;
 pub mod commands;
 pub mod error;
 pub mod events;
+pub mod milestone_match;
 pub mod parser;
 pub mod scan_persistence;
 pub mod scan_roots;

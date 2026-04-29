@@ -44,20 +44,25 @@ fn match_known_root_path<'a>(
 ) -> Option<&'a ProjectRoot> {
     // canonicalize performs filesystem I/O; keep this function inside match_project's blocking contract.
     let canonical_candidate = candidate_path.canonicalize().ok();
-
-    known_projects
+    let canonical_projects = known_projects
         .iter()
-        .filter(|project| {
+        .map(|project| {
             let root_path = Path::new(&project.root_path);
-            let canonical_root = root_path.canonicalize().ok();
+            (project, root_path, root_path.canonicalize().ok())
+        })
+        .collect::<Vec<_>>();
 
+    canonical_projects
+        .iter()
+        .filter(|(_project, root_path, canonical_root)| {
             path_is_inside(candidate_path, root_path)
                 || canonical_candidate
                     .as_deref()
                     .zip(canonical_root.as_deref())
                     .is_some_and(|(candidate, root)| path_is_inside(candidate, root))
         })
-        .max_by_key(|project| project.root_path.len())
+        .max_by_key(|(project, _root_path, _canonical_root)| project.root_path.len())
+        .map(|(project, _root_path, _canonical_root)| *project)
 }
 
 fn path_is_inside(candidate_path: &Path, root_path: &Path) -> bool {

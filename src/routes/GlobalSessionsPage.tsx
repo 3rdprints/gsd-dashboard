@@ -83,40 +83,47 @@ export function GlobalSessionsPage() {
         onDateRangePersist={persistDefaultRange}
       />
       <FilterChipsRow filters={filters} projects={projects} onChange={setFilters} onClearAll={clearFilters} />
-      <div className="charts-grid" aria-label="Global session charts">
-        <ChartCard
-          title="Sessions by source"
-          subtitle="Daily Claude and Codex session volume"
-          loading={charts.isLoading}
-          empty={!charts.data?.sessionsPerDayBySource?.length}
-        >
-          <StackedSourcesChart data={chartData?.sessionsPerDayBySource ?? []} />
-        </ChartCard>
-        <ChartCard
-          title="Tokens by project"
-          subtitle="Daily tokens for top projects"
-          loading={charts.isLoading}
-          empty={!charts.data?.tokensPerDayByProject?.length}
-        >
-          <StackedProjectsChart data={chartData?.tokensPerDayByProject ?? []} />
-        </ChartCard>
-        <ChartCard
-          title="Time of day"
-          subtitle="Sessions by local start hour"
-          loading={charts.isLoading}
-          empty={!charts.data?.timeOfDayHistogram?.some((bucket) => bucket.count > 0)}
-        >
-          <TimeOfDayHistogram data={chartData?.timeOfDayHistogram ?? []} />
-        </ChartCard>
-        <ChartCard
-          title="Day of week"
-          subtitle="Sessions by local weekday"
-          loading={charts.isLoading}
-          empty={!charts.data?.dayOfWeekDistribution?.some((bucket) => bucket.count > 0)}
-        >
-          <DayOfWeekChart data={chartData?.dayOfWeekDistribution ?? []} />
-        </ChartCard>
-      </div>
+      {charts.isError ? (
+        <section className="chart-card" role="alert">
+          <h2 className="chart-card-title">Charts could not be loaded</h2>
+          <p className="chart-card-subtitle">Rebuild the cache or re-index sessions and try again.</p>
+        </section>
+      ) : (
+        <div className="charts-grid" aria-label="Global session charts">
+          <ChartCard
+            title="Sessions by source"
+            subtitle="Daily Claude and Codex session volume"
+            loading={charts.isLoading}
+            empty={!charts.data?.sessionsPerDayBySource?.length}
+          >
+            <StackedSourcesChart data={chartData?.sessionsPerDayBySource ?? []} />
+          </ChartCard>
+          <ChartCard
+            title="Tokens by project"
+            subtitle="Daily tokens for top projects"
+            loading={charts.isLoading}
+            empty={!charts.data?.tokensPerDayByProject?.length}
+          >
+            <StackedProjectsChart data={chartData?.tokensPerDayByProject ?? []} />
+          </ChartCard>
+          <ChartCard
+            title="Time of day"
+            subtitle="Sessions by local start hour"
+            loading={charts.isLoading}
+            empty={!charts.data?.timeOfDayHistogram?.some((bucket) => bucket.count > 0)}
+          >
+            <TimeOfDayHistogram data={chartData?.timeOfDayHistogram ?? []} />
+          </ChartCard>
+          <ChartCard
+            title="Day of week"
+            subtitle="Sessions by local weekday"
+            loading={charts.isLoading}
+            empty={!charts.data?.dayOfWeekDistribution?.some((bucket) => bucket.count > 0)}
+          >
+            <DayOfWeekChart data={chartData?.dayOfWeekDistribution ?? []} />
+          </ChartCard>
+        </div>
+      )}
       {sessions.isLoading ? (
         <section className="chart-card">
           <div className="table-skeleton" aria-label="Loading sessions" />

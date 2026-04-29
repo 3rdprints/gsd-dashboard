@@ -150,11 +150,18 @@ function setNumberParam(params: URLSearchParams, key: string, value: number | un
 }
 
 function dateToStartMs(value: string | undefined) {
-  return value ? new Date(`${value}T00:00:00Z`).getTime() : undefined;
+  return dateToLocalMs(value, 0, 0, 0, 0);
 }
 
 function dateToEndMs(value: string | undefined) {
-  return value ? new Date(`${value}T23:59:59.999Z`).getTime() : undefined;
+  return dateToLocalMs(value, 23, 59, 59, 999);
+}
+
+function dateToLocalMs(value: string | undefined, hours: number, minutes: number, seconds: number, milliseconds: number) {
+  if (!value) return undefined;
+  // Date inputs are local calendar days, so convert boundaries using local time.
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day, hours, minutes, seconds, milliseconds).getTime();
 }
 
 function minutesToMs(value: number | undefined) {

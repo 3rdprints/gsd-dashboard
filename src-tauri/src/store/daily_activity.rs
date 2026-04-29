@@ -21,7 +21,7 @@ pub fn rebuild_window(
     now_ms: i64,
 ) -> Result<(), AppError> {
     let days = clamp_days(days);
-    let today_start_ms = now_ms - now_ms.rem_euclid(DAY_MS);
+    let today_start_ms = local_day_start_ms(connection, now_ms)?;
     let window_start_ms = today_start_ms - ((days - 1) * DAY_MS);
     let updated_at = now_ms / 1_000;
     let transaction = connection.transaction().map_err(AppError::from)?;
@@ -82,6 +82,16 @@ pub fn rebuild_window(
         .map_err(AppError::from)?;
 
     transaction.commit().map_err(AppError::from)
+}
+
+fn local_day_start_ms(connection: &mut rusqlite::Connection, now_ms: i64) -> Result<i64, AppError> {
+    connection
+        .query_row(
+            "SELECT unixepoch(date(?1 / 1000, 'unixepoch', 'localtime'), 'utc') * 1000",
+            [now_ms],
+            |row| row.get(0),
+        )
+        .map_err(AppError::from)
 }
 
 pub fn load_window(

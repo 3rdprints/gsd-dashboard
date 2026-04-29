@@ -1,4 +1,4 @@
-import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import type { GlobalTokensByProjectDay } from "../../lib/types";
 import { ChartTooltip } from "./ChartTooltip";
@@ -28,7 +28,6 @@ export function StackedProjectsChart({ data }: StackedProjectsChartProps) {
           <XAxis dataKey="date" tick={axisStyle} tickLine={false} />
           <YAxis tick={axisStyle} tickLine={false} tickFormatter={formatCompactNumber} width={52} />
           <Tooltip content={<ChartTooltip valueFormatter={formatNumber} />} />
-          <Legend wrapperStyle={{ color: "#4B5563", fontSize: 12 }} />
           {series.map((item) => (
             <Bar
               key={item.key}
@@ -80,7 +79,11 @@ function toStackedProjectData(data: GlobalTokensByProjectDay[]) {
     rowsByDate.set(row.date, chartRow);
   }
 
-  return { chartData: Array.from(rowsByDate.values()), series };
+  const chartData = Array.from(rowsByDate.entries())
+    .sort(([leftDate], [rightDate]) => leftDate.localeCompare(rightDate))
+    .map(([_date, row]) => row);
+
+  return { chartData, series };
 }
 
 function formatNumber(value: number | string): string {
