@@ -1,5 +1,5 @@
 #[test]
-fn state_excerpt_extracts_current_position_and_next_command() {
+fn state_excerpt_extracts_current_position_excludes_next_command() {
     let excerpt = gsd_dashboard::parser::state::extract_state_excerpt(
         r#"# State: Demo
 

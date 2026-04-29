@@ -2,6 +2,8 @@ use std::path::{Component, Path, PathBuf};
 
 use crate::sessions::{IndexedSession, ProjectRoot, SessionSource};
 
+/// Performs blocking filesystem checks. Async callers must run this inside
+/// `tokio::task::spawn_blocking`; the session indexer does so before calling it.
 pub fn match_project(session: &mut IndexedSession, known_projects: &[ProjectRoot]) {
     if let Some(cwd) = session.cwd.as_deref() {
         if let Some(project) = match_known_root(cwd, known_projects) {
@@ -40,6 +42,7 @@ fn match_known_root_path<'a>(
     candidate_path: &Path,
     known_projects: &'a [ProjectRoot],
 ) -> Option<&'a ProjectRoot> {
+    // canonicalize performs filesystem I/O; keep this function inside match_project's blocking contract.
     let canonical_candidate = candidate_path.canonicalize().ok();
 
     known_projects
@@ -74,6 +77,7 @@ fn git_worktree_base_root(candidate_path: &Path) -> Option<PathBuf> {
 
     loop {
         let git_file = current_path.join(".git");
+        // is_file performs filesystem I/O; callers reach this through match_project's blocking contract.
         if git_file.is_file() {
             return gitdir_base_root(&git_file, current_path);
         }
@@ -83,6 +87,7 @@ fn git_worktree_base_root(candidate_path: &Path) -> Option<PathBuf> {
 }
 
 fn gitdir_base_root(git_file: &Path, worktree_root: &Path) -> Option<PathBuf> {
+    // read_to_string performs filesystem I/O; callers reach this through match_project's blocking contract.
     let contents = std::fs::read_to_string(git_file).ok()?;
     let gitdir = contents.trim().strip_prefix("gitdir:")?.trim();
     let gitdir_path = Path::new(gitdir);

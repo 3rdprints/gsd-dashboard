@@ -29,9 +29,23 @@ export function StateExcerpt({ statePath, excerpt }: StateExcerptProps) {
 
 function renderLine(line: string, index: number) {
   const key = `${index}-${line}`;
-  const heading = line.match(/^#{1,6}\s+(.+)$/);
+  const heading = line.match(/^(#{1,6})\s+(.+)$/);
   if (heading) {
-    return <h2 key={key}>{heading[1]}</h2>;
+    const headingText = heading[2];
+    switch (heading[1].length) {
+      case 1:
+        return <h1 key={key}>{headingText}</h1>;
+      case 2:
+        return <h2 key={key}>{headingText}</h2>;
+      case 3:
+        return <h3 key={key}>{headingText}</h3>;
+      case 4:
+        return <h4 key={key}>{headingText}</h4>;
+      case 5:
+        return <h5 key={key}>{headingText}</h5>;
+      default:
+        return <h6 key={key}>{headingText}</h6>;
+    }
   }
   if (line.trim().length === 0) {
     return <br key={key} />;
