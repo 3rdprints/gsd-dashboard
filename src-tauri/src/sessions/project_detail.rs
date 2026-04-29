@@ -448,10 +448,17 @@ fn normalize_milestone_name(value: &str) -> String {
 fn sort_column(value: &str) -> Result<&'static str, AppError> {
     match value {
         "startedAt" => Ok("COALESCE(started_at, 0)"),
+        "source" => Ok("source"),
         "durationMs" => Ok("COALESCE(duration_ms, 0)"),
         "messageCount" => Ok("message_count"),
         "tokensIn" => Ok("COALESCE(tokens_in, 0)"),
         "tokensOut" => Ok("COALESCE(tokens_out, 0)"),
+        "tokenTotal" => Ok(
+            "COALESCE(tokens_in, 0)
+                + COALESCE(tokens_out, 0)
+                + COALESCE(cache_read_tokens, 0)
+                + COALESCE(cache_creation_tokens, 0)",
+        ),
         _ => Err(AppError::store("invalid session sort")),
     }
 }

@@ -107,6 +107,25 @@ async fn project_sessions_support_paging_sorting_and_reject_injection() {
     assert_eq!(second_page.rows.len(), 1);
     assert_eq!(second_page.rows[0].id, "new-high");
 
+    let source_sorted =
+        list_project_sessions_for_app(&state, "project-1", Some("source"), Some("asc"), None, None)
+            .await
+            .expect("source sort should load");
+    assert_eq!(source_sorted.total, 3);
+    assert_eq!(source_sorted.rows[0].source, "claude");
+
+    let token_total_sorted = list_project_sessions_for_app(
+        &state,
+        "project-1",
+        Some("tokenTotal"),
+        Some("desc"),
+        None,
+        None,
+    )
+    .await
+    .expect("token total sort should load");
+    assert_eq!(token_total_sorted.rows[0].id, "new-high");
+
     let error = list_project_sessions_for_app(
         &state,
         "project-1",
