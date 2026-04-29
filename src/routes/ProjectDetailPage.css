@@ -24,6 +24,12 @@
   box-shadow: inset 0 -2px 0 #2563EB;
 }
 
+.tab-btn:focus,
+.tab-btn:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: 2px;
+}
+
 .tab-panel {
   padding-top: 24px;
 }
@@ -116,6 +122,14 @@
   background: #F3F4F6;
 }
 
+.range-btn:focus,
+.range-btn:focus-visible,
+.range-btn[aria-pressed="true"]:focus,
+.range-btn[aria-pressed="true"]:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: -2px;
+}
+
 .chart-tooltip {
   border: 1px solid #D1D5DB;
   border-radius: 8px;
@@ -192,7 +206,14 @@
   background: #FFFFFF;
   border: 1px solid #D1D5DB;
   border-radius: 8px;
+  cursor: pointer;
   text-align: left;
+}
+
+.timeline-milestone-row:focus,
+.timeline-milestone-row:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: 2px;
 }
 
 .timeline-track {
@@ -358,6 +379,16 @@
   color: #2563EB;
 }
 
+.sessions-table .sortable:focus,
+.sessions-table .sortable:focus-visible,
+.sessions-table th[aria-sort="ascending"] .sortable:focus,
+.sessions-table th[aria-sort="ascending"] .sortable:focus-visible,
+.sessions-table th[aria-sort="descending"] .sortable:focus,
+.sessions-table th[aria-sort="descending"] .sortable:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: 2px;
+}
+
 .numeric-cell {
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -430,6 +461,12 @@
   width: auto;
   height: 32px;
   padding: 0 12px;
+}
+
+.pagination-row button:focus,
+.pagination-row button:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: 2px;
 }
 
 .table-skeleton {

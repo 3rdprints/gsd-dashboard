@@ -151,3 +151,45 @@ fn encoded_roots_overlap(encoded_project_dir: &str, known_root: &str) -> bool {
             .strip_prefix(encoded_project_dir)
             .is_some_and(|rest| rest.starts_with('-'))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::base_root_from_worktree_gitdir;
+    use std::path::{Path, PathBuf};
+
+    #[test]
+    fn base_root_from_worktree_gitdir_extracts_absolute_root() {
+        assert_eq!(
+            base_root_from_worktree_gitdir(Path::new("/repo/.git/worktrees/name")),
+            Some(PathBuf::from("/repo"))
+        );
+    }
+
+    #[test]
+    fn base_root_from_worktree_gitdir_extracts_relative_root() {
+        assert_eq!(
+            base_root_from_worktree_gitdir(Path::new("repo/.git/worktrees/name")),
+            Some(PathBuf::from("repo"))
+        );
+    }
+
+    #[test]
+    fn base_root_from_worktree_gitdir_rejects_non_worktree_paths() {
+        assert_eq!(
+            base_root_from_worktree_gitdir(Path::new("/repo/.git")),
+            None
+        );
+        assert_eq!(
+            base_root_from_worktree_gitdir(Path::new("/repo/some/other/.git/worktree")),
+            None
+        );
+        assert_eq!(
+            base_root_from_worktree_gitdir(Path::new("/repo/.git/other")),
+            None
+        );
+        assert_eq!(
+            base_root_from_worktree_gitdir(Path::new(".git/worktrees/name")),
+            None
+        );
+    }
+}

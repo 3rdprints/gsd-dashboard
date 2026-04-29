@@ -1,3 +1,5 @@
+use gray_matter::{engine::YAML, Matter};
+use pulldown_cmark::{Event, Options, Parser, Tag, TagEnd};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -104,12 +106,53 @@ pub fn parse_milestones(bytes: &[u8]) -> Result<Vec<MilestoneIdentity>, ParseErr
 }
 
 fn raw_markdown_lines(source: &str) -> Vec<String> {
-    source
+    let matter = Matter::<YAML>::new();
+    let content = matter
+        .parse::<gray_matter::Pod>(source)
+        .map(|parsed| parsed.content)
+        .unwrap_or_else(|_| source.to_string());
+    let parser = Parser::new_ext(&content, Options::all());
+    let mut rendered = String::new();
+
+    for event in parser {
+        match event {
+            Event::Start(Tag::Heading { .. }) => {
+                push_line_prefix(&mut rendered, "# ");
+            }
+            Event::Start(Tag::Item) => {
+                push_line_prefix(&mut rendered, "- ");
+            }
+            Event::End(TagEnd::Heading(_))
+            | Event::End(TagEnd::Item)
+            | Event::End(TagEnd::Paragraph)
+            | Event::End(TagEnd::HtmlBlock) => rendered.push('\n'),
+            Event::Text(value)
+            | Event::Code(value)
+            | Event::Html(value)
+            | Event::InlineHtml(value) => {
+                rendered.push_str(&value);
+            }
+            Event::TaskListMarker(checked) => {
+                rendered.push_str(if checked { "[x] " } else { "[ ] " });
+            }
+            Event::SoftBreak | Event::HardBreak => rendered.push('\n'),
+            _ => {}
+        }
+    }
+
+    rendered
         .lines()
         .map(str::trim)
         .filter(|line| !line.is_empty())
         .map(str::to_string)
         .collect()
+}
+
+fn push_line_prefix(rendered: &mut String, prefix: &str) {
+    if !rendered.is_empty() && !rendered.ends_with('\n') {
+        rendered.push('\n');
+    }
+    rendered.push_str(prefix);
 }
 
 fn parse_milestone_line(line: &str) -> Option<String> {
@@ -242,7 +285,7 @@ fn parse_phase_plan_counts(lines: &[String]) -> BTreeMap<String, (Option<usize>,
             continue;
         }
 
-        if line.starts_with("**Plans:**") {
+        if line.starts_with("**Plans:**") || line.starts_with("Plans:") {
             if let (Some(key), Some(count)) = (current_phase.as_ref(), parse_plan_count(line)) {
                 counts.insert(key.clone(), count);
             }
@@ -411,6 +454,7 @@ mod tests {
             plan_type: None,
             source_path: None,
             completed: false,
+            completed_at: None,
             tasks: Vec::new(),
             checklist: vec![
                 PlanChecklistItem {
@@ -447,6 +491,7 @@ mod tests {
             plan_type: None,
             source_path: None,
             completed: false,
+            completed_at: None,
             tasks: Vec::new(),
             checklist: vec![PlanChecklistItem {
                 label: "Done".to_string(),

@@ -184,6 +184,7 @@ async fn global_sessions_query_combines_filters() {
     .expect("global sessions should load");
 
     assert_eq!(page.page, 1);
+    // This intentionally requests 500 rows to verify MAX_PAGE_SIZE clamps it to 200.
     assert_eq!(page.page_size, 200);
     assert_eq!(page.total, 2);
     assert_eq!(
