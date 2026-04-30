@@ -1,32 +1,39 @@
 use std::path::PathBuf;
 
-use tauri::{ipc::Channel, State};
+use tauri::{ipc::Channel, AppHandle, State};
 
 use crate::{
     app_state::AppState, error::AppError, events::ScanEvent, scan_roots, scan_service,
     scanner::ScanSummary, sessions, settings, store::project_repo,
+    tray::service::request_tray_refresh,
 };
 
 #[tauri::command]
 pub async fn scan_projects(
+    app: AppHandle,
     state: State<'_, AppState>,
     on_event: Channel<ScanEvent>,
 ) -> Result<ScanSummary, AppError> {
-    scan_projects_for_app(&state, move |event| {
+    let summary = scan_projects_for_app(&state, move |event| {
         on_event.send(event).map_err(AppError::from)
     })
-    .await
+    .await?;
+    request_tray_refresh(&app);
+    Ok(summary)
 }
 
 #[tauri::command]
 pub async fn rebuild_cache(
+    app: AppHandle,
     state: State<'_, AppState>,
     on_event: Channel<ScanEvent>,
 ) -> Result<ScanSummary, AppError> {
-    rebuild_cache_for_app(&state, move |event| {
+    let summary = rebuild_cache_for_app(&state, move |event| {
         on_event.send(event).map_err(AppError::from)
     })
-    .await
+    .await?;
+    request_tray_refresh(&app);
+    Ok(summary)
 }
 
 pub async fn rebuild_cache_for_app(

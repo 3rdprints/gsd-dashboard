@@ -5,6 +5,7 @@ use crate::{
     error::AppError,
     events::AppEvent,
     settings::{self, AppSettings, SettingsInput},
+    tray::service::request_tray_refresh,
     watcher::{self, WatcherStatus},
 };
 
@@ -57,5 +58,6 @@ pub async fn save_settings_for_app<R: Runtime>(
     if watcher_changed {
         app.emit("watcher:status-changed", AppEvent::WatcherStatusChanged)?;
     }
+    request_tray_refresh(app);
     Ok(saved_settings)
 }

@@ -10,6 +10,7 @@ fn main() {
             let handle = tauri::async_runtime::handle();
             let state = handle.block_on(gsd_dashboard::bootstrap::bootstrap_app(app))?;
             app.manage(state);
+            gsd_dashboard::tray::service::setup_tray(app.handle())?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

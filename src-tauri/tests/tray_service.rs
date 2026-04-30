@@ -11,7 +11,13 @@ use gsd_dashboard::{
     },
 };
 
-fn snapshot(id: &str, name: &str, progress: f64, command: &str, activity: i64) -> StoredProjectSnapshot {
+fn snapshot(
+    id: &str,
+    name: &str,
+    progress: f64,
+    command: &str,
+    activity: i64,
+) -> StoredProjectSnapshot {
     StoredProjectSnapshot {
         id: id.to_string(),
         name: name.to_string(),
@@ -49,7 +55,10 @@ fn tray_refresh_state_uses_same_visible_set_for_icon_menu_and_commands() {
 
     assert_eq!(tray_state.projects.len(), 1);
     assert_eq!(tray_state.projects[0].id, "bravo");
-    assert_eq!(tray_state.commands_by_project_id.get("bravo"), Some(&"/gsd-next bravo".to_string()));
+    assert_eq!(
+        tray_state.commands_by_project_id.get("bravo"),
+        Some(&"/gsd-next bravo".to_string())
+    );
     assert!(!tray_state.commands_by_project_id.contains_key("alpha"));
     assert!(tray_state.tooltip.contains("1 active projects"));
     assert!(tray_state.icon_png.starts_with(b"\x89PNG\r\n\x1a\n"));
@@ -66,9 +75,18 @@ fn menu_action_resolution_accepts_fixed_ids_and_visible_project_scoped_ids_only(
     )
     .expect("tray state should build");
 
-    assert_eq!(resolve_menu_action("show_dashboard", &tray_state), Some(TrayMenuAction::ShowDashboard));
-    assert_eq!(resolve_menu_action("preferences", &tray_state), Some(TrayMenuAction::Preferences));
-    assert_eq!(resolve_menu_action("quit", &tray_state), Some(TrayMenuAction::Quit));
+    assert_eq!(
+        resolve_menu_action("show_dashboard", &tray_state),
+        Some(TrayMenuAction::ShowDashboard)
+    );
+    assert_eq!(
+        resolve_menu_action("preferences", &tray_state),
+        Some(TrayMenuAction::Preferences)
+    );
+    assert_eq!(
+        resolve_menu_action("quit", &tray_state),
+        Some(TrayMenuAction::Quit)
+    );
     assert_eq!(
         resolve_menu_action("project:alpha", &tray_state),
         Some(TrayMenuAction::OpenProject {

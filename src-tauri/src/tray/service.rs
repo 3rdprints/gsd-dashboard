@@ -65,8 +65,13 @@ pub fn build_tray_state_from_parts(
         .into_iter()
         .map(TrayProject::from)
         .collect::<Vec<_>>();
-    let visible_projects =
-        visible_tray_projects(&projects, hidden_project_ids, tray_hidden_project_ids, sort, max_projects);
+    let visible_projects = visible_tray_projects(
+        &projects,
+        hidden_project_ids,
+        tray_hidden_project_ids,
+        sort,
+        max_projects,
+    );
     let visible_ids = visible_projects
         .iter()
         .map(|project| project.id.clone())
@@ -77,8 +82,8 @@ pub fn build_tray_state_from_parts(
         .map(|project| (project.id, project.next_command))
         .collect::<HashMap<_, _>>();
     let tooltip = format_tooltip(&visible_projects);
-    let icon_png =
-        render_tray_icon_png(&visible_projects, TrayRenderSpec::default()).map_err(AppError::store)?;
+    let icon_png = render_tray_icon_png(&visible_projects, TrayRenderSpec::default())
+        .map_err(AppError::store)?;
 
     Ok(TrayServiceState {
         projects: visible_projects,
@@ -90,9 +95,9 @@ pub fn build_tray_state_from_parts(
 
 pub fn resolve_menu_action(id: &str, tray_state: &TrayServiceState) -> Option<TrayMenuAction> {
     match parse_menu_action(id)? {
-        action @ (TrayMenuAction::ShowDashboard | TrayMenuAction::Preferences | TrayMenuAction::Quit) => {
-            Some(action)
-        }
+        action @ (TrayMenuAction::ShowDashboard
+        | TrayMenuAction::Preferences
+        | TrayMenuAction::Quit) => Some(action),
         TrayMenuAction::OpenProject { project_id } => tray_state
             .commands_by_project_id
             .contains_key(&project_id)
@@ -120,8 +125,10 @@ pub async fn record_tray_refresh_request(state: &AppState) -> Result<(), AppErro
 }
 
 pub fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> Result<(), AppError> {
-    let icon = Image::from_bytes(&render_tray_icon_png(&[], TrayRenderSpec::default()).map_err(AppError::store)?)
-        .map_err(AppError::from)?;
+    let icon = Image::from_bytes(
+        &render_tray_icon_png(&[], TrayRenderSpec::default()).map_err(AppError::store)?,
+    )
+    .map_err(AppError::from)?;
     let menu = build_native_menu(app, &[])?;
     let tray = TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon)
@@ -151,7 +158,9 @@ pub fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> Result<(), AppError> {
 }
 
 async fn refresh_tray<R: Runtime>(app: &AppHandle<R>) -> Result<(), AppError> {
-    let state = app.state::<AppState>();
+    let Some(state) = app.try_state::<AppState>() else {
+        return Ok(());
+    };
     let tray_state = build_tray_state_for_app(&state).await?;
     let tray = app
         .tray_by_id(TRAY_ID)
@@ -174,7 +183,9 @@ fn dispatch_menu_action<R: Runtime>(app: &AppHandle<R>, id: &str) {
         };
 
         match action {
-            TrayMenuAction::ShowDashboard | TrayMenuAction::Preferences | TrayMenuAction::OpenProject { .. } => {
+            TrayMenuAction::ShowDashboard
+            | TrayMenuAction::Preferences
+            | TrayMenuAction::OpenProject { .. } => {
                 show_dashboard_window(&app);
                 if let Some(route) = action.navigation_route() {
                     let _ = app.emit("trayNavigate", AppEvent::TrayNavigate { route });
@@ -194,7 +205,7 @@ fn dispatch_menu_action<R: Runtime>(app: &AppHandle<R>, id: &str) {
 }
 
 async fn current_menu_action<R: Runtime>(app: &AppHandle<R>, id: &str) -> Option<TrayMenuAction> {
-    let state = app.state::<AppState>();
+    let state = app.try_state::<AppState>()?;
     let tray_state = build_tray_state_for_app(&state).await.ok()?;
     resolve_menu_action(id, &tray_state)
 }
@@ -203,7 +214,8 @@ fn build_native_menu<R: Runtime>(
     app: &AppHandle<R>,
     projects: &[TrayProjectBar],
 ) -> Result<Menu<R>, AppError> {
-    let show_dashboard = MenuItem::with_id(app, SHOW_DASHBOARD_ID, "Show Dashboard", true, None::<&str>)?;
+    let show_dashboard =
+        MenuItem::with_id(app, SHOW_DASHBOARD_ID, "Show Dashboard", true, None::<&str>)?;
     let preferences = MenuItem::with_id(app, PREFERENCES_ID, "Preferences", true, None::<&str>)?;
     let first_separator = PredefinedMenuItem::separator(app)?;
     let second_separator = PredefinedMenuItem::separator(app)?;
