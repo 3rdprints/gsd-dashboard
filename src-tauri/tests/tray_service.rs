@@ -5,8 +5,9 @@ use gsd_dashboard::{
     tray::{
         menu::TrayMenuAction,
         service::{
-            build_tray_state_for_app, build_tray_state_from_parts, request_tray_refresh,
-            resolve_menu_action, TRAY_REFRESH_DEBOUNCE_MS,
+            build_tray_state_for_app, build_tray_state_from_parts, native_tray_update,
+            request_tray_refresh, resolve_menu_action, startup_tray_update,
+            TRAY_REFRESH_DEBOUNCE_MS,
         },
     },
 };
@@ -130,4 +131,31 @@ async fn refresh_request_api_schedules_without_awaiting_db_work() {
     request_tray_refresh(app.handle());
 
     assert_eq!(TRAY_REFRESH_DEBOUNCE_MS, 250);
+}
+
+#[test]
+fn startup_tray_update_uses_baseline_icon_and_macos_template_flag() {
+    let update = startup_tray_update().expect("startup tray update should build");
+
+    assert_eq!(update.tooltip, "0 active projects");
+    assert!(update.icon_png.starts_with(b"\x89PNG\r\n\x1a\n"));
+    assert_eq!(update.icon_as_template, cfg!(target_os = "macos"));
+}
+
+#[test]
+fn native_tray_update_reuses_refreshed_icon_tooltip_and_template_flag() {
+    let tray_state = build_tray_state_from_parts(
+        vec![snapshot("alpha", "Alpha", 62.0, "/gsd-next alpha", 30)],
+        &[],
+        &[],
+        TrayBarSort::Progress,
+        8,
+    )
+    .expect("tray state should build");
+
+    let update = native_tray_update(&tray_state);
+
+    assert_eq!(update.tooltip, tray_state.tooltip);
+    assert_eq!(update.icon_png, tray_state.icon_png);
+    assert_eq!(update.icon_as_template, cfg!(target_os = "macos"));
 }

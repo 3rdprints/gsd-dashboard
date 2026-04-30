@@ -4,7 +4,7 @@ use std::time::Duration;
 use tauri::{
     image::Image,
     menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
-    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager, Runtime, WebviewUrl, WebviewWindowBuilder,
 };
 use tauri_plugin_clipboard_manager::ClipboardExt;
@@ -25,7 +25,7 @@ use crate::{
     },
 };
 
-const TRAY_ID: &str = "main-tray";
+pub const TRAY_ID: &str = "main-tray";
 const MAIN_WINDOW_LABEL: &str = "main";
 pub const TRAY_REFRESH_DEBOUNCE_MS: u64 = 250;
 
@@ -35,6 +35,33 @@ pub struct TrayServiceState {
     pub commands_by_project_id: HashMap<String, String>,
     pub tooltip: String,
     pub icon_png: Vec<u8>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct NativeTrayUpdate {
+    pub icon_png: Vec<u8>,
+    pub tooltip: String,
+    pub icon_as_template: bool,
+}
+
+pub fn native_tray_update(tray_state: &TrayServiceState) -> NativeTrayUpdate {
+    NativeTrayUpdate {
+        icon_png: tray_state.icon_png.clone(),
+        tooltip: tray_state.tooltip.clone(),
+        icon_as_template: macos_template_icon_enabled(),
+    }
+}
+
+pub fn startup_tray_update() -> Result<NativeTrayUpdate, AppError> {
+    Ok(NativeTrayUpdate {
+        icon_png: render_tray_icon_png(&[], TrayRenderSpec::default()).map_err(AppError::store)?,
+        tooltip: "0 active projects".to_string(),
+        icon_as_template: macos_template_icon_enabled(),
+    })
+}
+
+fn macos_template_icon_enabled() -> bool {
+    cfg!(target_os = "macos")
 }
 
 pub async fn build_tray_state_for_app(state: &AppState) -> Result<TrayServiceState, AppError> {
@@ -125,14 +152,12 @@ pub async fn record_tray_refresh_request(state: &AppState) -> Result<(), AppErro
 }
 
 pub fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> Result<(), AppError> {
-    let icon = Image::from_bytes(
-        &render_tray_icon_png(&[], TrayRenderSpec::default()).map_err(AppError::store)?,
-    )
-    .map_err(AppError::from)?;
+    let update = startup_tray_update()?;
+    let icon = Image::from_bytes(&update.icon_png).map_err(AppError::from)?;
     let menu = build_native_menu(app, &[])?;
-    let tray = TrayIconBuilder::with_id(TRAY_ID)
+    let builder = TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon)
-        .tooltip("0 active projects")
+        .tooltip(update.tooltip)
         .menu(&menu)
         .on_menu_event(|app, event| {
             dispatch_menu_action(app, event.id().as_ref());
@@ -146,12 +171,13 @@ pub fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> Result<(), AppError> {
             {
                 toggle_dashboard_window(tray.app_handle());
             }
-        })
-        .build(app)
-        .map_err(AppError::from)?;
-
+        });
     #[cfg(target_os = "macos")]
-    tray.set_icon_as_template(true).map_err(AppError::from)?;
+    let builder = builder.icon_as_template(true);
+
+    let tray = builder.build(app).map_err(AppError::from)?;
+
+    apply_macos_template_icon(&tray)?;
 
     request_tray_refresh(app);
     Ok(())
@@ -162,15 +188,27 @@ async fn refresh_tray<R: Runtime>(app: &AppHandle<R>) -> Result<(), AppError> {
         return Ok(());
     };
     let tray_state = build_tray_state_for_app(&state).await?;
+    let update = native_tray_update(&tray_state);
     let tray = app
         .tray_by_id(TRAY_ID)
         .ok_or_else(|| AppError::store("tray icon not initialized"))?;
-    let icon = Image::from_bytes(&tray_state.icon_png).map_err(AppError::from)?;
+    let icon = Image::from_bytes(&update.icon_png).map_err(AppError::from)?;
     tray.set_icon(Some(icon)).map_err(AppError::from)?;
-    tray.set_tooltip(Some(&tray_state.tooltip))
+    apply_macos_template_icon(&tray)?;
+    tray.set_tooltip(Some(&update.tooltip))
         .map_err(AppError::from)?;
     let menu = build_native_menu(app, &tray_state.projects)?;
     tray.set_menu(Some(menu)).map_err(AppError::from)?;
+    Ok(())
+}
+
+fn apply_macos_template_icon<R: Runtime>(tray: &TrayIcon<R>) -> Result<(), AppError> {
+    #[cfg(target_os = "macos")]
+    tray.set_icon_as_template(true).map_err(AppError::from)?;
+
+    #[cfg(not(target_os = "macos"))]
+    let _ = tray;
+
     Ok(())
 }
 

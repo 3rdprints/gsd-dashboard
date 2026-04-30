@@ -1,7 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::Manager;
-
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -9,8 +7,7 @@ fn main() {
         .setup(|app| {
             let handle = tauri::async_runtime::handle();
             let state = handle.block_on(gsd_dashboard::bootstrap::bootstrap_app(app))?;
-            app.manage(state);
-            gsd_dashboard::tray::service::setup_tray(app.handle())?;
+            gsd_dashboard::bootstrap::manage_app_state_and_tray(app, state)?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use tauri::Manager;
+use tauri::{Manager, Runtime};
 
 use crate::{
     app_state::{AppState, BootStatus},
@@ -15,6 +15,14 @@ pub async fn bootstrap_app<R: tauri::Runtime>(app: &tauri::App<R>) -> Result<App
     let state = bootstrap_from_paths(app_data_dir, home_dir).await?;
     watcher::start_watcher_service_for_app(app.handle().clone(), &state).await?;
     Ok(state)
+}
+
+pub fn manage_app_state_and_tray<R: Runtime>(
+    app: &mut tauri::App<R>,
+    state: AppState,
+) -> Result<(), AppError> {
+    app.manage(state);
+    crate::tray::service::setup_tray(app.handle())
 }
 
 pub async fn bootstrap_from_paths(
