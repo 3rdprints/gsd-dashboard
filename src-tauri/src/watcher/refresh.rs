@@ -11,7 +11,7 @@ use crate::{
         SessionSource,
     },
     store::daily_activity,
-    tray::service::request_tray_refresh,
+    tray::service::record_tray_refresh_request,
 };
 
 pub async fn refresh_project_planning_dir_for_app(
@@ -32,7 +32,7 @@ pub async fn refresh_project_planning_dir_for_app(
     emit_event(AppEvent::ProjectUpdated {
         id: outcome.project_id.clone(),
     })?;
-    request_tray_refresh(state).await?;
+    record_tray_refresh_request(state).await?;
 
     Ok(outcome)
 }
