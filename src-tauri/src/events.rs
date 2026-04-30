@@ -7,6 +7,9 @@ pub enum AppEvent {
         cache_path: String,
     },
     SettingsChanged,
+    TrayNavigate {
+        route: String,
+    },
     #[serde(rename = "daily_activity_updated")]
     DailyActivityUpdated,
     #[serde(rename = "project:updated")]

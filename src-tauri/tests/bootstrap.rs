@@ -85,6 +85,17 @@ fn live_update_events_serialize_tiny_payloads() {
     assert!(watcher_value.get("data").is_none());
 }
 
+#[test]
+fn tray_navigate_serializes_route_payload() {
+    let value = serde_json::to_value(AppEvent::TrayNavigate {
+        route: "/project/alpha".to_string(),
+    })
+    .expect("event should serialize");
+
+    assert_eq!(value["event"], "trayNavigate");
+    assert_eq!(value["data"]["route"], "/project/alpha");
+}
+
 #[tokio::test]
 async fn bootstrap_initializes_owned_watcher_runtime_status() {
     let temp_dir = tempfile::tempdir().expect("temp dir should be created");

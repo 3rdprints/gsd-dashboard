@@ -6,17 +6,20 @@ import { queryClient } from "./queryClient";
 type ListenerCallback = (event: { payload: unknown }) => void | Promise<void>;
 
 const listeners = new Map<string, ListenerCallback>();
+const unlisten = vi.fn();
 
 vi.mock("@tauri-apps/api/event", () => ({
   listen: vi.fn((eventName: string, callback: ListenerCallback) => {
     listeners.set(eventName, callback);
-    return Promise.resolve(vi.fn());
+    return Promise.resolve(unlisten);
   })
 }));
 
-describe("live update app listeners", () => {
+describe("app listeners", () => {
   beforeEach(() => {
     listeners.clear();
+    unlisten.mockClear();
+    window.history.replaceState(null, "", "/");
     vi.restoreAllMocks();
   });
 
@@ -50,5 +53,56 @@ describe("live update app listeners", () => {
     await listeners.get("watcher:status-changed")?.({ payload: null });
 
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["watcherStatus"] });
+  });
+
+  it("navigates to tray project detail routes from typed trayNavigate events", async () => {
+    registerAppListeners();
+    await listeners.get("trayNavigate")?.({
+      payload: {
+        event: "trayNavigate",
+        data: {
+          route: "/project/alpha"
+        }
+      }
+    });
+
+    expect(window.location.pathname).toBe("/project/alpha");
+  });
+
+  it("navigates to dashboard and settings from fixed tray actions", async () => {
+    registerAppListeners();
+    await listeners.get("trayNavigate")?.({
+      payload: {
+        event: "trayNavigate",
+        data: {
+          route: "/settings"
+        }
+      }
+    });
+    expect(window.location.pathname).toBe("/settings");
+
+    await listeners.get("trayNavigate")?.({
+      payload: {
+        event: "trayNavigate",
+        data: {
+          route: "/"
+        }
+      }
+    });
+    expect(window.location.pathname).toBe("/");
+  });
+
+  it("ignores non-local tray navigation routes", async () => {
+    registerAppListeners();
+    await listeners.get("trayNavigate")?.({
+      payload: {
+        event: "trayNavigate",
+        data: {
+          route: "https://example.com"
+        }
+      }
+    });
+
+    expect(window.location.pathname).toBe("/");
   });
 });

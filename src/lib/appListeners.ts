@@ -20,6 +20,17 @@ type SessionNewPayload = {
   projectId?: unknown;
 };
 
+type TrayNavigatePayload =
+  | {
+      event: "trayNavigate";
+      data: {
+        route: string;
+      };
+    }
+  | {
+      route: string;
+    };
+
 export function registerAppListeners() {
   const unlistenSettingsChanged = listen("settings-changed", async () => {
     await Promise.all([
@@ -70,6 +81,13 @@ export function registerAppListeners() {
   const unlistenWatcherStatusChanged = listen("watcher:status-changed", async () => {
     await queryClient.invalidateQueries({ queryKey: watcherStatusQueryKey() });
   });
+  const unlistenTrayNavigate = listen<TrayNavigatePayload>("trayNavigate", (event) => {
+    const route = getTrayNavigateRoute(event.payload);
+
+    if (route) {
+      navigateToTrayRoute(route);
+    }
+  });
 
   return () => {
     void unlistenSettingsChanged.then((unlisten) => unlisten());
@@ -77,5 +95,27 @@ export function registerAppListeners() {
     void unlistenProjectUpdated.then((unlisten) => unlisten());
     void unlistenSessionNew.then((unlisten) => unlisten());
     void unlistenWatcherStatusChanged.then((unlisten) => unlisten());
+    void unlistenTrayNavigate.then((unlisten) => unlisten());
   };
+}
+
+function getTrayNavigateRoute(payload: TrayNavigatePayload): string | null {
+  if ("data" in payload) {
+    return payload.data.route;
+  }
+
+  return payload.route;
+}
+
+function navigateToTrayRoute(route: string) {
+  if (!isAllowedTrayRoute(route)) {
+    return;
+  }
+
+  window.history.pushState(null, "", route);
+  window.dispatchEvent(new PopStateEvent("popstate"));
+}
+
+function isAllowedTrayRoute(route: string) {
+  return route === "/" || route === "/settings" || /^\/project\/[^/]+$/.test(route);
 }

@@ -15,16 +15,63 @@ pub enum TrayMenuAction {
     CopyNextCommand { project_id: String },
 }
 
-pub fn format_tooltip(_projects: &[TrayProjectBar]) -> String {
-    String::new()
+impl TrayMenuAction {
+    pub fn navigation_route(&self) -> Option<String> {
+        match self {
+            Self::ShowDashboard => Some("/".to_string()),
+            Self::Preferences => Some("/settings".to_string()),
+            Self::OpenProject { project_id } => Some(format!("/project/{project_id}")),
+            Self::Quit | Self::CopyNextCommand { .. } => None,
+        }
+    }
 }
 
-pub fn project_menu_label(_project: &TrayProjectBar) -> String {
-    String::new()
+pub fn format_tooltip(projects: &[TrayProjectBar]) -> String {
+    let mut parts = vec![format!("{} active projects", projects.len())];
+    parts.extend(
+        projects
+            .iter()
+            .take(3)
+            .map(|project| format!("{} {}%", project.name, rounded_pct(project.milestone_progress_pct))),
+    );
+    parts.join(" · ")
 }
 
-pub fn parse_menu_action(_id: &str) -> Option<TrayMenuAction> {
-    None
+pub fn project_menu_label(project: &TrayProjectBar) -> String {
+    format!(
+        "{} · {}%",
+        project.name,
+        rounded_pct(project.milestone_progress_pct)
+    )
+}
+
+pub fn parse_menu_action(id: &str) -> Option<TrayMenuAction> {
+    match id {
+        SHOW_DASHBOARD_ID => Some(TrayMenuAction::ShowDashboard),
+        PREFERENCES_ID => Some(TrayMenuAction::Preferences),
+        QUIT_ID => Some(TrayMenuAction::Quit),
+        _ => {
+            if let Some(project_id) = parse_scoped_project_id(id, PROJECT_ID_PREFIX) {
+                return Some(TrayMenuAction::OpenProject { project_id });
+            }
+            if let Some(project_id) = parse_scoped_project_id(id, COPY_NEXT_ID_PREFIX) {
+                return Some(TrayMenuAction::CopyNextCommand { project_id });
+            }
+            None
+        }
+    }
+}
+
+fn parse_scoped_project_id(id: &str, prefix: &str) -> Option<String> {
+    let project_id = id.strip_prefix(prefix)?;
+    if project_id.is_empty() || project_id.contains(':') {
+        return None;
+    }
+    Some(project_id.to_string())
+}
+
+fn rounded_pct(percent: f64) -> i64 {
+    percent.clamp(0.0, 100.0).round() as i64
 }
 
 #[cfg(test)]
@@ -84,5 +131,31 @@ mod tests {
         assert_eq!(parse_menu_action("project:alpha:extra"), None);
         assert_eq!(parse_menu_action("copy_next:alpha:extra"), None);
         assert_eq!(parse_menu_action("open_dashboard"), None);
+    }
+
+    #[test]
+    fn navigation_routes_are_separate_from_copy_actions() {
+        assert_eq!(
+            TrayMenuAction::ShowDashboard.navigation_route(),
+            Some("/".to_string())
+        );
+        assert_eq!(
+            TrayMenuAction::Preferences.navigation_route(),
+            Some("/settings".to_string())
+        );
+        assert_eq!(
+            TrayMenuAction::OpenProject {
+                project_id: "alpha".to_string()
+            }
+            .navigation_route(),
+            Some("/project/alpha".to_string())
+        );
+        assert_eq!(
+            TrayMenuAction::CopyNextCommand {
+                project_id: "alpha".to_string()
+            }
+            .navigation_route(),
+            None
+        );
     }
 }
