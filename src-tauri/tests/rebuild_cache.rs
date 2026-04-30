@@ -44,6 +44,7 @@ fn phase_plan(project_id: &str) -> project_repo::StoredPhasePlan {
         phase_name: Some("Portfolio Vertical Slice".to_string()),
         plan_number: Some("02".to_string()),
         plan_path: ".planning/phases/03-portfolio-vertical-slice/03-02-PLAN.md".to_string(),
+        completed_at: None,
         checklist_json: r#"[{"label":"rebuild cache","done":false}]"#.to_string(),
         updated_at: 0,
     }
@@ -71,6 +72,7 @@ async fn test_app_state(home_dir: PathBuf, scan_root: &Path) -> AppState {
             autostart_enabled: true,
             tray_bar_max_projects: 5,
             tray_bar_sort: TrayBarSort::Name,
+            global_sessions_default_range: "7d".to_string(),
         },
     )
     .await
@@ -86,7 +88,7 @@ async fn test_app_state(home_dir: PathBuf, scan_root: &Path) -> AppState {
             cache_path: cache_path.display().to_string(),
             cache_ready: true,
             wal_enabled: true,
-            migrations_applied: 2,
+            migrations_applied: gsd_dashboard::store::migrations::MIGRATION_COUNT,
             settings_initialized: true,
         },
     )
@@ -194,6 +196,7 @@ async fn clear_project_cache_removes_only_derived_rows() {
             autostart_enabled: true,
             tray_bar_max_projects: 5,
             tray_bar_sort: TrayBarSort::Name,
+            global_sessions_default_range: "7d".to_string(),
         },
     )
     .await

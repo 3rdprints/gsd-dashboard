@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, HashSet};
 
 use rusqlite::{params, OptionalExtension};
+use serde::Serialize;
 
 use crate::{
     error::AppError,
@@ -199,12 +200,124 @@ pub fn persist_indexed_file_result(
 ) -> Result<(), AppError> {
     let transaction = connection.transaction().map_err(AppError::from)?;
 
+    transaction
+        .execute(
+            "DELETE FROM sessions WHERE source_path = ?1",
+            [&state.source_path],
+        )
+        .map_err(AppError::from)?;
     for session in sessions {
         upsert_indexed_session(&transaction, session, now)?;
     }
     save_index_state(&transaction, state, now)?;
 
     transaction.commit().map_err(AppError::from)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionIndexClearSummary {
+    pub sessions_cleared: i64,
+    pub index_states_cleared: i64,
+}
+
+pub fn clear_session_index(
+    connection: &mut rusqlite::Connection,
+) -> Result<SessionIndexClearSummary, AppError> {
+    let transaction = connection.transaction().map_err(AppError::from)?;
+    let summary = clear_session_index_in_transaction(&transaction)?;
+    transaction.commit().map_err(AppError::from)?;
+
+    Ok(summary)
+}
+
+pub fn clear_session_index_in_transaction(
+    transaction: &rusqlite::Transaction<'_>,
+) -> Result<SessionIndexClearSummary, AppError> {
+    let sessions_cleared = transaction
+        .execute("DELETE FROM sessions", [])
+        .map_err(AppError::from)?;
+    let index_states_cleared = transaction
+        .execute("DELETE FROM session_index_state", [])
+        .map_err(AppError::from)?;
+
+    Ok(SessionIndexClearSummary {
+        sessions_cleared: sessions_cleared as i64,
+        index_states_cleared: index_states_cleared as i64,
+    })
+}
+
+pub fn prune_unmatched_sessions(connection: &mut rusqlite::Connection) -> Result<i64, AppError> {
+    connection
+        .execute("DELETE FROM sessions WHERE project_id IS NULL", [])
+        .map(|count| count as i64)
+        .map_err(AppError::from)
+}
+
+pub fn prune_orphan_index_states(connection: &mut rusqlite::Connection) -> Result<i64, AppError> {
+    connection
+        .execute(
+            "DELETE FROM session_index_state
+             WHERE NOT EXISTS (
+                SELECT 1
+                FROM sessions
+                WHERE sessions.source_path = session_index_state.source_path
+             )",
+            [],
+        )
+        .map(|count| count as i64)
+        .map_err(AppError::from)
+}
+
+pub fn prune_tokenless_codex_index_states(
+    connection: &mut rusqlite::Connection,
+) -> Result<i64, AppError> {
+    connection
+        .execute(
+            "DELETE FROM session_index_state
+             WHERE source = 'codex'
+                AND EXISTS (
+                    SELECT 1
+                    FROM sessions
+                    WHERE sessions.source_path = session_index_state.source_path
+                        AND sessions.source = 'codex'
+                        AND sessions.message_count > 0
+                        AND COALESCE(sessions.tokens_in, 0) = 0
+                        AND COALESCE(sessions.tokens_out, 0) = 0
+                )",
+            [],
+        )
+        .map(|count| count as i64)
+        .map_err(AppError::from)
+}
+
+pub fn prune_indexed_paths_under(
+    connection: &mut rusqlite::Connection,
+    path_prefix: &str,
+) -> Result<i64, AppError> {
+    let transaction = connection.transaction().map_err(AppError::from)?;
+    let path_prefix_with_separator = format!("{}/", path_prefix.trim_end_matches('/'));
+    let prefix_len: i64 = path_prefix_with_separator
+        .len()
+        .try_into()
+        .map_err(|_| AppError::store("session path prefix is too long"))?;
+    let pruned_sessions = transaction
+        .execute(
+            "DELETE FROM sessions
+             WHERE source_path = ?1 OR substr(source_path, 1, ?2) = ?3",
+            params![path_prefix, prefix_len, path_prefix_with_separator],
+        )
+        .map_err(AppError::from)?;
+    transaction
+        .execute(
+            "DELETE FROM session_index_state
+             WHERE source_path = ?1 OR substr(source_path, 1, ?2) = ?3",
+            params![path_prefix, prefix_len, path_prefix_with_separator],
+        )
+        .map_err(AppError::from)?;
+
+    transaction.commit().map_err(AppError::from)?;
+    Ok(pruned_sessions as i64)
 }
 
 pub fn rematch_unmatched_sessions_against_projects(

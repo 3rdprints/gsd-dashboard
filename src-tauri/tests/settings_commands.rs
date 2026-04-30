@@ -19,6 +19,7 @@ fn settings_input(scan_roots: Vec<String>) -> SettingsInput {
         autostart_enabled: false,
         tray_bar_max_projects: 8,
         tray_bar_sort: TrayBarSort::RecentActivity,
+        global_sessions_default_range: "7d".to_string(),
     }
 }
 
@@ -36,7 +37,10 @@ async fn get_boot_status_returns_cache_ready_state() {
 
     assert!(status.cache_ready);
     assert!(status.wal_enabled);
-    assert_eq!(status.migrations_applied, 3);
+    assert_eq!(
+        status.migrations_applied,
+        gsd_dashboard::store::migrations::MIGRATION_COUNT
+    );
     assert!(status.settings_initialized);
 }
 

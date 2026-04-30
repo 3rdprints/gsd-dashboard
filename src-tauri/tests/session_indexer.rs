@@ -6,15 +6,16 @@ use std::{
 
 use gsd_dashboard::{
     bootstrap,
-    commands::sessions::index_sessions_for_app,
+    commands::sessions::{clear_session_index_for_app, index_sessions_for_app},
     error::AppError,
     events::SessionIndexEvent,
     sessions::{
         indexer::{stream_session_file, StreamFileStatus},
         matcher::match_project,
-        repo::load_index_state,
+        repo::{load_index_state, persist_indexed_file_result},
         IndexedSession, ProjectRoot, SessionIndexState, SessionSource,
     },
+    store::project_repo::{self, StoredProjectSnapshot},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -25,6 +26,10 @@ struct StoredSessionStats {
     tokens_in: Option<i64>,
     tokens_out: Option<i64>,
 }
+
+type SessionEventStore = Arc<Mutex<Vec<SessionIndexEvent>>>;
+type SessionEventRecorder =
+    Box<dyn Fn(SessionIndexEvent) -> Result<(), AppError> + Send + Sync + 'static>;
 
 fn fixture_path(name: &str) -> &'static str {
     match name {
@@ -44,6 +49,10 @@ fn fixture_path(name: &str) -> &'static str {
             env!("CARGO_MANIFEST_DIR"),
             "/fixtures/sessions/codex-sparse.jsonl"
         ),
+        "codex-current" => concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/fixtures/sessions/codex-current.jsonl"
+        ),
         _ => panic!("unknown fixture"),
     }
 }
@@ -56,8 +65,45 @@ async fn test_state() -> (tempfile::TempDir, gsd_dashboard::app_state::AppState)
     )
     .await
     .expect("bootstrap should succeed");
+    seed_known_project(&state).await;
 
     (temp_dir, state)
+}
+
+async fn seed_known_project(state: &gsd_dashboard::app_state::AppState) {
+    state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available")
+        .interact(|connection| {
+            project_repo::upsert_project_snapshot(
+                connection,
+                StoredProjectSnapshot {
+                    id: "gsd-dashboard-fixture".to_string(),
+                    name: "GSD Dashboard Fixture".to_string(),
+                    root_path: "/tmp/gsd-dashboard-fixture".to_string(),
+                    planning_path: "/tmp/gsd-dashboard-fixture/.planning".to_string(),
+                    current_milestone_name: None,
+                    current_milestone_index: None,
+                    current_phase_number: None,
+                    current_phase_name: None,
+                    milestone_progress_pct: 0.0,
+                    next_command: "/gsd-next".to_string(),
+                    parsed_blob: "{}".to_string(),
+                    parse_error: None,
+                    last_activity_at: None,
+                    last_scanned_at: 0,
+                    created_at: 0,
+                    updated_at: 0,
+                },
+                Vec::new(),
+                1,
+            )
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("known project should be seeded");
 }
 
 fn copy_fixture_roots(home_dir: &Path) -> (PathBuf, PathBuf) {
@@ -73,20 +119,20 @@ fn copy_fixture_roots(home_dir: &Path) -> (PathBuf, PathBuf) {
     (claude_path, codex_path)
 }
 
-fn collect_session_events() -> (
-    Arc<Mutex<Vec<SessionIndexEvent>>>,
-    impl Fn(SessionIndexEvent) -> Result<(), AppError> + Send + Sync + 'static,
-) {
+fn collect_session_events() -> (SessionEventStore, SessionEventRecorder) {
     let events = Arc::new(Mutex::new(Vec::new()));
     let recorded_events = Arc::clone(&events);
 
-    (events, move |event| {
-        recorded_events
-            .lock()
-            .expect("events lock should not be poisoned")
-            .push(event);
-        Ok(())
-    })
+    (
+        events,
+        Box::new(move |event| {
+            recorded_events
+                .lock()
+                .expect("events lock should not be poisoned")
+                .push(event);
+            Ok(())
+        }),
+    )
 }
 
 async fn load_session_stats(
@@ -239,6 +285,26 @@ fn codex_sparse_session_fixture_uses_optional_field_fallbacks() {
 }
 
 #[test]
+fn codex_current_session_fixture_uses_info_token_usage() {
+    let source_path = fixture_path("codex-current");
+    let (accumulator, status) =
+        stream_session_file(SessionSource::Codex, Path::new(source_path), None)
+            .expect("codex current fixture should stream");
+
+    assert!(matches!(status, StreamFileStatus::Complete { .. }));
+    assert_eq!(
+        accumulator.session.source_session_id.as_deref(),
+        Some("codex-current-session")
+    );
+    assert_eq!(
+        accumulator.session.cwd.as_deref(),
+        Some("/tmp/gsd-dashboard-fixture")
+    );
+    assert_eq!(accumulator.session.tokens_in, Some(26_940));
+    assert_eq!(accumulator.session.tokens_out, Some(435));
+}
+
+#[test]
 fn partial_trailing_line_keeps_offset_before_partial() {
     let source_path = fixture_path("claude-partial");
     let bytes = fs::read(source_path).expect("fixture should be readable");
@@ -291,6 +357,36 @@ fn matcher_prefers_cwd_and_retains_unmatched() {
 
     assert_eq!(unmatched.project_id, None);
     assert_eq!(unmatched.attribution_method, "unmatched");
+}
+
+#[test]
+fn matcher_attributes_worktree_cwd_to_base_project() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let base_project = temp_dir.path().join("deckpilot-web");
+    let worktree = temp_dir.path().join("worktrees/agent-a485842780e148052");
+    let worktree_subdir = worktree.join("src");
+    fs::create_dir_all(base_project.join(".git/worktrees/agent-a485842780e148052"))
+        .expect("base git metadata should be created");
+    fs::create_dir_all(&worktree_subdir).expect("worktree subdir should be created");
+    fs::write(
+        worktree.join(".git"),
+        format!(
+            "gitdir: {}/.git/worktrees/agent-a485842780e148052\n",
+            base_project.display()
+        ),
+    )
+    .expect("worktree git file should be written");
+    let known_projects = vec![ProjectRoot {
+        id: "deckpilot-web".to_string(),
+        root_path: base_project.display().to_string(),
+    }];
+    let mut session = empty_session(SessionSource::Codex, "/tmp/codex.jsonl");
+    session.cwd = Some(worktree_subdir.display().to_string());
+
+    match_project(&mut session, &known_projects);
+
+    assert_eq!(session.project_id.as_deref(), Some("deckpilot-web"));
+    assert_eq!(session.attribution_method, "worktree_cwd");
 }
 
 #[test]
@@ -416,7 +512,7 @@ async fn index_sessions_for_app_persists_fixture_roots() {
     assert_eq!(summary.root_count, 2);
     assert_eq!(summary.files_processed, 2);
     assert_eq!(summary.sessions_persisted, 2);
-    assert_eq!(summary.unmatched_count, 2);
+    assert_eq!(summary.unmatched_count, 0);
     assert_eq!(summary.error_count, 0);
     assert!(events
         .iter()
@@ -427,11 +523,289 @@ async fn index_sessions_for_app_persists_fixture_roots() {
             SessionIndexEvent::Finished {
                 files_processed: 2,
                 sessions_persisted: 2,
-                unmatched_count: 2,
+                unmatched_count: 0,
                 error_count: 0
             }
         )
     }));
+}
+
+#[tokio::test]
+async fn index_sessions_for_app_prunes_and_skips_unmatched_sessions() {
+    let (_temp_dir, state) = test_state().await;
+    let codex_dir = state.home_dir.join(".codex/sessions/2026/04/27");
+    fs::create_dir_all(&codex_dir).expect("codex fixture dir should be created");
+    let unmatched_path = codex_dir.join("unmatched-session.jsonl");
+    let unmatched_source_path = unmatched_path.display().to_string();
+    fs::write(
+        &unmatched_path,
+        "{\"type\":\"event_msg\",\"timestamp\":\"2026-04-27T14:00:00Z\",\"payload\":{\"id\":\"unmatched-session\",\"cwd\":\"/tmp/not-a-known-project\"}}\n",
+    )
+    .expect("unmatched codex session should be written");
+    let stale_session = IndexedSession {
+        id: "codex:stale-unmatched".to_string(),
+        source: SessionSource::Codex,
+        source_path: "/tmp/stale-unmatched.jsonl".to_string(),
+        source_session_id: Some("stale-unmatched".to_string()),
+        project_id: None,
+        cwd: Some("/tmp/not-a-known-project".to_string()),
+        started_at: Some(1_777_000_000),
+        ended_at: Some(1_777_000_000),
+        duration_ms: Some(0),
+        message_count: 1,
+        tokens_in: Some(0),
+        tokens_out: Some(0),
+        model: None,
+        attribution_method: "unmatched".to_string(),
+        index_error: None,
+    };
+    let stale_state = SessionIndexState {
+        source_path: stale_session.source_path.clone(),
+        source: SessionSource::Codex,
+        file_size: 10,
+        file_mtime: Some(1),
+        last_parsed_byte_offset: 10,
+        live_partial: false,
+        last_error: None,
+    };
+    state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available")
+        .interact(move |connection| {
+            persist_indexed_file_result(connection, &[stale_session], &stale_state, 1)
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("stale unmatched should persist");
+
+    let summary = index_sessions_for_app(&state, |_| Ok(()))
+        .await
+        .expect("session index should complete");
+    let (unmatched_count, unmatched_state_count, stale_state_count) = state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available")
+        .interact(move |connection| {
+            let unmatched_count = connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sessions WHERE project_id IS NULL",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .map_err(AppError::from)?;
+            let unmatched_state_count = connection
+                .query_row(
+                    "SELECT COUNT(*) FROM session_index_state WHERE source_path = ?1",
+                    [unmatched_source_path],
+                    |row| row.get::<_, i64>(0),
+                )
+                .map_err(AppError::from)?;
+            let stale_state_count = connection
+                .query_row(
+                    "SELECT COUNT(*) FROM session_index_state WHERE source_path = ?1",
+                    ["/tmp/stale-unmatched.jsonl"],
+                    |row| row.get::<_, i64>(0),
+                )
+                .map_err(AppError::from)?;
+
+            Ok::<_, AppError>((unmatched_count, unmatched_state_count, stale_state_count))
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("unmatched count should load");
+
+    assert_eq!(summary.sessions_persisted, 0);
+    assert_eq!(summary.unmatched_count, 0);
+    assert_eq!(unmatched_count, 0);
+    assert_eq!(unmatched_state_count, 0);
+    assert_eq!(stale_state_count, 0);
+}
+
+#[tokio::test]
+async fn index_sessions_for_app_reparses_stale_tokenless_codex_sessions() {
+    let (_temp_dir, state) = test_state().await;
+    let codex_dir = state.home_dir.join(".codex/sessions/2026/04/27");
+    fs::create_dir_all(&codex_dir).expect("codex fixture dir should be created");
+    let codex_path = codex_dir.join("codex-current.jsonl");
+    fs::copy(fixture_path("codex-current"), &codex_path).expect("codex fixture should copy");
+    let codex_source_path = codex_path.display().to_string();
+    let codex_file_size = codex_path
+        .metadata()
+        .expect("codex fixture metadata should load")
+        .len() as i64;
+    let codex_file_mtime = codex_path
+        .metadata()
+        .expect("codex fixture metadata should load")
+        .modified()
+        .expect("codex fixture mtime should load")
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("codex fixture mtime should be after epoch")
+        .as_millis() as i64;
+    let stale_session = IndexedSession {
+        id: "codex:codex-current-session".to_string(),
+        source: SessionSource::Codex,
+        source_path: codex_source_path.clone(),
+        source_session_id: Some("codex-current-session".to_string()),
+        project_id: Some("gsd-dashboard-fixture".to_string()),
+        cwd: Some("/tmp/gsd-dashboard-fixture".to_string()),
+        started_at: Some(1_777_000_000_000),
+        ended_at: Some(1_777_000_000_000),
+        duration_ms: Some(0),
+        message_count: 1,
+        tokens_in: Some(0),
+        tokens_out: Some(0),
+        model: Some("gpt-5".to_string()),
+        attribution_method: "cwd".to_string(),
+        index_error: None,
+    };
+    let stale_state = SessionIndexState {
+        source_path: codex_source_path,
+        source: SessionSource::Codex,
+        file_size: codex_file_size,
+        file_mtime: Some(codex_file_mtime),
+        last_parsed_byte_offset: codex_file_size,
+        live_partial: false,
+        last_error: None,
+    };
+    state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available")
+        .interact(move |connection| {
+            persist_indexed_file_result(connection, &[stale_session], &stale_state, 1)
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("stale tokenless codex session should persist");
+
+    index_sessions_for_app(&state, |_| Ok(()))
+        .await
+        .expect("session index should complete");
+    let stats = load_session_stats(&state, "codex:codex-current-session").await;
+
+    assert_eq!(stats.tokens_in, Some(26940));
+    assert_eq!(stats.tokens_out, Some(435));
+}
+
+#[tokio::test]
+async fn clear_session_index_removes_sessions_and_offsets() {
+    let (_temp_dir, state) = test_state().await;
+    let (_claude_path, _codex_path) = copy_fixture_roots(&state.home_dir);
+    index_sessions_for_app(&state, |_| Ok(()))
+        .await
+        .expect("session index should complete");
+
+    let summary = clear_session_index_for_app(&state)
+        .await
+        .expect("session index should clear");
+    let counts = state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available")
+        .interact(|connection| {
+            let session_count =
+                connection.query_row("SELECT COUNT(*) FROM sessions", [], |row| {
+                    row.get::<_, i64>(0)
+                })?;
+            let state_count =
+                connection.query_row("SELECT COUNT(*) FROM session_index_state", [], |row| {
+                    row.get::<_, i64>(0)
+                })?;
+            let daily_activity_count =
+                connection.query_row("SELECT COUNT(*) FROM daily_activity", [], |row| {
+                    row.get::<_, i64>(0)
+                })?;
+            Ok::<_, AppError>((session_count, state_count, daily_activity_count))
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("counts should load");
+
+    assert_eq!(summary.sessions_cleared, 2);
+    assert_eq!(summary.index_states_cleared, 2);
+    assert_eq!(counts, (0, 0, 0));
+}
+
+#[tokio::test]
+async fn index_sessions_for_app_skips_codex_index_summaries() {
+    let (_temp_dir, state) = test_state().await;
+    let (_claude_path, _codex_path) = copy_fixture_roots(&state.home_dir);
+    let codex_index_dir = state.home_dir.join(".codex/sessions/index/by-dir");
+    fs::create_dir_all(&codex_index_dir).expect("codex index dir should be created");
+    let codex_index_path = codex_index_dir.join("_tmp_gsd-dashboard-fixture.jsonl");
+    fs::write(
+        &codex_index_path,
+        "{\"record_type\":\"summary\",\"cwd\":\"/tmp/gsd-dashboard-fixture\",\"message_count_delta\":99}\n",
+    )
+    .expect("codex index summary should be written");
+    let codex_index_source_path = codex_index_path.display().to_string();
+    let stale_session = IndexedSession {
+        id: "codex:stale-index-summary".to_string(),
+        source: SessionSource::Codex,
+        source_path: codex_index_source_path.clone(),
+        source_session_id: Some("stale-index-summary".to_string()),
+        project_id: None,
+        cwd: Some("/tmp/gsd-dashboard-fixture".to_string()),
+        started_at: Some(1_716_814_800_000),
+        ended_at: Some(1_716_814_800_000),
+        duration_ms: Some(0),
+        message_count: 99,
+        tokens_in: Some(0),
+        tokens_out: Some(0),
+        model: None,
+        attribution_method: "unmatched".to_string(),
+        index_error: None,
+    };
+    let stale_state = SessionIndexState {
+        source_path: codex_index_source_path.clone(),
+        source: SessionSource::Codex,
+        file_size: 10,
+        file_mtime: Some(1),
+        last_parsed_byte_offset: 10,
+        live_partial: false,
+        last_error: None,
+    };
+    state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available")
+        .interact(move |connection| {
+            persist_indexed_file_result(connection, &[stale_session], &stale_state, 1)
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("stale summary should persist");
+
+    let summary = index_sessions_for_app(&state, |_| Ok(()))
+        .await
+        .expect("session index should complete");
+    let stale_count = state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available")
+        .interact(move |connection| {
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM sessions WHERE source_path = ?1",
+                    [codex_index_source_path],
+                    |row| row.get::<_, i64>(0),
+                )
+                .map_err(AppError::from)
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("stale count should load");
+
+    assert_eq!(summary.files_processed, 2);
+    assert_eq!(summary.sessions_persisted, 2);
+    assert_eq!(stale_count, 0);
 }
 
 #[tokio::test]
@@ -634,8 +1008,8 @@ async fn index_sessions_for_app_does_not_advance_offset_when_persistence_fails()
         .expect("connection should be available")
         .interact(|connection| {
             connection.execute(
-                "CREATE TRIGGER fail_session_update
-                 BEFORE UPDATE ON sessions
+                "CREATE TRIGGER fail_session_replace
+                 BEFORE DELETE ON sessions
                  BEGIN
                      SELECT RAISE(ABORT, 'forced persistence failure');
                  END;",
@@ -676,6 +1050,8 @@ fn index_sessions_command_is_registered_for_release() {
     let default_capability = include_str!("../capabilities/default.json");
 
     assert!(build_script.contains("\"index_sessions\""));
+    assert!(build_script.contains("\"clear_session_index\""));
     assert!(default_capability.contains("\"allow-index-sessions\""));
+    assert!(default_capability.contains("\"allow-clear-session-index\""));
     assert!(!default_capability.contains("fs:allow-read"));
 }

@@ -12,7 +12,7 @@
 - [x] **Phase 2: Planning Parser & Scanner** - Pure-function parsers over ROADMAP/STATE/PLAN/config + gitignore-respecting scanner with guardrails
 - [x] **Phase 3: Portfolio Vertical Slice** - First visible demo: scan on launch, project cards with progress bars, Settings scan-roots UI, Rebuild Cache
 - [x] **Phase 4: Session Indexer** - Claude + Codex JSONL streaming with byte-offset incremental parsing and project attribution
-- [ ] **Phase 5: Project Detail, Global Sessions & Charts** - Drill-in view, milestone timeline, charts, filterable global sessions table, 90-day heatmap
+- [x] **Phase 5: Project Detail, Global Sessions & Charts** - Drill-in view, milestone timeline, charts, filterable global sessions table, 90-day heatmap
 - [ ] **Phase 6: Tray Icon with Milestone Bars** - Dynamic openusage-style bar graph, tooltip, click-toggle, right-click menu, copy-next-command
 - [ ] **Phase 7: Live Updates** - notify watchers on .planning/ and session dirs with project-level debouncing and 60s polling fallback
 - [ ] **Phase 8: Autostart & OS Polish** - Launch-on-login with hidden-startup on all three OSes
@@ -99,7 +99,20 @@ Plans:
   2. Project Detail Charts tab shows sessions/day over 30 days, tokens/day, average session duration, and milestone velocity, all driven by real indexed session data.
   3. A Global Sessions view presents a filterable table across Claude and Codex sessions with filters for source, project, date range, duration, tokens, and unmatched-only, plus top charts (sessions/day stacked by source, tokens/day stacked by top-5 projects + "other", time-of-day histogram, day-of-week distribution).
   4. The Portfolio landing view now includes a 90-day GitHub-style activity heatmap rendered from pre-aggregated daily counts.
-**Plans**: TBD
+**Plans**: 12 plans
+Plans:
+- [x] 05-01-PLAN.md — Schema, settings, and DailyActivityUpdated event contracts
+- [x] 05-02-PLAN.md — Backend foundation test scaffolds
+- [x] 05-03-PLAN.md — Frontend foundation test scaffolds
+- [x] 05-04-PLAN.md — Project Detail checklist and STATE excerpt backend lifecycle
+- [x] 05-05-PLAN.md — Project Detail milestones, sessions, and charts backend commands
+- [x] 05-06-PLAN.md — daily_activity rebuild/load lifecycle and Portfolio heatmap backend
+- [x] 05-07-PLAN.md — Global Sessions table/chart backend commands and command registration
+- [x] 05-08-PLAN.md — Project Detail tab shell and Overview tab UI
+- [x] 05-09-PLAN.md — Project Detail Sessions and Charts tabs UI
+- [x] 05-10-PLAN.md — Global Sessions route, URL filters, chips, and server-paged table UI
+- [x] 05-11-PLAN.md — Global Sessions charts UI wired to active filters
+- [x] 05-12-PLAN.md — Portfolio activity heatmap UI and daily_activity_updated invalidation
 **UI hint**: yes
 
 ### Phase 6: Tray Icon with Milestone Bars
@@ -157,7 +170,7 @@ Plans:
 | 2. Planning Parser & Scanner | 4/4 | Complete | 2026-04-25 |
 | 3. Portfolio Vertical Slice | 6/6 | Complete | 2026-04-26 |
 | 4. Session Indexer | 4/4 | Complete | 2026-04-26 |
-| 5. Project Detail, Global Sessions & Charts | 0/? | Not started | - |
+| 5. Project Detail, Global Sessions & Charts | 0/12 | Not started | - |
 | 6. Tray Icon with Milestone Bars | 0/? | Not started | - |
 | 7. Live Updates | 0/? | Not started | - |
 | 8. Autostart & OS Polish | 0/? | Not started | - |

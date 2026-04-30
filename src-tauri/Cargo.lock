@@ -738,8 +738,7 @@ dependencies = [
 [[package]]
 name = "deadpool"
 version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "883466cb8db62725aee5f4a6011e8a5d42912b42632df32aad57fc91127c6e04"
+source = "git+https://github.com/deadpool-rs/deadpool.git?rev=df37445a89e0c455a5a2d8a5575d338df9407c99#df37445a89e0c455a5a2d8a5575d338df9407c99"
 dependencies = [
  "deadpool-runtime",
  "num_cpus",
@@ -749,8 +748,7 @@ dependencies = [
 [[package]]
 name = "deadpool-runtime"
 version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2657f61fb1dd8bf37a8d51093cc7cee4e77125b22f7753f49b289f831bec2bae"
+source = "git+https://github.com/deadpool-rs/deadpool.git?rev=df37445a89e0c455a5a2d8a5575d338df9407c99#df37445a89e0c455a5a2d8a5575d338df9407c99"
 dependencies = [
  "tokio",
 ]
@@ -758,8 +756,7 @@ dependencies = [
 [[package]]
 name = "deadpool-sqlite"
 version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9cea80311362fbc476e1f9568f50d5ec576a8bbb9375b7cdc1856e3216870440"
+source = "git+https://github.com/deadpool-rs/deadpool.git?rev=df37445a89e0c455a5a2d8a5575d338df9407c99#df37445a89e0c455a5a2d8a5575d338df9407c99"
 dependencies = [
  "deadpool",
  "deadpool-sync",
@@ -769,8 +766,7 @@ dependencies = [
 [[package]]
 name = "deadpool-sync"
 version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e385cc95d3d582c328b36d1ff90feac061102b001894b555e6b465a2e0eaabbf"
+source = "git+https://github.com/deadpool-rs/deadpool.git?rev=df37445a89e0c455a5a2d8a5575d338df9407c99#df37445a89e0c455a5a2d8a5575d338df9407c99"
 dependencies = [
  "deadpool-runtime",
 ]
@@ -2289,9 +2285,9 @@ dependencies = [
 
 [[package]]
 name = "libsqlite3-sys"
-version = "0.36.0"
+version = "0.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95b4103cffefa72eb8428cb6b47d6627161e51c2739fc5e3b734584157bc642a"
+checksum = "b1f111c8c41e7c61a49cd34e44c7619462967221a6443b0ec299e0ac30cfb9b1"
 dependencies = [
  "cc",
  "pkg-config",
@@ -2542,6 +2538,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.117",
+]
+
+[[package]]
+name = "num_threads"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c7398b9c8b70908f6371f47ed36737907c87c52af34c268fed0bf0ceb92ead9"
+dependencies = [
+ "libc",
 ]
 
 [[package]]
@@ -3432,9 +3437,9 @@ dependencies = [
 
 [[package]]
 name = "rusqlite"
-version = "0.38.0"
+version = "0.39.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1c93dd1c9683b438c392c492109cb702b8090b2bfc8fed6f6e4eb4523f17af3"
+checksum = "a0d2b0146dd9661bf67bb107c0bb2a55064d556eeb3fc314151b957f313bcd4e"
 dependencies = [
  "bitflags 2.11.1",
  "fallible-iterator",
@@ -3447,9 +3452,9 @@ dependencies = [
 
 [[package]]
 name = "rusqlite_migration"
-version = "2.4.1"
+version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67ffe0efe8568c769d1e39c67ea2a093134afaac9bb4559246a2ee7a4d686044"
+checksum = "410e4d2d97ff816796ed012b789c7381ae42c09a809822a75d29a01022181184"
 dependencies = [
  "log",
  "rusqlite",
@@ -4442,7 +4447,9 @@ checksum = "743bd48c283afc0388f9b8827b976905fb217ad9e647fae3a379a9283c4def2c"
 dependencies = [
  "deranged",
  "itoa",
+ "libc",
  "num-conv",
+ "num_threads",
  "powerfmt",
  "serde_core",
  "time-core",

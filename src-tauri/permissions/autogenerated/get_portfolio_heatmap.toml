@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-get-portfolio-heatmap"
+description = "Enables the get_portfolio_heatmap command without any pre-configured scope."
+commands.allow = ["get_portfolio_heatmap"]
+
+[[permission]]
+identifier = "deny-get-portfolio-heatmap"
+description = "Denies the get_portfolio_heatmap command without any pre-configured scope."
+commands.deny = ["get_portfolio_heatmap"]

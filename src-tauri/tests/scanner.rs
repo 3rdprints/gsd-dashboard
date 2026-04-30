@@ -11,6 +11,7 @@ use gsd_dashboard::{
     events::ScanEvent,
     scan_service,
     scanner::discover_planning_dirs,
+    sessions::project_detail,
     store::{self, project_repo},
 };
 
@@ -40,6 +41,7 @@ async fn test_app_state(home_dir: PathBuf, scan_root: &Path) -> AppState {
             autostart_enabled: false,
             tray_bar_max_projects: 8,
             tray_bar_sort: gsd_dashboard::settings::TrayBarSort::RecentActivity,
+            global_sessions_default_range: "7d".to_string(),
         },
     )
     .await
@@ -137,6 +139,47 @@ fn scanner_discovers_planning_dirs() {
     assert_eq!(candidates.len(), 1);
     assert_eq!(candidates[0].project_root, project_root);
     assert_eq!(candidates[0].planning_path, project_root.join(".planning"));
+}
+
+#[test]
+fn scanner_skips_planning_dirs_under_hidden_workspaces() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let home_dir = temp_dir.path();
+    let scan_root = home_dir.join("workspace");
+    let real_project_root = scan_root.join("project-a");
+    let hidden_worktree_root = scan_root.join(".claude/worktrees/agent-a485842780e148052");
+
+    create_planning_dir(&real_project_root);
+    create_planning_dir(&hidden_worktree_root);
+
+    let candidates =
+        discover_planning_dirs(&scan_root, home_dir).expect("scan root should be discoverable");
+
+    assert_eq!(candidates.len(), 1);
+    assert_eq!(candidates[0].project_root, real_project_root);
+}
+
+#[test]
+fn scanner_skips_git_worktree_roots() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let home_dir = temp_dir.path();
+    let scan_root = home_dir.join("workspace");
+    let real_project_root = scan_root.join("project-a");
+    let worktree_root = scan_root.join("project-a-worktree");
+
+    create_planning_dir(&real_project_root);
+    create_planning_dir(&worktree_root);
+    fs::write(
+        worktree_root.join(".git"),
+        "gitdir: ../project-a/.git/worktrees/project-a-worktree\n",
+    )
+    .expect("worktree git file should be written");
+
+    let candidates =
+        discover_planning_dirs(&scan_root, home_dir).expect("scan root should be discoverable");
+
+    assert_eq!(candidates.len(), 1);
+    assert_eq!(candidates[0].project_root, real_project_root);
 }
 
 #[test]
@@ -287,6 +330,345 @@ async fn malformed_project_does_not_abort_scan() {
         .await
         .expect("interaction should complete")
         .expect("repository reads should pass");
+}
+
+#[tokio::test]
+async fn scan_progress_uses_phase_plan_summary_files() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let home_dir = temp_dir.path();
+    let scan_root = home_dir.join("workspace");
+    let project_root = scan_root.join("summary-progress-project");
+    let planning_dir = project_root.join(".planning");
+    let phase_dir = planning_dir.join("phases/02-planning-parser-scanner");
+    let pool = migrated_pool(&temp_dir.path().join("cache.db")).await;
+
+    write_valid_planning_project(&project_root, "Summary Progress Project");
+    fs::write(
+        phase_dir.join("02-02-PLAN.md"),
+        r#"---
+phase: 02-planning-parser-scanner
+plan: 02
+type: execute
+---
+
+<tasks>
+<task type="auto">
+  <name>Task 2</name>
+</task>
+</tasks>
+"#,
+    )
+    .expect("second plan should be written");
+    fs::write(
+        phase_dir.join("02-01-SUMMARY.md"),
+        "# Summary\n\nPlan 1 complete.\n",
+    )
+    .expect("summary should be written");
+    fs::write(
+        phase_dir.join("ORPHAN-PLAN.md"),
+        r#"---
+plan: orphan
+type: execute
+---
+"#,
+    )
+    .expect("orphan plan should be written");
+    fs::write(phase_dir.join("ORPHAN-SUMMARY.md"), "# Summary\n")
+        .expect("orphan summary should be written");
+
+    scan_service::scan_roots(
+        pool.clone(),
+        vec![scan_root],
+        home_dir.to_path_buf(),
+        |_| Ok(()),
+    )
+    .await
+    .expect("scan should parse project");
+
+    let connection = pool.get().await.expect("connection should be available");
+    connection
+        .interact(move |connection| {
+            let project = project_repo::load_project_by_root(
+                connection,
+                project_root.to_string_lossy().as_ref(),
+            )?
+            .expect("project should be persisted");
+
+            assert!((project.milestone_progress_pct - 50.0).abs() < f64::EPSILON);
+            let phase_plans = project_repo::load_phase_plans(connection, &project.id)?;
+            let completed_plan = phase_plans
+                .iter()
+                .find(|plan| plan.plan_number.as_deref() == Some("01"))
+                .expect("completed plan should be persisted");
+            assert!(
+                completed_plan
+                    .completed_at
+                    .is_some_and(|timestamp| timestamp > 1_000_000_000_000),
+                "completed plan should store a millisecond timestamp for chart ranges"
+            );
+
+            Ok::<_, AppError>(())
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("project should load");
+}
+
+#[tokio::test]
+async fn completed_archived_project_uses_state_progress_and_roadmap_timeline() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let home_dir = temp_dir.path();
+    let scan_root = home_dir.join("workspace");
+    let project_root = scan_root.join("listingguru");
+    let planning_dir = project_root.join(".planning");
+    let pool = migrated_pool(&temp_dir.path().join("cache.db")).await;
+
+    fs::create_dir_all(&planning_dir).expect("planning dir should be created");
+    fs::write(
+        planning_dir.join("ROADMAP.md"),
+        r#"# Roadmap: ListingGuru
+
+## Milestones
+
+- ✅ **v1.2 Optimizer Rework** — Phases 15-19 (shipped 2026-03-30)
+
+## Phases
+
+<details>
+<summary>✅ v1.2 Optimizer Rework (Phases 15-19) — SHIPPED 2026-03-30</summary>
+
+- [x] Phase 15: Pipeline & Etsy API Verification (3/3 plans) — completed 2026-03-28
+- [x] Phase 16: Optimizer Modal UX (2/2 plans) — completed 2026-03-29
+- [x] Phase 17: Admin Analysis Stats (2/2 plans) — completed 2026-03-29
+- [x] Phase 18: Rename to Optimizer (2/2 plans) — completed 2026-03-29
+- [x] Phase 19: Performance Validation (1/1 plan) — completed 2026-03-30
+
+</details>
+"#,
+    )
+    .expect("roadmap should be written");
+    fs::write(
+        planning_dir.join("STATE.md"),
+        r#"---
+gsd_state_version: 1.0
+milestone: v1.2
+milestone_name: Optimizer Rework
+status: completed
+progress:
+  total_phases: 5
+  completed_phases: 5
+  total_plans: 10
+  completed_plans: 10
+  percent: 75
+---
+
+# Project State
+
+## Current Position
+
+Milestone: v1.2 Optimizer Rework — SHIPPED
+Status: Milestone archived, preparing for next
+"#,
+    )
+    .expect("state should be written");
+
+    scan_service::scan_roots(
+        pool.clone(),
+        vec![scan_root],
+        home_dir.to_path_buf(),
+        |_| Ok(()),
+    )
+    .await
+    .expect("scan should parse archived project");
+
+    let connection = pool.get().await.expect("connection should be available");
+    connection
+        .interact(move |connection| {
+            let project = project_repo::load_project_by_root(
+                connection,
+                project_root.to_string_lossy().as_ref(),
+            )?
+            .expect("project should be persisted");
+
+            assert_eq!(
+                project.current_milestone_name.as_deref(),
+                Some("v1.2 Optimizer Rework — SHIPPED")
+            );
+            assert_eq!(project.current_phase_number, None);
+            assert!((project.milestone_progress_pct - 100.0).abs() < f64::EPSILON);
+
+            let milestones = project_detail::load_project_milestones(connection, &project.id)?;
+
+            assert_eq!(milestones.len(), 1);
+            assert_eq!(milestones[0].phase_count, 5);
+            assert_eq!(milestones[0].completed_phase_count, 5);
+            assert!((milestones[0].progress_pct - 100.0).abs() < f64::EPSILON);
+
+            Ok::<_, AppError>(())
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("project should load");
+}
+
+#[tokio::test]
+async fn active_project_uses_state_progress_and_summary_backed_plan_counts() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let home_dir = temp_dir.path();
+    let scan_root = home_dir.join("workspace");
+    let project_root = scan_root.join("deckpilot-web");
+    let planning_dir = project_root.join(".planning");
+    let phase_dir = planning_dir.join("phases/38-human-uat-platform-tech-debt-close-out");
+    let pool = migrated_pool(&temp_dir.path().join("cache.db")).await;
+
+    fs::create_dir_all(&phase_dir).expect("phase dir should be created");
+    fs::write(
+        planning_dir.join("ROADMAP.md"),
+        r#"# Roadmap: Deckpilot
+
+<details>
+<summary>🔄 v2.0 Full Product Vision Rewrite (Phases 22-39)</summary>
+
+- [x] Phase 22: platform-foundation (3/3 plans)
+- [x] Phase 23: regional-code-system (2/2 plans)
+- [ ] Phase 38: human-uat-platform-tech-debt-close-out (1/3 plans)
+- [ ] Phase 39: multi-span-joist-planning (0/2 plans)
+
+### Phase 22: platform-foundation
+
+**Plans:** 3/3 plans complete
+
+### Phase 23: regional-code-system
+
+**Plans:** 2/2 plans complete
+
+### Phase 38: human-uat-platform-tech-debt-close-out
+
+**Plans:** 3 plans
+
+### Phase 39: multi-span-joist-planning
+
+**Plans:** 0/2 plans complete
+
+</details>
+"#,
+    )
+    .expect("roadmap should be written");
+    fs::write(
+        planning_dir.join("STATE.md"),
+        r#"---
+milestone: v2.0
+milestone_name: Full Product Vision Rewrite
+status: executing
+progress:
+  total_phases: 22
+  completed_phases: 20
+  total_plans: 112
+  completed_plans: 110
+  percent: 98
+---
+
+## Current Position
+
+Milestone: v2.0 Full Product Vision Rewrite
+Phase: 38 (human-uat-platform-tech-debt-close-out) — EXECUTING
+Plan: 2 of 3 (Plan 01 complete pending operator branch-protection step)
+
+```
+v2.0 Progress [ ] 0% (0/11 phases)
+```
+"#,
+    )
+    .expect("state should be written");
+
+    for plan_number in ["01", "02", "03"] {
+        fs::write(
+            phase_dir.join(format!("38-{plan_number}-PLAN.md")),
+            format!(
+                r#"---
+phase: 38
+plan: {plan_number}
+type: execute
+---
+
+# Plan {plan_number}
+"#
+            ),
+        )
+        .expect("plan should be written");
+    }
+    fs::write(
+        phase_dir.join("38-01-SUMMARY.md"),
+        "# Summary\n\nPlan 01 complete.\n",
+    )
+    .expect("summary should be written");
+    for (phase_number, plan_total, summary_total) in [("22", 3, 3), ("23", 2, 2), ("39", 2, 0)] {
+        let sibling_phase_dir = planning_dir.join(format!("phases/{phase_number}-phase"));
+        fs::create_dir_all(&sibling_phase_dir).expect("phase dir should be created");
+        for plan_index in 1..=plan_total {
+            fs::write(
+                sibling_phase_dir.join(format!("{phase_number}-{plan_index:02}-PLAN.md")),
+                format!(
+                    r#"---
+phase: {phase_number}
+plan: {plan_index:02}
+type: execute
+---
+"#
+                ),
+            )
+            .expect("plan should be written");
+        }
+        for plan_index in 1..=summary_total {
+            fs::write(
+                sibling_phase_dir.join(format!("{phase_number}-{plan_index:02}-SUMMARY.md")),
+                "# Summary\n",
+            )
+            .expect("summary should be written");
+        }
+    }
+
+    scan_service::scan_roots(
+        pool.clone(),
+        vec![scan_root],
+        home_dir.to_path_buf(),
+        |_| Ok(()),
+    )
+    .await
+    .expect("scan should parse active project");
+
+    let connection = pool.get().await.expect("connection should be available");
+    connection
+        .interact(move |connection| {
+            let project = project_repo::load_project_by_root(
+                connection,
+                project_root.to_string_lossy().as_ref(),
+            )?
+            .expect("project should be persisted");
+
+            assert_eq!(project.current_phase_number.as_deref(), Some("38"));
+            assert!((project.milestone_progress_pct - 98.0).abs() < f64::EPSILON);
+
+            let panel = project_detail::load_project_phase_panel(connection, &project.id)?;
+            assert_eq!(panel.completed_item_count, 1);
+            assert_eq!(panel.total_item_count, 3);
+
+            let milestones = project_detail::load_project_milestones(connection, &project.id)?;
+            assert_eq!(milestones[0].phase_count, 4);
+            assert_eq!(milestones[0].completed_phase_count, 2);
+            let phase_38 = milestones[0]
+                .phases
+                .iter()
+                .find(|phase| phase.number == "38")
+                .expect("phase 38 should be included");
+            assert_eq!(phase_38.completed_plan_count, 1);
+            assert_eq!(phase_38.total_plan_count, 3);
+
+            Ok::<_, AppError>(())
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("project should load");
 }
 
 #[tokio::test]
@@ -584,6 +966,7 @@ async fn scan_command_expands_tilde_scan_roots() {
             autostart_enabled: false,
             tray_bar_max_projects: 8,
             tray_bar_sort: gsd_dashboard::settings::TrayBarSort::RecentActivity,
+            global_sessions_default_range: "7d".to_string(),
         },
     )
     .await

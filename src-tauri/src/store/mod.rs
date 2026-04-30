@@ -5,6 +5,7 @@ use rusqlite::Connection;
 
 use crate::error::AppError;
 
+pub mod daily_activity;
 pub mod migrations;
 pub mod project_repo;
 pub mod settings_repo;

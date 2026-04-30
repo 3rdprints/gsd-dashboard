@@ -113,6 +113,37 @@ const MIGRATION_SLICE: &[M<'_>] = &[
     CREATE INDEX IF NOT EXISTS idx_sessions_started
         ON sessions(started_at);",
     ),
+    M::up(
+        "ALTER TABLE phase_plans ADD COLUMN completed_at INTEGER;
+
+    ALTER TABLE sessions ADD COLUMN cache_read_tokens INTEGER NOT NULL DEFAULT 0;
+
+    ALTER TABLE sessions ADD COLUMN cache_creation_tokens INTEGER NOT NULL DEFAULT 0;
+
+    CREATE TABLE IF NOT EXISTS plan_items (
+        project_id TEXT NOT NULL,
+        plan_path TEXT NOT NULL,
+        ord INTEGER NOT NULL,
+        text TEXT NOT NULL,
+        checked INTEGER NOT NULL CHECK (checked IN (0,1)),
+        line_no INTEGER NOT NULL,
+        PRIMARY KEY (project_id, plan_path, ord),
+        FOREIGN KEY (project_id, plan_path) REFERENCES phase_plans(project_id, plan_path) ON DELETE CASCADE
+    );",
+    ),
+    M::up(
+        "CREATE TABLE IF NOT EXISTS daily_activity (
+        date TEXT PRIMARY KEY,
+        session_count INTEGER NOT NULL DEFAULT 0,
+        token_total INTEGER NOT NULL DEFAULT 0,
+        top_project_id TEXT,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (top_project_id) REFERENCES projects(id) ON DELETE SET NULL
+    );",
+    ),
+    M::up(
+        "ALTER TABLE settings ADD COLUMN global_sessions_default_range TEXT NOT NULL DEFAULT '7d';",
+    ),
 ];
 pub const MIGRATION_COUNT: u32 = MIGRATION_SLICE.len() as u32;
 const MIGRATIONS: Migrations<'_> = Migrations::from_slice(MIGRATION_SLICE);

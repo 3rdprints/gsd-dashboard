@@ -1,0 +1,3 @@
+{"type":"session_meta","timestamp":"2026-04-27T14:00:50.576Z","payload":{"id":"codex-current-session","timestamp":"2026-04-27T14:00:50.576Z","cwd":"/tmp/gsd-dashboard-fixture","model":"gpt-5"}}
+{"type":"turn_context","timestamp":"2026-04-27T14:00:50.577Z","payload":{"cwd":"/tmp/gsd-dashboard-fixture","model":"gpt-5"}}
+{"type":"event_msg","timestamp":"2026-04-27T14:00:57.023Z","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":26940,"cached_input_tokens":3456,"output_tokens":435,"reasoning_output_tokens":115,"total_tokens":27375},"total_token_usage":{"input_tokens":26940,"cached_input_tokens":3456,"output_tokens":435,"reasoning_output_tokens":115,"total_tokens":27375}}}}

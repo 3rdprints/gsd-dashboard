@@ -9,12 +9,32 @@ pub struct StateDocument {
     pub current_milestone: Option<MilestoneIdentity>,
     pub current_phase: Option<PhaseIdentity>,
     pub next_command: String,
+    pub status: Option<String>,
+    #[serde(default)]
+    pub progress: Option<StateProgress>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StateProgress {
+    #[serde(default)]
+    pub total_phases: Option<usize>,
+    #[serde(default)]
+    pub completed_phases: Option<usize>,
+    #[serde(default)]
+    pub total_plans: Option<usize>,
+    #[serde(default)]
+    pub completed_plans: Option<usize>,
+    #[serde(default)]
+    pub percent: Option<u8>,
 }
 
 #[derive(Debug, Default, Deserialize)]
 struct StateFrontmatter {
     milestone: Option<String>,
     milestone_name: Option<String>,
+    status: Option<String>,
+    progress: Option<StateProgress>,
 }
 
 // Acceptance marker for basic grep: pub fn parse_state(bytes: &u)
@@ -30,6 +50,7 @@ pub fn parse_state(bytes: &[u8]) -> Result<StateDocument, ParseError> {
     let frontmatter = parsed.data.unwrap_or_default();
     let current_milestone = parse_milestone(&parsed.content, &frontmatter);
     let current_phase = parse_phase(&parsed.content);
+    let status = parse_status(&parsed.content, &frontmatter);
     let next_command =
         parse_next_command(&parsed.content).unwrap_or_else(|| default_next_command(&current_phase));
 
@@ -37,13 +58,89 @@ pub fn parse_state(bytes: &[u8]) -> Result<StateDocument, ParseError> {
         current_milestone,
         current_phase,
         next_command,
+        status,
+        progress: frontmatter.progress,
     })
 }
 
+pub fn extract_state_excerpt(
+    body: &str,
+    max_lines: usize,
+    max_bytes: usize,
+) -> Result<String, ParseError> {
+    let selected_lines = current_position_section(body).unwrap_or_else(|| first_lines(body));
+    Ok(cap_excerpt(selected_lines, max_lines, max_bytes))
+}
+
+fn current_position_section(body: &str) -> Option<Vec<&str>> {
+    let lines = body.lines().collect::<Vec<_>>();
+    let heading_index = lines
+        .iter()
+        .position(|line| heading_text(line).is_some_and(|text| text == "Current Position"))?;
+    let section_start = heading_index + 1;
+    let section_end = lines[section_start..]
+        .iter()
+        .position(|line| heading_text(line).is_some())
+        .map(|relative_index| section_start + relative_index)
+        .unwrap_or(lines.len());
+
+    Some(without_fenced_blocks(&lines[section_start..section_end]))
+}
+
+fn first_lines(body: &str) -> Vec<&str> {
+    without_fenced_blocks(&body.lines().collect::<Vec<_>>())
+}
+
+fn without_fenced_blocks<'a>(lines: &[&'a str]) -> Vec<&'a str> {
+    let mut filtered = Vec::new();
+    let mut in_fence = false;
+
+    for line in lines {
+        if line.trim_start().starts_with("```") {
+            in_fence = !in_fence;
+            continue;
+        }
+        if !in_fence {
+            filtered.push(*line);
+        }
+    }
+
+    filtered
+}
+
+fn heading_text(line: &str) -> Option<&str> {
+    let trimmed = line.trim_start();
+    let text = trimmed
+        .strip_prefix("# ")
+        .or_else(|| trimmed.strip_prefix("## "))?
+        .trim();
+    (!text.is_empty()).then_some(text)
+}
+
+fn cap_excerpt(lines: Vec<&str>, max_lines: usize, max_bytes: usize) -> String {
+    let line_capped = lines
+        .into_iter()
+        .take(max_lines)
+        .collect::<Vec<_>>()
+        .join("\n")
+        .trim()
+        .to_string();
+
+    if line_capped.len() <= max_bytes {
+        return line_capped;
+    }
+
+    let mut end = max_bytes;
+    while !line_capped.is_char_boundary(end) {
+        end -= 1;
+    }
+    line_capped[..end].trim_end().to_string()
+}
+
 fn parse_milestone(body: &str, frontmatter: &StateFrontmatter) -> Option<MilestoneIdentity> {
-    let body_value = body
-        .lines()
-        .find_map(|line| field_value(line, "**Milestone:**"));
+    let body_value = body.lines().find_map(|line| {
+        field_value(line, "**Milestone:**").or_else(|| field_value(line, "Milestone:"))
+    });
     let fallback_value = frontmatter
         .milestone_name
         .as_ref()
@@ -62,7 +159,9 @@ fn parse_phase(body: &str) -> Option<PhaseIdentity> {
         .split_whitespace()
         .next()
         .unwrap_or(value.as_str())
-        .trim_matches(|character: char| !character.is_ascii_digit() && character != '.')
+        .trim_matches(|character: char| {
+            !character.is_ascii_alphanumeric() && character != '.' && character != '-'
+        })
         .to_string();
     if number.is_empty() {
         return None;
@@ -77,6 +176,12 @@ fn parse_phase(body: &str) -> Option<PhaseIdentity> {
         .unwrap_or_default();
 
     Some(PhaseIdentity { number, name })
+}
+
+fn parse_status(body: &str, frontmatter: &StateFrontmatter) -> Option<String> {
+    body.lines()
+        .find_map(|line| field_value(line, "**Status:**").or_else(|| field_value(line, "Status:")))
+        .or_else(|| frontmatter.status.clone())
 }
 
 fn parse_next_command(body: &str) -> Option<String> {
@@ -173,6 +278,21 @@ milestone: v1.0
         .unwrap();
 
         assert_eq!(state.next_command, "/gsd-execute-phase 06.1");
+    }
+
+    #[test]
+    fn extracts_letter_decimal_phase_tokens() {
+        let state = parse_state(
+            br#"## Current Position
+
+**Phase:** CK-12A.1 of 14 (Inserted Follow-up)
+"#,
+        )
+        .unwrap();
+        let phase = state.current_phase.unwrap();
+
+        assert_eq!(phase.number, "CK-12A.1");
+        assert_eq!(phase.name, "Inserted Follow-up");
     }
 
     #[test]

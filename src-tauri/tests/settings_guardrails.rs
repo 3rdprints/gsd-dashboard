@@ -21,6 +21,7 @@ fn input_from(settings: &AppSettings) -> SettingsInput {
         autostart_enabled: settings.autostart_enabled,
         tray_bar_max_projects: settings.tray_bar_max_projects,
         tray_bar_sort: settings.tray_bar_sort,
+        global_sessions_default_range: settings.global_sessions_default_range.clone(),
     }
 }
 
@@ -39,6 +40,7 @@ async fn missing_settings_row_initializes_phase_one_defaults() {
     assert!(!settings.autostart_enabled);
     assert_eq!(settings.tray_bar_max_projects, 8);
     assert_eq!(settings.tray_bar_sort, TrayBarSort::RecentActivity);
+    assert_eq!(settings.global_sessions_default_range, "7d");
 }
 
 #[test]
@@ -47,6 +49,7 @@ fn default_settings_serialize_recent_activity_wire_value() {
         serde_json::to_value(AppSettings::default()).expect("settings should serialize");
 
     assert_eq!(serialized["trayBarSort"], "recent_activity");
+    assert_eq!(serialized["globalSessionsDefaultRange"], "7d");
 }
 
 #[tokio::test]
@@ -64,6 +67,7 @@ async fn settings_round_trip_survives_database_reopen() {
             autostart_enabled: true,
             tray_bar_max_projects: 4,
             tray_bar_sort: TrayBarSort::Name,
+            global_sessions_default_range: "30d".to_string(),
         },
     )
     .await
@@ -76,6 +80,75 @@ async fn settings_round_trip_survives_database_reopen() {
         .expect("settings should reload");
 
     assert_eq!(reopened, saved);
+}
+
+#[tokio::test]
+async fn invalid_global_sessions_default_range_coerces_to_seven_days() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let db_path = temp_dir.path().join("cache.db");
+    let pool = open_migrated_pool(&db_path).await;
+    let defaults = settings::load_or_initialize(&pool, temp_dir.path())
+        .await
+        .expect("settings should initialize");
+    settings::save(&pool, temp_dir.path(), input_from(&defaults))
+        .await
+        .expect("settings should save");
+
+    let conn = pool.get().await.expect("connection should be available");
+    conn.interact(|conn| {
+        conn.execute(
+            "UPDATE settings SET global_sessions_default_range = 'forever' WHERE id = 1",
+            [],
+        )
+    })
+    .await
+    .expect("interaction should complete")
+    .expect("corrupt update should run");
+
+    let loaded = settings::load_or_initialize(&pool, temp_dir.path())
+        .await
+        .expect("invalid global sessions range should coerce");
+    assert_eq!(loaded.global_sessions_default_range, "7d");
+}
+
+#[tokio::test]
+async fn empty_scan_roots_coerce_to_default() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let db_path = temp_dir.path().join("cache.db");
+    let pool = open_migrated_pool(&db_path).await;
+
+    let saved = settings::save(
+        &pool,
+        temp_dir.path(),
+        SettingsInput {
+            scan_roots: vec![" ".to_string()],
+            hidden_project_ids: Vec::new(),
+            autostart_enabled: false,
+            tray_bar_max_projects: 8,
+            tray_bar_sort: TrayBarSort::RecentActivity,
+            global_sessions_default_range: "7d".to_string(),
+        },
+    )
+    .await
+    .expect("empty scan roots should save as defaults");
+
+    assert_eq!(saved.scan_roots, vec!["~/Documents"]);
+
+    let conn = pool.get().await.expect("connection should be available");
+    conn.interact(|conn| {
+        conn.execute(
+            "UPDATE settings SET scan_roots_json = '[]' WHERE id = 1",
+            [],
+        )
+    })
+    .await
+    .expect("interaction should complete")
+    .expect("empty roots update should run");
+
+    let loaded = settings::load_or_initialize(&pool, temp_dir.path())
+        .await
+        .expect("empty stored scan roots should coerce");
+    assert_eq!(loaded.scan_roots, vec!["~/Documents"]);
 }
 
 #[tokio::test]
@@ -162,6 +235,7 @@ async fn invalid_roots_do_not_persist() {
             autostart_enabled: false,
             tray_bar_max_projects: 8,
             tray_bar_sort: TrayBarSort::RecentActivity,
+            global_sessions_default_range: "7d".to_string(),
         },
     )
     .await
@@ -176,6 +250,7 @@ async fn invalid_roots_do_not_persist() {
             autostart_enabled: true,
             tray_bar_max_projects: 2,
             tray_bar_sort: TrayBarSort::Progress,
+            global_sessions_default_range: "90d".to_string(),
         },
     )
     .await

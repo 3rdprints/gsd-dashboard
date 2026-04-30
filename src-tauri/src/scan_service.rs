@@ -1,6 +1,6 @@
 use std::{
     path::{Path, PathBuf},
-    time::{SystemTime, UNIX_EPOCH},
+    time::UNIX_EPOCH,
 };
 
 use deadpool_sqlite::Pool;
@@ -8,12 +8,18 @@ use deadpool_sqlite::Pool;
 use crate::{
     error::AppError,
     events::ScanEvent,
+    milestone_match::milestone_names_match,
     parser::{
-        self, config::parse_config, plan::parse_plan, roadmap, roadmap::parse_roadmap,
-        state::parse_state, ParseIssue, PhaseIdentity, PlanDocument, ProjectSnapshot,
+        self,
+        config::parse_config,
+        plan::parse_plan,
+        roadmap,
+        roadmap::parse_roadmap,
+        state::{extract_state_excerpt, parse_state},
+        ParseIssue, PhaseIdentity, PlanDocument, ProjectSnapshot,
     },
+    scan_persistence,
     scanner::{self, PlanningProjectCandidate, ScanSummary},
-    store::project_repo::{self, StoredPhasePlan, StoredProjectSnapshot},
 };
 
 pub async fn scan_roots(
@@ -58,7 +64,8 @@ pub async fn scan_roots(
             let project_scan = read_and_parse_candidate(candidate.clone()).await?;
             let has_errors = !project_scan.parse_issues.is_empty();
 
-            persist_project_scan(&pool, &candidate, &identity, project_scan).await?;
+            scan_persistence::persist_project_scan(&pool, &candidate, &identity, project_scan)
+                .await?;
 
             if has_errors {
                 summary.error_count += 1;
@@ -88,15 +95,15 @@ pub async fn scan_roots(
 }
 
 #[derive(Debug, Clone)]
-struct ProjectIdentity {
-    id: String,
-    name: String,
+pub(crate) struct ProjectIdentity {
+    pub(crate) id: String,
+    pub(crate) name: String,
 }
 
 #[derive(Debug, Clone)]
-struct ProjectScan {
-    snapshot: ProjectSnapshot,
-    parse_issues: Vec<ParseIssue>,
+pub(crate) struct ProjectScan {
+    pub(crate) snapshot: ProjectSnapshot,
+    pub(crate) parse_issues: Vec<ParseIssue>,
 }
 
 async fn read_and_parse_candidate(
@@ -137,7 +144,12 @@ fn parse_candidate_files(candidate: &PlanningProjectCandidate) -> Result<Project
         .flatten()
         .unwrap_or_default();
 
-    let state = read_optional_or_issue(&state_path, &mut parse_issues)
+    let state_bytes = read_optional_or_issue(&state_path, &mut parse_issues);
+    let state_excerpt = state_bytes
+        .as_ref()
+        .and_then(|bytes| std::str::from_utf8(bytes).ok())
+        .and_then(|body| extract_state_excerpt(body, 20, 2048).ok());
+    let state = state_bytes
         .map(|bytes| parse_state(&bytes).map_err(|error| error.issue(display_path(&state_path))))
         .transpose()
         .map_err(|issue| {
@@ -157,7 +169,24 @@ fn parse_candidate_files(candidate: &PlanningProjectCandidate) -> Result<Project
 
     let plans = parse_plan_files(&candidate.planning_path, &mut parse_issues)?;
     let roadmap = roadmap.unwrap_or_else(|| empty_roadmap(milestones));
-    let progress = parser::derive_progress(&roadmap, &plans);
+    let phase_plans = plans
+        .iter()
+        .filter_map(project_phase_plan)
+        .collect::<Vec<_>>();
+    let progress = derive_project_progress(&roadmap, &plans, &phase_plans);
+    let project_is_completed = state
+        .as_ref()
+        .and_then(|state| state.status.as_deref())
+        .is_some_and(is_completed_status);
+    let milestone_progress_pct = if project_is_completed {
+        100
+    } else {
+        state
+            .as_ref()
+            .and_then(|state| state.progress.as_ref())
+            .and_then(|progress| progress.percent)
+            .unwrap_or(progress.percent)
+    };
     let current_milestone = state
         .as_ref()
         .and_then(|state| state.current_milestone.as_ref())
@@ -165,24 +194,28 @@ fn parse_candidate_files(candidate: &PlanningProjectCandidate) -> Result<Project
             roadmap
                 .milestones
                 .iter()
-                .find(|milestone| milestone.name == state_milestone.name)
+                .find(|milestone| milestone_names_match(&milestone.name, &state_milestone.name))
                 .cloned()
                 .or_else(|| Some(state_milestone.clone()))
         })
         .or_else(|| roadmap.milestones.first().cloned());
-    let current_phase = state
-        .as_ref()
-        .and_then(|state| state.current_phase.clone())
-        .or_else(|| {
-            roadmap
-                .phases
-                .iter()
-                .find(|phase| !phase.completed)
-                .map(|phase| PhaseIdentity {
-                    number: phase.number.clone(),
-                    name: phase.name.clone(),
-                })
-        });
+    let current_phase = if project_is_completed {
+        None
+    } else {
+        state
+            .as_ref()
+            .and_then(|state| state.current_phase.clone())
+            .or_else(|| {
+                roadmap
+                    .phases
+                    .iter()
+                    .find(|phase| !phase.completed)
+                    .map(|phase| PhaseIdentity {
+                        number: phase.number.clone(),
+                        name: phase.name.clone(),
+                    })
+            })
+    };
 
     Ok(ProjectScan {
         snapshot: ProjectSnapshot {
@@ -192,11 +225,10 @@ fn parse_candidate_files(candidate: &PlanningProjectCandidate) -> Result<Project
             planning_path: display_path(&candidate.planning_path),
             current_milestone,
             current_phase,
-            milestone_progress_pct: progress.percent,
-            phase_plans: plans
-                .iter()
-                .filter_map(project_phase_plan)
-                .collect::<Vec<_>>(),
+            milestone_progress_pct,
+            roadmap_phases: roadmap.phases.clone(),
+            phase_plans,
+            state_excerpt,
             next_command: state
                 .as_ref()
                 .map(|state| state.next_command.clone())
@@ -269,17 +301,27 @@ fn collect_plan_files_recursive(
             continue;
         }
 
-        let is_plan = entry_path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .is_some_and(|name| name.ends_with("-PLAN.md"));
+        let Some(file_name) = entry_path.file_name().and_then(|name| name.to_str()) else {
+            continue;
+        };
+        if file_name == "SUMMARY.md" || file_name.ends_with("-SUMMARY.md") {
+            continue;
+        }
+
+        let is_plan = file_name == "PLAN.md" || file_name.ends_with("-PLAN.md");
         if !is_plan {
             continue;
         }
 
         match std::fs::read(&entry_path) {
             Ok(bytes) => match parse_plan(&bytes) {
-                Ok(plan) => plans.push(plan),
+                Ok(mut plan) => {
+                    plan.source_path = Some(display_path(&entry_path));
+                    let summary_path = matching_summary_path(&entry_path);
+                    plan.completed = summary_path.exists();
+                    plan.completed_at = summary_modified_at_ms(&summary_path);
+                    plans.push(plan);
+                }
                 Err(error) => parse_issues.push(error.issue(display_path(&entry_path))),
             },
             Err(error) => parse_issues.push(ParseIssue {
@@ -289,6 +331,39 @@ fn collect_plan_files_recursive(
             }),
         }
     }
+}
+
+fn derive_project_progress(
+    roadmap: &roadmap::RoadmapDocument,
+    plans: &[PlanDocument],
+    phase_plans: &[parser::PhasePlan],
+) -> parser::ProgressSummary {
+    if !phase_plans.is_empty() {
+        let completed_plan_count = phase_plans.iter().filter(|plan| plan.completed).count();
+        return parser::ProgressSummary {
+            percent: percent(completed_plan_count, phase_plans.len()),
+            source: "planSummaryCompletion".to_string(),
+        };
+    }
+
+    parser::derive_progress(roadmap, plans)
+}
+
+fn is_completed_status(status: &str) -> bool {
+    let normalized = status.trim().to_ascii_lowercase();
+    normalized == "completed"
+        || normalized == "complete"
+        || normalized.contains("milestone achieved")
+        || normalized.contains("milestone archived")
+        || normalized.contains("shipped")
+}
+
+fn percent(completed: usize, total: usize) -> u8 {
+    if total == 0 {
+        return 0;
+    }
+
+    ((completed * 100) / total).min(100) as u8
 }
 
 fn read_required(path: &Path) -> Result<Vec<u8>, ParseIssue> {
@@ -321,124 +396,6 @@ fn read_optional_or_issue(path: &Path, parse_issues: &mut Vec<ParseIssue>) -> Op
     }
 }
 
-async fn persist_project_scan(
-    pool: &Pool,
-    candidate: &PlanningProjectCandidate,
-    identity: &ProjectIdentity,
-    project_scan: ProjectScan,
-) -> Result<(), AppError> {
-    let now = unix_timestamp();
-    let first_issue = project_scan.parse_issues.first().cloned();
-    let scan_log_issues = project_scan.parse_issues.clone();
-    let errors_json = serde_json::to_string(&project_scan.parse_issues)?;
-    let stored_snapshot = stored_snapshot(project_scan.snapshot, first_issue.as_ref(), now)?;
-    let phase_plans = stored_phase_plans(&stored_snapshot.id, &stored_snapshot.parsed_blob)?;
-    let root_path = display_path(&candidate.project_root);
-    let planning_path = display_path(&candidate.planning_path);
-    let project_id = identity.id.clone();
-
-    let connection = pool.get().await.map_err(AppError::store)?;
-    connection
-        .interact(move |connection| {
-            project_repo::upsert_project_snapshot(connection, stored_snapshot, phase_plans, now)?;
-
-            for issue in scan_log_issues {
-                project_repo::append_scan_log(
-                    connection,
-                    project_repo::StoredScanLogEntry {
-                        project_id: Some(project_id.clone()),
-                        root_path: Some(root_path.clone()),
-                        planning_path: Some(planning_path.clone()),
-                        file_path: Some(issue.file_path),
-                        status: "parseError".to_string(),
-                        message: Some(issue.message),
-                        errors_json: errors_json.clone(),
-                        created_at: 0,
-                    },
-                    now,
-                )?;
-            }
-
-            Ok::<_, AppError>(())
-        })
-        .await
-        .map_err(AppError::store)?
-}
-
-fn stored_snapshot(
-    snapshot: ProjectSnapshot,
-    first_issue: Option<&ParseIssue>,
-    now: i64,
-) -> Result<StoredProjectSnapshot, AppError> {
-    Ok(StoredProjectSnapshot {
-        id: snapshot.project_id.clone(),
-        name: snapshot.project_name.clone(),
-        root_path: snapshot.root_path.clone(),
-        planning_path: snapshot.planning_path.clone(),
-        current_milestone_name: snapshot
-            .current_milestone
-            .as_ref()
-            .map(|milestone| milestone.name.clone()),
-        current_milestone_index: snapshot
-            .current_milestone
-            .as_ref()
-            .map(|milestone| milestone.index as i64),
-        current_phase_number: snapshot
-            .current_phase
-            .as_ref()
-            .map(|phase| phase.number.clone()),
-        current_phase_name: snapshot
-            .current_phase
-            .as_ref()
-            .map(|phase| phase.name.clone()),
-        milestone_progress_pct: f64::from(snapshot.milestone_progress_pct),
-        next_command: snapshot.next_command.clone(),
-        parsed_blob: serde_json::to_string(&snapshot)?,
-        parse_error: first_issue.map(|issue| issue.message.clone()),
-        last_activity_at: None,
-        last_scanned_at: now,
-        created_at: 0,
-        updated_at: 0,
-    })
-}
-
-fn stored_phase_plans(
-    project_id: &str,
-    parsed_blob: &str,
-) -> Result<Vec<StoredPhasePlan>, AppError> {
-    let snapshot: ProjectSnapshot = serde_json::from_str(parsed_blob)?;
-
-    Ok(snapshot
-        .phase_plans
-        .into_iter()
-        .enumerate()
-        .map(|(index, plan)| {
-            let phase_number = plan.phase.number;
-            let plan_number = plan.plan;
-            let plan_path = format!(
-                "phase-{phase_number}/plan-{}-{}",
-                if plan_number.is_empty() {
-                    "unknown"
-                } else {
-                    plan_number.as_str()
-                },
-                index + 1
-            );
-
-            StoredPhasePlan {
-                project_id: project_id.to_string(),
-                phase_number,
-                phase_name: Some(plan.phase.name),
-                plan_number: Some(plan_number),
-                plan_path,
-                checklist_json: serde_json::to_string(&plan.checklist)
-                    .unwrap_or_else(|_| "[]".to_string()),
-                updated_at: 0,
-            }
-        })
-        .collect())
-}
-
 fn project_phase_plan(plan: &PlanDocument) -> Option<parser::PhasePlan> {
     Some(parser::PhasePlan {
         phase: PhaseIdentity {
@@ -447,8 +404,36 @@ fn project_phase_plan(plan: &PlanDocument) -> Option<parser::PhasePlan> {
         },
         plan: plan.plan.clone().unwrap_or_default(),
         plan_type: plan.plan_type.clone().unwrap_or_default(),
+        plan_path: plan.source_path.clone().unwrap_or_default(),
+        completed: plan.completed,
+        completed_at: plan.completed_at,
         checklist: plan.checklist.clone(),
+        items: plan.items.clone(),
     })
+}
+
+fn matching_summary_path(plan_path: &Path) -> PathBuf {
+    let Some(file_name) = plan_path.file_name().and_then(|name| name.to_str()) else {
+        return plan_path.with_file_name("SUMMARY.md");
+    };
+    let summary_name = if file_name == "PLAN.md" {
+        "SUMMARY.md".to_string()
+    } else {
+        file_name.replace("-PLAN.md", "-SUMMARY.md")
+    };
+
+    plan_path.with_file_name(summary_name)
+}
+
+fn summary_modified_at_ms(summary_path: &Path) -> Option<i64> {
+    summary_path
+        .metadata()
+        .ok()?
+        .modified()
+        .ok()?
+        .duration_since(UNIX_EPOCH)
+        .ok()
+        .map(|duration| duration.as_millis() as i64)
 }
 
 fn infer_project_identity(candidate: &PlanningProjectCandidate) -> ProjectIdentity {
@@ -511,11 +496,4 @@ fn empty_roadmap(milestones: Vec<parser::MilestoneIdentity>) -> roadmap::Roadmap
 
 fn display_path(path: &Path) -> String {
     path.display().to_string()
-}
-
-fn unix_timestamp() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_secs() as i64)
-        .unwrap_or_default()
 }

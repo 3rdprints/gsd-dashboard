@@ -45,14 +45,15 @@ const defaultSettings: SettingsInput = {
   hiddenProjectIds: ["listingguru"],
   autostartEnabled: false,
   trayBarMaxProjects: 8,
-  trayBarSort: "recent_activity"
+  trayBarSort: "recent_activity",
+  globalSessionsDefaultRange: "7d"
 };
 const bootStatusResponse = {
   appDataDir: "/tmp/gsd-dashboard",
   cachePath: "/tmp/gsd-dashboard/cache.db",
   cacheReady: true,
   walEnabled: true,
-  migrationsApplied: 3,
+  migrationsApplied: 6,
   settingsInitialized: true
 };
 const emptySessionSparkline = [
@@ -392,6 +393,56 @@ describe("settings vertical slice", () => {
       })
     );
   });
+  it("shows the default scan root when stored settings have no roots", async () => {
+    mockCommands(portfolio, projectDetail, false, { ...defaultSettings, scanRoots: [] });
+    renderWithQueryClient(<App />);
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith("get_settings"));
+
+    const rootInput = await screen.findByLabelText("Scan root 1");
+    expect(rootInput).toHaveValue("~/Documents");
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Root" }));
+    expect(await screen.findByLabelText("Scan root 2")).toHaveValue("");
+  });
+  it("allows scan root edits when settings failed to load", async () => {
+    mockCommands(portfolio, projectDetail, false, new Error("settings unavailable"));
+    renderWithQueryClient(<App />);
+
+    const rootInput = await screen.findByLabelText("Scan root 1");
+    fireEvent.change(rootInput, { target: { value: "~/homegit" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add Root" }));
+    fireEvent.change(await screen.findByLabelText("Scan root 2"), {
+      target: { value: "~/Documents/clients" }
+    });
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Save Settings" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
+
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith("save_settings", {
+        input: {
+          ...defaultSettings,
+          hiddenProjectIds: [],
+          scanRoots: ["~/homegit", "~/Documents/clients"]
+        }
+      })
+    );
+  });
+  it("explains that browser preview cannot save settings", async () => {
+    mockCommands(portfolio, projectDetail, false, defaultSettings, {
+      saveSettingsError: new TypeError("Cannot read properties of undefined (reading 'invoke')")
+    });
+    renderWithQueryClient(<App />);
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Save Settings" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
+
+    expect(
+      await screen.findByText(
+        "Settings can only be saved from the Tauri desktop app. The browser preview can edit the form, but it cannot persist settings."
+      )
+    ).toBeInTheDocument();
+  });
   it("unhides hidden projects through settings save", async () => {
     renderWithQueryClient(<App />);
     fireEvent.click(await screen.findByRole("button", { name: "Unhide Project" }));
@@ -444,16 +495,24 @@ function resetMocks() {
 function mockCommands(
   portfolioResponse: PortfolioDto = portfolio,
   projectResponse: ProjectDetail = projectDetail,
-  holdRebuild = false
+  holdRebuild = false,
+  settingsResponse: SettingsInput | Error = defaultSettings,
+  options: { saveSettingsError?: Error } = {}
 ) {
   invokeMock.mockImplementation((command: string, args?: Record<string, unknown>) => {
     if (command === "get_boot_status") {
       return Promise.resolve(bootStatusResponse);
     }
     if (command === "get_settings") {
-      return Promise.resolve(defaultSettings);
+      if (settingsResponse instanceof Error) {
+        return Promise.reject(settingsResponse);
+      }
+      return Promise.resolve(settingsResponse);
     }
     if (command === "save_settings") {
+      if (options.saveSettingsError) {
+        return Promise.reject(options.saveSettingsError);
+      }
       return Promise.resolve((args as { input: SettingsInput }).input);
     }
     if (command === "get_portfolio") {

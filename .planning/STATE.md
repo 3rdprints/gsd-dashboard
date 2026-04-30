@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: "Phase 04 shipped — PR #6"
-last_updated: "2026-04-26T21:46:55.061Z"
+status: "Phase 05 shipped — PR #15"
+last_updated: "2026-04-29T12:31:09.918Z"
 progress:
   total_phases: 9
-  completed_phases: 4
-  total_plans: 18
-  completed_plans: 18
-  percent: 44
+  completed_phases: 5
+  total_plans: 30
+  completed_plans: 30
+  percent: 100
 ---
 
 # State: GSD Dashboard
@@ -18,18 +18,18 @@ progress:
 
 **Core Value:** At a glance, the user knows what every GSD project is doing right now — which milestone, which phase, how far along — without opening a terminal or reading markdown files.
 
-**Current Focus:** Phase 05 — Project Detail, Global Sessions & Charts
+**Current Focus:** Phase 05 — project-detail-global-sessions-charts
 
 ## Current Position
 
-Phase: 05 (Project Detail, Global Sessions & Charts) — READY TO PLAN
-Plan: Not started
+Phase: 05 (project-detail-global-sessions-charts) — EXECUTING
+Plan: 12 of 12
 **Milestone:** v1.0 MVP
 **Phase:** 5
-**Plan:** Not started
-**Status:** Phase 04 shipped — PR #6
+**Plan:** 12 of 12
+**Status:** Phase 05 shipped — PR #15
 
-**Progress:** [████......] 44%
+**Progress:** [██████████] 100%
 
 ```
 Milestone: [████......] 4/9 phases
@@ -66,6 +66,16 @@ Overall:   [████......] 44%
 - Plan 04-02 duration: 6 min; tasks: 3; files modified: 11
 - Plan 04-03 duration: 7 min; tasks: 3; files modified: 11
 - Plan 04-04 duration: 18 min; tasks: 3; files modified: 11
+- Plan 05-01 duration: 5 min; tasks: 2; files modified: 13
+- Plan 05-02 duration: 1 min; tasks: 1; files modified: 10
+- Plan 05-03 duration: 2 min; tasks: 1; files modified: 7
+- Plan 05-05 duration: 6 min; tasks: 1; files modified: 15
+- Plan 05-07 duration: 14 min; tasks: 2; files modified: 13
+- Plan 05-08 duration: 6 min; tasks: 2; files modified: 11
+- Plan 05-09 duration: 7 min; tasks: 3; files modified: 12
+- Plan 05-10 duration: 7 min; tasks: 2; files modified: 11
+- Plan 05-11 duration: 5 min; tasks: 2; files modified: 10
+- Plan 05-12 duration: 4 min; tasks: 2; files modified: 10
 
 ## Accumulated Context
 
@@ -114,6 +124,28 @@ Overall:   [████......] 44%
 - Portfolio stats and cards read session aggregates from SQLite via load_portfolio_session_summary.
 - Index Sessions uses a Tauri Channel and invalidates portfolioQueryKey only after command completion.
 - Project card sparklines use seven fixed CSS bars instead of adding a charting dependency.
+- [Phase 05]: Plan 05-01 keys plan_items by (project_id, plan_path, ord) with a composite FK to phase_plans(project_id, plan_path).
+- [Phase 05]: Plan 05-01 persists globalSessionsDefaultRange in settings and coerces invalid values to 7d.
+- [Phase 05]: Plan 05-02 intentionally ships RED scaffold tests only; implementation plans 05-04 through 05-07 replace the scaffold panics.
+- [Phase 05]: Plan 05-03 uses Vitest it.todo consistently for frontend scaffold tests so TypeScript stays green while later implementation plans replace the todos.
+- [Phase 05]: Plan 05-04 uses discovered PLAN.md paths as the shared key for phase_plans and plan_items.
+- [Phase 05]: Plan 05-04 stores STATE Current Position excerpts as derived project snapshot data without mutating source markdown.
+- [Phase 05]: Plan 05-05 keeps Project Detail command SQL in focused sessions modules so command/repo files remain below the 500-line AGENTS.md limit.
+- [Phase 05]: Plan 05-05 whitelists exact project session sort keys and asc/desc directions before interpolating ORDER BY SQL identifiers.
+- [Phase 05]: Plan 05-07 keeps Global Sessions SQL in a focused sessions/global.rs module to preserve the AGENTS.md 500-line file limit.
+- [Phase 05]: Plan 05-07 builds GlobalSessionFilters SQL from fixed active predicates with bound values and validates source as claude or codex.
+- [Phase 05]: Plan 05-07 registers list_global_sessions, get_global_chart_data, and get_portfolio_heatmap for dev handlers and release capabilities.
+- [Phase 05]: Plan 05-08 uses local React state for Project Detail tabs on /project/:id rather than nested routes.
+- [Phase 05]: Plan 05-08 keeps Project Detail CSS route-scoped in ProjectDetailPage.css to avoid expanding the oversized global stylesheet.
+- [Phase 05]: Plan 05-08 renders STATE excerpts as React text nodes with no raw HTML injection.
+- [Phase 05]: Plan 05-09 keeps Project Detail Sessions and Charts CSS route-scoped in ProjectDetailPage.css rather than expanding the oversized global stylesheet.
+- [Phase 05]: Plan 05-09 uses a single tab-level project chart range selector defaulting to 30d and includes the range in the TanStack Query key.
+- [Phase 05]: Plan 05-10 uses browser URLSearchParams as live Global Sessions filter/page state and derives backend filters via strict coercion.
+- [Phase 05]: Plan 05-10 keeps Global Sessions CSS route-scoped in GlobalSessionsPage.css because src/styles.css exceeds the AGENTS.md 500-line limit.
+- [Phase 05]: Plan 05-11 renders chart project names only as React text children in legend chips.
+- [Phase 05]: Plan 05-11 reuses filtersToGlobalSessionFilters for both Global Sessions table and chart queries.
+- [Phase 05]: Plan 05-12 uses react-calendar-heatmap with local CSS classes and no package stylesheet import for the Portfolio activity heatmap.
+- [Phase 05]: Plan 05-12 invalidates portfolioHeatmapQueryKey from daily_activity_updated without trusting event payloads.
 
 ### Todos
 
@@ -138,9 +170,9 @@ Overall:   [████......] 44%
 
 ## Session Continuity
 
-**Last session:** 2026-04-26T12:45:34.789Z
+**Last session:** 2026-04-27T15:40:50.917Z
 
-**Next session should:** Run `/gsd-next` to advance after Phase 04 completion.
+**Next session should:** Continue Phase 05 execution from the next incomplete plan.
 
 ---
 *State initialized: 2026-04-23*

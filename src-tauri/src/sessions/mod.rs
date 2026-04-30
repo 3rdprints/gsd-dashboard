@@ -1,7 +1,10 @@
 pub mod claude;
 pub mod codex;
+pub mod global;
 pub mod indexer;
 pub mod matcher;
+pub mod project_charts;
+pub mod project_detail;
 pub mod repo;
 
 use serde_json::Value;

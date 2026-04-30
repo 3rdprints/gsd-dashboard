@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-list-global-sessions"
+description = "Enables the list_global_sessions command without any pre-configured scope."
+commands.allow = ["list_global_sessions"]
+
+[[permission]]
+identifier = "deny-list-global-sessions"
+description = "Denies the list_global_sessions command without any pre-configured scope."
+commands.deny = ["list_global_sessions"]

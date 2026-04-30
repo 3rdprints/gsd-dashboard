@@ -28,6 +28,7 @@ fn phase_plan(project_id: &str, plan_number: &str) -> project_repo::StoredPhaseP
         phase_name: Some("Planning Parser".to_string()),
         plan_number: Some(plan_number.to_string()),
         plan_path: format!(".planning/phases/02-planning-parser-scanner/02-{plan_number}-PLAN.md"),
+        completed_at: None,
         checklist_json: format!(r#"[{{"label":"plan {plan_number}","done":false}}]"#),
         updated_at: 0,
     }

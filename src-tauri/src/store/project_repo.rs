@@ -29,8 +29,19 @@ pub struct StoredPhasePlan {
     pub phase_name: Option<String>,
     pub plan_number: Option<String>,
     pub plan_path: String,
+    pub completed_at: Option<i64>,
     pub checklist_json: String,
     pub updated_at: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StoredPlanItem {
+    pub project_id: String,
+    pub plan_path: String,
+    pub ord: i64,
+    pub text: String,
+    pub checked: bool,
+    pub line_no: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -131,16 +142,18 @@ pub fn upsert_project_snapshot(
                     phase_name,
                     plan_number,
                     plan_path,
+                    completed_at,
                     checklist_json,
                     updated_at
                 )
-                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
                 params![
                     phase_plan.project_id,
                     phase_plan.phase_number,
                     phase_plan.phase_name,
                     phase_plan.plan_number,
                     phase_plan.plan_path,
+                    phase_plan.completed_at,
                     phase_plan.checklist_json,
                     now,
                 ],
@@ -273,6 +286,7 @@ pub fn load_phase_plans(
                     phase_name,
                     plan_number,
                     plan_path,
+                    completed_at,
                     checklist_json,
                     updated_at
              FROM phase_plans
@@ -285,6 +299,103 @@ pub fn load_phase_plans(
         .map_err(AppError::from)?;
 
     rows.collect::<Result<Vec<_>, _>>().map_err(AppError::from)
+}
+
+pub fn replace_plan_items(
+    connection: &mut rusqlite::Connection,
+    project_id: &str,
+    plan_path: &str,
+    items: Vec<StoredPlanItem>,
+) -> Result<(), AppError> {
+    let transaction = connection.transaction().map_err(AppError::from)?;
+    transaction
+        .execute(
+            "DELETE FROM plan_items WHERE project_id = ?1 AND plan_path = ?2",
+            params![project_id, plan_path],
+        )
+        .map_err(AppError::from)?;
+
+    for item in items {
+        transaction
+            .execute(
+                "INSERT INTO plan_items (
+                    project_id,
+                    plan_path,
+                    ord,
+                    text,
+                    checked,
+                    line_no
+                )
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![
+                    item.project_id,
+                    item.plan_path,
+                    item.ord,
+                    item.text,
+                    i64::from(item.checked),
+                    item.line_no,
+                ],
+            )
+            .map_err(AppError::from)?;
+    }
+
+    transaction.commit().map_err(AppError::from)
+}
+
+pub fn load_plan_items(
+    connection: &mut rusqlite::Connection,
+    project_id: &str,
+    plan_path: &str,
+) -> Result<Vec<StoredPlanItem>, AppError> {
+    let mut statement = connection
+        .prepare(
+            "SELECT project_id,
+                    plan_path,
+                    ord,
+                    text,
+                    checked,
+                    line_no
+             FROM plan_items
+             WHERE project_id = ?1 AND plan_path = ?2
+             ORDER BY ord",
+        )
+        .map_err(AppError::from)?;
+    let rows = statement
+        .query_map(params![project_id, plan_path], read_plan_item)
+        .map_err(AppError::from)?;
+
+    rows.collect::<Result<Vec<_>, _>>().map_err(AppError::from)
+}
+
+pub fn set_plan_completed_at_if_all_checked(
+    connection: &mut rusqlite::Connection,
+    project_id: &str,
+    plan_path: &str,
+    completed_at: i64,
+) -> Result<(), AppError> {
+    let (total, checked): (i64, i64) = connection
+        .query_row(
+            "SELECT COUNT(*), COALESCE(SUM(checked), 0)
+             FROM plan_items
+             WHERE project_id = ?1 AND plan_path = ?2",
+            params![project_id, plan_path],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .map_err(AppError::from)?;
+    let value = (total > 0 && total == checked).then_some(completed_at);
+    if total == 0 {
+        return Ok(());
+    }
+
+    connection
+        .execute(
+            "UPDATE phase_plans
+             SET completed_at = ?3
+             WHERE project_id = ?1 AND plan_path = ?2",
+            params![project_id, plan_path, value],
+        )
+        .map(|_| ())
+        .map_err(AppError::from)
 }
 
 pub fn append_scan_log(
@@ -348,7 +459,20 @@ fn read_phase_plan(row: &rusqlite::Row<'_>) -> rusqlite::Result<StoredPhasePlan>
         phase_name: row.get(2)?,
         plan_number: row.get(3)?,
         plan_path: row.get(4)?,
-        checklist_json: row.get(5)?,
-        updated_at: row.get(6)?,
+        completed_at: row.get(5)?,
+        checklist_json: row.get(6)?,
+        updated_at: row.get(7)?,
+    })
+}
+
+fn read_plan_item(row: &rusqlite::Row<'_>) -> rusqlite::Result<StoredPlanItem> {
+    let checked: i64 = row.get(4)?;
+    Ok(StoredPlanItem {
+        project_id: row.get(0)?,
+        plan_path: row.get(1)?,
+        ord: row.get(2)?,
+        text: row.get(3)?,
+        checked: checked != 0,
+        line_no: row.get(5)?,
     })
 }

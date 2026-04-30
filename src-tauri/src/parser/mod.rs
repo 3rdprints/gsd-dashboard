@@ -5,6 +5,8 @@ pub mod state;
 
 use serde::{Deserialize, Serialize};
 
+pub use plan::PlanItem;
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectSnapshot {
@@ -15,7 +17,10 @@ pub struct ProjectSnapshot {
     pub current_milestone: Option<MilestoneIdentity>,
     pub current_phase: Option<PhaseIdentity>,
     pub milestone_progress_pct: u8,
+    #[serde(default)]
+    pub roadmap_phases: Vec<roadmap::RoadmapPhase>,
     pub phase_plans: Vec<PhasePlan>,
+    pub state_excerpt: Option<String>,
     pub next_command: String,
     pub config: Option<ProjectConfig>,
     pub parse_issues: Vec<ParseIssue>,
@@ -41,7 +46,15 @@ pub struct PhasePlan {
     pub phase: PhaseIdentity,
     pub plan: String,
     pub plan_type: String,
+    #[serde(default)]
+    pub plan_path: String,
+    #[serde(default)]
+    pub completed: bool,
+    #[serde(default)]
+    pub completed_at: Option<i64>,
     pub checklist: Vec<PlanChecklistItem>,
+    #[serde(default)]
+    pub items: Vec<PlanItem>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -57,8 +70,16 @@ pub struct PlanDocument {
     pub phase: Option<String>,
     pub plan: Option<String>,
     pub plan_type: Option<String>,
+    #[serde(default)]
+    pub source_path: Option<String>,
+    #[serde(default)]
+    pub completed: bool,
+    #[serde(default)]
+    pub completed_at: Option<i64>,
     pub tasks: Vec<PlanTask>,
     pub checklist: Vec<PlanChecklistItem>,
+    #[serde(default)]
+    pub items: Vec<PlanItem>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -246,6 +267,7 @@ mod tests {
                 name: "Inserted follow-up".to_string(),
             }),
             milestone_progress_pct: 42,
+            roadmap_phases: Vec::new(),
             phase_plans: vec![PhasePlan {
                 phase: PhaseIdentity {
                     number: "06.1".to_string(),
@@ -253,11 +275,21 @@ mod tests {
                 },
                 plan: "01".to_string(),
                 plan_type: "execute".to_string(),
+                plan_path: ".planning/phases/06.1/06.1-01-PLAN.md".to_string(),
+                completed: false,
+                completed_at: None,
                 checklist: vec![PlanChecklistItem {
                     label: "Parser contracts compile".to_string(),
                     completed: true,
                 }],
+                items: vec![PlanItem {
+                    ord: 0,
+                    text: "Parser contracts compile".to_string(),
+                    checked: true,
+                    line_no: 1,
+                }],
             }],
+            state_excerpt: Some("Phase: 06.1".to_string()),
             next_command: "/gsd-next".to_string(),
             config: Some(ProjectConfig::default()),
             parse_issues: Vec::new(),

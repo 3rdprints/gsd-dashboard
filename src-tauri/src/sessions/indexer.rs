@@ -11,15 +11,19 @@ use serde_json::Value;
 
 use crate::{
     error::AppError,
-    events::SessionIndexEvent,
+    events::{AppEvent, SessionIndexEvent},
     sessions::{
         claude::parse_claude_record,
         codex::parse_codex_record,
         matcher::match_project,
-        repo::{load_indexed_session, persist_indexed_file_result},
+        repo::{
+            load_indexed_session, persist_indexed_file_result, prune_indexed_paths_under,
+            prune_orphan_index_states, prune_tokenless_codex_index_states,
+            prune_unmatched_sessions,
+        },
         IndexedSession, ProjectRoot, SessionIndexState, SessionParseAccumulator, SessionSource,
     },
-    store::project_repo,
+    store::{daily_activity, project_repo},
 };
 
 pub use crate::sessions::StreamFileStatus;
@@ -52,6 +56,9 @@ pub async fn index_session_roots(
     })?;
 
     let known_projects = load_known_project_roots(&pool).await?;
+    prune_existing_unmatched_sessions(&pool).await?;
+    prune_existing_orphan_index_states(&pool).await?;
+    prune_existing_tokenless_codex_index_states(&pool).await?;
     let mut summary = SessionIndexSummary {
         root_count: roots.len(),
         files_processed: 0,
@@ -61,6 +68,10 @@ pub async fn index_session_roots(
     };
 
     for root in roots {
+        if root.source == SessionSource::Codex {
+            prune_ignored_codex_index_paths(&pool, root.path.join("index")).await?;
+        }
+
         on_event(SessionIndexEvent::SourceStarted {
             source: root.source.as_str().to_string(),
             root_path: root.path.display().to_string(),
@@ -93,6 +104,11 @@ pub async fn index_session_roots(
     }
 
     summary.unmatched_count = load_unmatched_count(&pool).await?;
+    if let Err(error) = rebuild_daily_activity(&pool).await {
+        eprintln!("daily_activity rebuild failed after session index: {error}");
+    } else {
+        on_event(SessionIndexEvent::App(AppEvent::DailyActivityUpdated))?;
+    }
     on_event(SessionIndexEvent::Finished {
         files_processed: summary.files_processed,
         sessions_persisted: summary.sessions_persisted,
@@ -101,6 +117,36 @@ pub async fn index_session_roots(
     })?;
 
     Ok(summary)
+}
+
+async fn prune_ignored_codex_index_paths(
+    pool: &Pool,
+    path_prefix: PathBuf,
+) -> Result<(), AppError> {
+    let path_prefix = path_prefix.display().to_string();
+    let connection = pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(move |connection| prune_indexed_paths_under(connection, &path_prefix))
+        .await
+        .map_err(AppError::store)??;
+
+    Ok(())
+}
+
+async fn rebuild_daily_activity(pool: &Pool) -> Result<(), AppError> {
+    let now_ms = current_epoch_ms();
+    let connection = pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(move |connection| daily_activity::rebuild_window(connection, 90, now_ms))
+        .await
+        .map_err(AppError::store)?
+}
+
+fn current_epoch_ms() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_millis().try_into().unwrap_or(0))
+        .unwrap_or(0)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -232,6 +278,9 @@ fn collect_jsonl_files(path: &Path, files: &mut Vec<PathBuf>) -> Result<(), AppE
         let file_type = entry.file_type().map_err(AppError::io)?;
 
         if file_type.is_dir() {
+            if entry_path.file_name().and_then(|name| name.to_str()) == Some("index") {
+                continue;
+            }
             collect_jsonl_files(&entry_path, files)?;
         } else if file_type.is_file()
             && entry_path
@@ -343,6 +392,7 @@ async fn index_session_file(
     let offset_was_reset = previous_offset > file_state.file_size;
     let should_persist_session = (offset_was_reset || committed_offset > previous_offset)
         && accumulator.session.message_count > 0;
+    let mut skipped_unmatched_session = false;
     let sessions = if should_persist_session {
         if previous_offset > 0 && !offset_was_reset {
             if let Some(previous_session) =
@@ -352,11 +402,30 @@ async fn index_session_file(
                     merge_incremental_session(previous_session, accumulator.session);
             }
         }
-        match_project(&mut accumulator.session, known_projects);
-        vec![accumulator.session]
+        let mut session = accumulator.session;
+        let known_projects = known_projects.to_vec();
+        let session = tokio::task::spawn_blocking(move || {
+            match_project(&mut session, &known_projects);
+            session
+        })
+        .await
+        .map_err(AppError::io)?;
+        if session.project_id.is_some() {
+            vec![session]
+        } else {
+            skipped_unmatched_session = true;
+            Vec::new()
+        }
     } else {
         Vec::new()
     };
+
+    if skipped_unmatched_session {
+        return Ok(IndexedFileResult {
+            sessions_persisted: 0,
+            live_partial,
+        });
+    }
 
     if committed_offset == previous_offset && sessions.is_empty() {
         return Ok(IndexedFileResult {
@@ -379,6 +448,36 @@ async fn index_session_file(
         sessions_persisted,
         live_partial,
     })
+}
+
+async fn prune_existing_unmatched_sessions(pool: &Pool) -> Result<(), AppError> {
+    let connection = pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(prune_unmatched_sessions)
+        .await
+        .map_err(AppError::store)??;
+
+    Ok(())
+}
+
+async fn prune_existing_orphan_index_states(pool: &Pool) -> Result<(), AppError> {
+    let connection = pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(prune_orphan_index_states)
+        .await
+        .map_err(AppError::store)??;
+
+    Ok(())
+}
+
+async fn prune_existing_tokenless_codex_index_states(pool: &Pool) -> Result<(), AppError> {
+    let connection = pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(prune_tokenless_codex_index_states)
+        .await
+        .map_err(AppError::store)??;
+
+    Ok(())
 }
 
 fn committed_offset_from_status(status: &StreamFileStatus) -> i64 {

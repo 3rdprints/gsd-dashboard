@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { CheckCircle2, FolderOpen, Plus, Save, X } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -7,10 +7,19 @@ import {
   createSaveSettingsMutationOptions,
   settingsQueryKey
 } from "../lib/queryClient";
-import type { AppError } from "../lib/types";
+import type { AppError, SettingsInput } from "../lib/types";
 
 const INVALID_SCAN_ROOT_MESSAGE =
   "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace.";
+const DEFAULT_SCAN_ROOT = "~/Documents";
+const DEFAULT_SETTINGS_INPUT: SettingsInput = {
+  scanRoots: [DEFAULT_SCAN_ROOT],
+  hiddenProjectIds: [],
+  autostartEnabled: false,
+  trayBarMaxProjects: 8,
+  trayBarSort: "recent_activity",
+  globalSessionsDefaultRange: "7d"
+};
 
 type ScanRootsEditorProps = {
   title?: string;
@@ -23,27 +32,31 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
     queryFn: getSettings
   });
   const saveSettings = useMutation(createSaveSettingsMutationOptions(queryClient));
-  const [scanRootDrafts, setScanRootDrafts] = useState<string[]>([]);
+  const [scanRootDrafts, setScanRootDrafts] = useState<string[]>([DEFAULT_SCAN_ROOT]);
+  const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
+  const hasEditedDrafts = useRef(false);
   const [hasSavedSettings, setHasSavedSettings] = useState(false);
   const rejectedScanRoot = parseRejectedScanRoot(saveSettings.error);
+  const saveErrorMessage = getSaveErrorMessage(saveSettings.error);
+  const settingsInput = settings.data ?? DEFAULT_SETTINGS_INPUT;
+  const canSaveSettings = Boolean(settings.data) || settings.isError;
 
   useEffect(() => {
-    if (settings.data && scanRootDrafts.length === 0) {
-      setScanRootDrafts(settings.data.scanRoots.length > 0 ? settings.data.scanRoots : [""]);
+    if (settings.data && !hasLoadedSettings && !hasEditedDrafts.current) {
+      setScanRootDrafts(
+        settings.data.scanRoots.length > 0 ? settings.data.scanRoots : [DEFAULT_SCAN_ROOT]
+      );
+      setHasLoadedSettings(true);
     }
-  }, [scanRootDrafts.length, settings.data]);
+  }, [hasLoadedSettings, settings.data]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!settings.data) {
-      return;
-    }
-
     saveSettings.mutate(
       {
-        ...settings.data,
-        scanRoots: scanRootDrafts.map((root) => root.trim()).filter(Boolean)
+        ...settingsInput,
+        scanRoots: normalizeScanRootDrafts(scanRootDrafts)
       },
       {
         onSuccess: () => setHasSavedSettings(true),
@@ -82,9 +95,9 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
                           rootIndex === index ? event.target.value : root
                         )
                       );
+                      hasEditedDrafts.current = true;
                       setHasSavedSettings(false);
                     }}
-                    disabled={!settings.data}
                   />
                   <button
                     className="secondary-button"
@@ -93,11 +106,11 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
                       setScanRootDrafts((current) =>
                         current.length > 1
                           ? current.filter((_root, rootIndex) => rootIndex !== index)
-                          : [""]
+                          : [DEFAULT_SCAN_ROOT]
                       );
+                      hasEditedDrafts.current = true;
                       setHasSavedSettings(false);
                     }}
-                    disabled={!settings.data}
                   >
                     <X aria-hidden="true" size={16} strokeWidth={2} />
                     Remove Root
@@ -113,15 +126,15 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
             className="secondary-button"
             type="button"
             onClick={() => {
-              setScanRootDrafts((current) => [...current, ""]);
+              setScanRootDrafts((current) => [...normalizeScanRootDrafts(current), ""]);
+              hasEditedDrafts.current = true;
               setHasSavedSettings(false);
             }}
-            disabled={!settings.data}
           >
             <Plus aria-hidden="true" size={16} strokeWidth={2} />
             Add Root
           </button>
-          <button type="submit" disabled={!settings.data || saveSettings.isPending}>
+          <button type="submit" disabled={!canSaveSettings || saveSettings.isPending}>
             <Save aria-hidden="true" size={16} strokeWidth={2} />
             Save Settings
           </button>
@@ -135,6 +148,12 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
         </div>
       ) : null}
 
+      {!rejectedScanRoot && saveSettings.isError ? (
+        <div className="scan-root-error" role="alert">
+          <p>{saveErrorMessage}</p>
+        </div>
+      ) : null}
+
       {hasSavedSettings && !saveSettings.isError ? (
         <div className="settings-saved">
           <CheckCircle2 aria-hidden="true" size={16} strokeWidth={2} />
@@ -143,6 +162,33 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
       ) : null}
     </section>
   );
+}
+
+function getSaveErrorMessage(error: unknown) {
+  if (error && typeof error === "object" && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string" && message.length > 0) {
+      if (isMissingTauriBridgeMessage(message)) {
+        return "Settings can only be saved from the Tauri desktop app. The browser preview can edit the form, but it cannot persist settings.";
+      }
+
+      return message;
+    }
+  }
+
+  return "Settings could not be saved. Open the Tauri app window and try again.";
+}
+
+function isMissingTauriBridgeMessage(message: string) {
+  const lowerMessage = message.toLowerCase();
+
+  return lowerMessage.includes("invoke") || lowerMessage.includes("__tauri");
+}
+
+function normalizeScanRootDrafts(scanRootDrafts: string[]) {
+  const roots = scanRootDrafts.map((root) => root.trim()).filter(Boolean);
+
+  return roots.length > 0 ? roots : [DEFAULT_SCAN_ROOT];
 }
 
 function parseRejectedScanRoot(error: unknown): AppError | null {

@@ -1,0 +1,197 @@
+.global-sessions-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  padding: 16px;
+  background: #FFFFFF;
+}
+
+.filter-control {
+  min-width: 144px;
+  display: grid;
+  gap: 4px;
+}
+
+.filter-control.compact {
+  min-width: 112px;
+}
+
+.filter-control select,
+.filter-control input {
+  min-height: 36px;
+  box-sizing: border-box;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  padding: 0 10px;
+  color: #111827;
+  background: #FFFFFF;
+}
+
+.unmatched-toggle {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: end;
+  color: #4B5563;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.filter-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.filter-chip {
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  padding: 0 8px;
+  color: #4B5563;
+  background: #F3F4F6;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.filter-chip button {
+  width: 20px;
+  height: 20px;
+  border: 0;
+  padding: 0;
+  color: #4B5563;
+  background: transparent;
+  cursor: pointer;
+}
+
+.filter-chip button:hover {
+  color: #111827;
+}
+
+.filter-chip button:focus,
+.filter-chip button:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: 2px;
+}
+
+.clear-all-btn {
+  width: auto;
+  height: 28px;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #DC2626;
+  background: #FFFFFF;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.clear-all-btn:hover {
+  border-color: #FCA5A5;
+  background: #FEE2E2;
+}
+
+.clear-all-btn:focus,
+.clear-all-btn:focus-visible {
+  outline: 2px solid #DC2626;
+  outline-offset: 2px;
+}
+
+.chart-card {
+  background: #FFFFFF;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.chart-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.chart-card-title {
+  margin: 0;
+  color: #111827;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.chart-card-subtitle {
+  margin: 4px 0 0;
+  color: #6B7280;
+  font-size: 14px;
+}
+
+.chart-card-body {
+  min-height: 200px;
+}
+
+.chart-skeleton {
+  height: 200px;
+  border-radius: 8px;
+  background: #E5E7EB;
+}
+
+.chart-empty-state {
+  height: 200px;
+  display: grid;
+  place-items: center;
+  color: #6B7280;
+  font-size: 14px;
+  text-align: center;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.chart-legend-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.chart-legend-chip {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  padding: 0 8px;
+  color: #4B5563;
+  background: #F3F4F6;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (max-width: 700px) {
+  .filter-control,
+  .filter-control.compact {
+    width: 100%;
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
