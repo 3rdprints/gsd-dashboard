@@ -636,6 +636,14 @@ async fn index_sessions_for_app_reparses_stale_tokenless_codex_sessions() {
         .metadata()
         .expect("codex fixture metadata should load")
         .len() as i64;
+    let codex_file_mtime = codex_path
+        .metadata()
+        .expect("codex fixture metadata should load")
+        .modified()
+        .expect("codex fixture mtime should load")
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("codex fixture mtime should be after epoch")
+        .as_millis() as i64;
     let stale_session = IndexedSession {
         id: "codex:codex-current-session".to_string(),
         source: SessionSource::Codex,
@@ -657,7 +665,7 @@ async fn index_sessions_for_app_reparses_stale_tokenless_codex_sessions() {
         source_path: codex_source_path,
         source: SessionSource::Codex,
         file_size: codex_file_size,
-        file_mtime: Some(1),
+        file_mtime: Some(codex_file_mtime),
         last_parsed_byte_offset: codex_file_size,
         live_partial: false,
         last_error: None,
@@ -708,7 +716,11 @@ async fn clear_session_index_removes_sessions_and_offsets() {
                 connection.query_row("SELECT COUNT(*) FROM session_index_state", [], |row| {
                     row.get::<_, i64>(0)
                 })?;
-            Ok::<_, AppError>((session_count, state_count))
+            let daily_activity_count =
+                connection.query_row("SELECT COUNT(*) FROM daily_activity", [], |row| {
+                    row.get::<_, i64>(0)
+                })?;
+            Ok::<_, AppError>((session_count, state_count, daily_activity_count))
         })
         .await
         .expect("interaction should complete")
@@ -716,7 +728,7 @@ async fn clear_session_index_removes_sessions_and_offsets() {
 
     assert_eq!(summary.sessions_cleared, 2);
     assert_eq!(summary.index_states_cleared, 2);
-    assert_eq!(counts, (0, 0));
+    assert_eq!(counts, (0, 0, 0));
 }
 
 #[tokio::test]

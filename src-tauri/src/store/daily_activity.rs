@@ -20,13 +20,22 @@ pub fn rebuild_window(
     days: i64,
     now_ms: i64,
 ) -> Result<(), AppError> {
+    let transaction = connection.transaction().map_err(AppError::from)?;
+    rebuild_window_in_transaction(&transaction, days, now_ms)?;
+    transaction.commit().map_err(AppError::from)
+}
+
+pub fn rebuild_window_in_transaction(
+    transaction: &rusqlite::Transaction<'_>,
+    days: i64,
+    now_ms: i64,
+) -> Result<(), AppError> {
     let days = clamp_days(days);
-    let today = local_date_for_ms(connection, now_ms)?;
+    let today = local_date_for_ms_in_transaction(transaction, now_ms)?;
     let window_start = today - time::Duration::days(days - 1);
     let today_key = today.to_string();
     let window_start_key = window_start.to_string();
     let updated_at = now_ms / 1_000;
-    let transaction = connection.transaction().map_err(AppError::from)?;
 
     transaction
         .execute(
@@ -81,14 +90,14 @@ pub fn rebuild_window(
         )
         .map_err(AppError::from)?;
 
-    transaction.commit().map_err(AppError::from)
+    Ok(())
 }
 
-fn local_date_for_ms(
-    connection: &mut rusqlite::Connection,
+fn local_date_for_ms_in_transaction(
+    transaction: &rusqlite::Transaction<'_>,
     now_ms: i64,
 ) -> Result<time::Date, AppError> {
-    let date = connection
+    let date = transaction
         .query_row(
             "SELECT date(?1 / 1000, 'unixepoch', 'localtime')",
             [now_ms],

@@ -12,6 +12,10 @@ use crate::{
 
 const DEFAULT_PAGE_SIZE: i64 = 50;
 const MAX_PAGE_SIZE: i64 = 200;
+const TOKEN_TOTAL_EXPR: &str = "COALESCE(tokens_in, 0)
+                + COALESCE(tokens_out, 0)
+                + COALESCE(cache_read_tokens, 0)
+                + COALESCE(cache_creation_tokens, 0)";
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -333,10 +337,7 @@ pub fn list_project_sessions(
                 message_count,
                 COALESCE(tokens_in, 0),
                 COALESCE(tokens_out, 0),
-                COALESCE(tokens_in, 0)
-                    + COALESCE(tokens_out, 0)
-                    + COALESCE(cache_read_tokens, 0)
-                    + COALESCE(cache_creation_tokens, 0),
+                {TOKEN_TOTAL_EXPR},
                 model
          FROM sessions
          WHERE project_id = ?1
@@ -462,7 +463,10 @@ fn roadmap_phase_to_milestone_phase(
     phase: &RoadmapPhase,
     current_phase_number: Option<&str>,
 ) -> ProjectMilestonePhaseDto {
-    let total_plan_count = phase.total_plan_count.unwrap_or(1) as i64;
+    let total_plan_count = phase
+        .total_plan_count
+        .map(|count| count.max(1))
+        .unwrap_or(1) as i64;
     let completed_plan_count = phase
         .completed_plan_count
         .unwrap_or_else(|| usize::from(phase.completed))
@@ -504,10 +508,7 @@ fn sort_column(value: &str) -> Result<&'static str, AppError> {
         "messageCount" => Ok("message_count"),
         "tokensIn" => Ok("COALESCE(tokens_in, 0)"),
         "tokensOut" => Ok("COALESCE(tokens_out, 0)"),
-        "tokenTotal" => Ok("COALESCE(tokens_in, 0)
-                + COALESCE(tokens_out, 0)
-                + COALESCE(cache_read_tokens, 0)
-                + COALESCE(cache_creation_tokens, 0)"),
+        "tokenTotal" => Ok(TOKEN_TOTAL_EXPR),
         _ => Err(AppError::store("invalid session sort")),
     }
 }

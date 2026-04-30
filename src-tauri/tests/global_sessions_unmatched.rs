@@ -128,9 +128,9 @@ async fn global_sessions_unmatched_uses_partial_index() {
             connection
                 .query_row(
                     "EXPLAIN QUERY PLAN
-                     SELECT id FROM sessions INDEXED BY idx_sessions_unmatched_started
-                     WHERE project_id IS NULL
-                     ORDER BY started_at DESC NULLS LAST
+                     SELECT s.id FROM sessions AS s INDEXED BY idx_sessions_unmatched_started
+                     WHERE s.project_id IS NULL
+                     ORDER BY COALESCE(s.started_at, 0) DESC, s.id ASC
                      LIMIT 100",
                     [],
                     |row| row.get::<_, String>(3),

@@ -225,14 +225,21 @@ pub fn clear_session_index(
     connection: &mut rusqlite::Connection,
 ) -> Result<SessionIndexClearSummary, AppError> {
     let transaction = connection.transaction().map_err(AppError::from)?;
+    let summary = clear_session_index_in_transaction(&transaction)?;
+    transaction.commit().map_err(AppError::from)?;
+
+    Ok(summary)
+}
+
+pub fn clear_session_index_in_transaction(
+    transaction: &rusqlite::Transaction<'_>,
+) -> Result<SessionIndexClearSummary, AppError> {
     let sessions_cleared = transaction
         .execute("DELETE FROM sessions", [])
         .map_err(AppError::from)?;
     let index_states_cleared = transaction
         .execute("DELETE FROM session_index_state", [])
         .map_err(AppError::from)?;
-
-    transaction.commit().map_err(AppError::from)?;
 
     Ok(SessionIndexClearSummary {
         sessions_cleared: sessions_cleared as i64,

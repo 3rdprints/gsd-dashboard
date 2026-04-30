@@ -364,6 +364,17 @@ type: execute
         "# Summary\n\nPlan 1 complete.\n",
     )
     .expect("summary should be written");
+    fs::write(
+        phase_dir.join("ORPHAN-PLAN.md"),
+        r#"---
+plan: orphan
+type: execute
+---
+"#,
+    )
+    .expect("orphan plan should be written");
+    fs::write(phase_dir.join("ORPHAN-SUMMARY.md"), "# Summary\n")
+        .expect("orphan summary should be written");
 
     scan_service::scan_roots(
         pool.clone(),
@@ -448,7 +459,7 @@ progress:
   completed_phases: 5
   total_plans: 10
   completed_plans: 10
-  percent: 100
+  percent: 75
 ---
 
 # Project State

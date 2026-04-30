@@ -42,18 +42,19 @@ pub async fn clear_session_index(
 pub async fn clear_session_index_for_app(
     state: &AppState,
 ) -> Result<SessionIndexClearSummary, AppError> {
-    let connection = state.pool.get().await.map_err(AppError::store)?;
-    let summary = connection
-        .interact(repo::clear_session_index)
-        .await
-        .map_err(AppError::store)??;
     let now_ms = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|duration| duration.as_millis().try_into().unwrap_or(0))
         .unwrap_or(0);
     let connection = state.pool.get().await.map_err(AppError::store)?;
-    connection
-        .interact(move |connection| daily_activity::rebuild_window(connection, 90, now_ms))
+    let summary = connection
+        .interact(move |connection| {
+            let transaction = connection.transaction().map_err(AppError::from)?;
+            let summary = repo::clear_session_index_in_transaction(&transaction)?;
+            daily_activity::rebuild_window_in_transaction(&transaction, 90, now_ms)?;
+            transaction.commit().map_err(AppError::from)?;
+            Ok::<_, AppError>(summary)
+        })
         .await
         .map_err(AppError::store)??;
 

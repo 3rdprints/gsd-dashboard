@@ -169,21 +169,24 @@ fn parse_candidate_files(candidate: &PlanningProjectCandidate) -> Result<Project
 
     let plans = parse_plan_files(&candidate.planning_path, &mut parse_issues)?;
     let roadmap = roadmap.unwrap_or_else(|| empty_roadmap(milestones));
-    let progress = derive_project_progress(&roadmap, &plans);
-    let milestone_progress_pct = state
+    let phase_plans = plans
+        .iter()
+        .filter_map(project_phase_plan)
+        .collect::<Vec<_>>();
+    let progress = derive_project_progress(&roadmap, &plans, &phase_plans);
+    let project_is_completed = state
         .as_ref()
-        .and_then(|state| state.progress.as_ref())
-        .and_then(|progress| progress.percent)
-        .or_else(|| {
-            state.as_ref().and_then(|state| {
-                state
-                    .status
-                    .as_deref()
-                    .is_some_and(is_completed_status)
-                    .then_some(100)
-            })
-        })
-        .unwrap_or(progress.percent);
+        .and_then(|state| state.status.as_deref())
+        .is_some_and(is_completed_status);
+    let milestone_progress_pct = if project_is_completed {
+        100
+    } else {
+        state
+            .as_ref()
+            .and_then(|state| state.progress.as_ref())
+            .and_then(|progress| progress.percent)
+            .unwrap_or(progress.percent)
+    };
     let current_milestone = state
         .as_ref()
         .and_then(|state| state.current_milestone.as_ref())
@@ -196,10 +199,6 @@ fn parse_candidate_files(candidate: &PlanningProjectCandidate) -> Result<Project
                 .or_else(|| Some(state_milestone.clone()))
         })
         .or_else(|| roadmap.milestones.first().cloned());
-    let project_is_completed = state
-        .as_ref()
-        .and_then(|state| state.status.as_deref())
-        .is_some_and(is_completed_status);
     let current_phase = if project_is_completed {
         None
     } else {
@@ -228,10 +227,7 @@ fn parse_candidate_files(candidate: &PlanningProjectCandidate) -> Result<Project
             current_phase,
             milestone_progress_pct,
             roadmap_phases: roadmap.phases.clone(),
-            phase_plans: plans
-                .iter()
-                .filter_map(project_phase_plan)
-                .collect::<Vec<_>>(),
+            phase_plans,
             state_excerpt,
             next_command: state
                 .as_ref()
@@ -340,11 +336,12 @@ fn collect_plan_files_recursive(
 fn derive_project_progress(
     roadmap: &roadmap::RoadmapDocument,
     plans: &[PlanDocument],
+    phase_plans: &[parser::PhasePlan],
 ) -> parser::ProgressSummary {
-    if !plans.is_empty() {
-        let completed_plan_count = plans.iter().filter(|plan| plan.completed).count();
+    if !phase_plans.is_empty() {
+        let completed_plan_count = phase_plans.iter().filter(|plan| plan.completed).count();
         return parser::ProgressSummary {
-            percent: percent(completed_plan_count, plans.len()),
+            percent: percent(completed_plan_count, phase_plans.len()),
             source: "planSummaryCompletion".to_string(),
         };
     }
