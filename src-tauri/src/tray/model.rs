@@ -16,6 +16,7 @@ pub struct TrayProjectBar {
     pub id: String,
     pub name: String,
     pub milestone_progress_pct: f64,
+    pub last_activity_at: Option<i64>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -57,16 +58,21 @@ pub fn visible_tray_projects(
             id: project.id.clone(),
             name: project.name.clone(),
             milestone_progress_pct: project.milestone_progress_pct,
+            last_activity_at: project.last_activity_at,
         })
         .collect::<Vec<_>>();
 
     sort_tray_projects(&mut visible, sort);
-    visible.truncate(max_projects as usize);
+    visible.truncate(max_projects.max(1) as usize);
     visible
 }
 
 pub fn adaptive_bar_count(project_count: usize, spec: TrayRenderSpec) -> usize {
-    project_count.min(spec.max_projects as usize)
+    let capped_count = project_count.min(spec.max_projects.max(1) as usize);
+    (1..=capped_count)
+        .rev()
+        .find(|count| bar_width_for_count(spec.width_px, *count) >= 2)
+        .unwrap_or(0)
 }
 
 fn sort_tray_projects(projects: &mut [TrayProjectBar], sort: TrayBarSort) {
@@ -84,8 +90,23 @@ fn sort_tray_projects(projects: &mut [TrayProjectBar], sort: TrayBarSort) {
                 .then_with(|| left.name.to_lowercase().cmp(&right.name.to_lowercase()))
                 .then_with(|| left.id.cmp(&right.id))
         }),
-        TrayBarSort::RecentActivity => {}
+        TrayBarSort::RecentActivity => projects.sort_by(|left, right| {
+            right
+                .last_activity_at
+                .cmp(&left.last_activity_at)
+                .then_with(|| left.name.to_lowercase().cmp(&right.name.to_lowercase()))
+                .then_with(|| left.id.cmp(&right.id))
+        }),
     }
+}
+
+fn bar_width_for_count(width_px: u32, count: usize) -> u32 {
+    if count == 0 {
+        return 0;
+    }
+
+    let total_gap = count.saturating_sub(1) as u32 * 4;
+    width_px.saturating_sub(total_gap) / count as u32
 }
 
 #[cfg(test)]
@@ -129,6 +150,7 @@ mod tests {
                 id: "bravo".to_string(),
                 name: "Bravo".to_string(),
                 milestone_progress_pct: 20.0,
+                last_activity_at: Some(20),
             }]
         );
     }
