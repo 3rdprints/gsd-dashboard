@@ -17,6 +17,7 @@ use crate::{
 pub struct AppSettings {
     pub scan_roots: Vec<String>,
     pub hidden_project_ids: Vec<String>,
+    pub tray_hidden_project_ids: Vec<String>,
     pub autostart_enabled: bool,
     pub tray_bar_max_projects: u8,
     pub tray_bar_sort: TrayBarSort,
@@ -28,6 +29,7 @@ pub struct AppSettings {
 pub struct SettingsInput {
     pub scan_roots: Vec<String>,
     pub hidden_project_ids: Vec<String>,
+    pub tray_hidden_project_ids: Vec<String>,
     pub autostart_enabled: bool,
     pub tray_bar_max_projects: u8,
     pub tray_bar_sort: TrayBarSort,
@@ -48,6 +50,7 @@ impl Default for AppSettings {
         Self {
             scan_roots: vec!["~/Documents".to_string()],
             hidden_project_ids: Vec::new(),
+            tray_hidden_project_ids: Vec::new(),
             autostart_enabled: false,
             tray_bar_max_projects: 8,
             tray_bar_sort: TrayBarSort::RecentActivity,
@@ -61,6 +64,7 @@ impl From<AppSettings> for SettingsInput {
         Self {
             scan_roots: settings.scan_roots,
             hidden_project_ids: settings.hidden_project_ids,
+            tray_hidden_project_ids: settings.tray_hidden_project_ids,
             autostart_enabled: settings.autostart_enabled,
             tray_bar_max_projects: settings.tray_bar_max_projects,
             tray_bar_sort: settings.tray_bar_sort,
@@ -136,6 +140,7 @@ impl From<SettingsInput> for AppSettings {
         Self {
             scan_roots: normalize_scan_roots(input.scan_roots),
             hidden_project_ids: input.hidden_project_ids,
+            tray_hidden_project_ids: input.tray_hidden_project_ids,
             autostart_enabled: input.autostart_enabled,
             tray_bar_max_projects: input.tray_bar_max_projects,
             tray_bar_sort: input.tray_bar_sort,
@@ -154,6 +159,7 @@ impl TryFrom<StoredSettings> for AppSettings {
         Ok(Self {
             scan_roots: normalize_scan_roots(serde_json::from_str(&stored.scan_roots_json)?),
             hidden_project_ids: serde_json::from_str(&stored.hidden_project_ids_json)?,
+            tray_hidden_project_ids: serde_json::from_str(&stored.tray_hidden_project_ids_json)?,
             autostart_enabled: stored.autostart_enabled,
             tray_bar_max_projects: stored.tray_bar_max_projects,
             tray_bar_sort: TrayBarSort::from_db_value(&stored.tray_bar_sort)?,
@@ -172,6 +178,7 @@ impl TryFrom<AppSettings> for StoredSettings {
         Ok(Self {
             scan_roots_json: serde_json::to_string(&settings.scan_roots)?,
             hidden_project_ids_json: serde_json::to_string(&settings.hidden_project_ids)?,
+            tray_hidden_project_ids_json: serde_json::to_string(&settings.tray_hidden_project_ids)?,
             autostart_enabled: settings.autostart_enabled,
             tray_bar_max_projects: settings.tray_bar_max_projects,
             tray_bar_sort: settings.tray_bar_sort.as_db_value().to_string(),
