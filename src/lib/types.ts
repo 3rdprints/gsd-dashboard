@@ -37,6 +37,7 @@ export type BootStatus = {
 export type AppSettings = {
   scanRoots: string[];
   hiddenProjectIds: string[];
+  trayHiddenProjectIds: string[];
   autostartEnabled: boolean;
   trayBarMaxProjects: number;
   trayBarSort: TrayBarSort;
@@ -46,6 +47,7 @@ export type AppSettings = {
 export type SettingsInput = {
   scanRoots: string[];
   hiddenProjectIds: string[];
+  trayHiddenProjectIds: string[];
   autostartEnabled: boolean;
   trayBarMaxProjects: number;
   trayBarSort: TrayBarSort;

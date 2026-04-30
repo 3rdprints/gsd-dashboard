@@ -15,6 +15,7 @@ const DEFAULT_SCAN_ROOT = "~/Documents";
 const DEFAULT_SETTINGS_INPUT: SettingsInput = {
   scanRoots: [DEFAULT_SCAN_ROOT],
   hiddenProjectIds: [],
+  trayHiddenProjectIds: [],
   autostartEnabled: false,
   trayBarMaxProjects: 8,
   trayBarSort: "recent_activity",

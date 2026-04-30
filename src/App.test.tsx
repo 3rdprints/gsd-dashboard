@@ -43,6 +43,7 @@ globalThis.ResizeObserver = TestResizeObserver as typeof ResizeObserver;
 const defaultSettings: SettingsInput = {
   scanRoots: ["~/Documents"],
   hiddenProjectIds: ["listingguru"],
+  trayHiddenProjectIds: [],
   autostartEnabled: false,
   trayBarMaxProjects: 8,
   trayBarSort: "recent_activity",

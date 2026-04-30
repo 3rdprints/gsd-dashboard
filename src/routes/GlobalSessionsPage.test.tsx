@@ -100,6 +100,7 @@ describe("GlobalSessionsPage", () => {
         return Promise.resolve({
           scanRoots: [],
           hiddenProjectIds: [],
+          trayHiddenProjectIds: [],
           autostartEnabled: false,
           trayBarMaxProjects: 6,
           trayBarSort: "name",
@@ -138,6 +139,7 @@ describe("GlobalSessionsPage", () => {
         return Promise.resolve({
           scanRoots: [],
           hiddenProjectIds: [],
+          trayHiddenProjectIds: [],
           autostartEnabled: false,
           trayBarMaxProjects: 6,
           trayBarSort: "name",
