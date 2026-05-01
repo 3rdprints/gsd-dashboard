@@ -24,7 +24,7 @@ const watcherStatus: WatcherStatus = {
       reasonCategory: "watchLimit",
       fixHint: "Increase fs.inotify.max_user_watches for this system.",
       pollingIntervalSeconds: 60,
-      retryEnabled: true
+      retryEnabled: false
     }
   ]
 };
@@ -66,7 +66,7 @@ describe("SettingsPage live update watcher status", () => {
     expect(screen.getByText("/Users/smacdonald/projects/example/.planning")).toBeInTheDocument();
     expect(screen.getByText("System watch limit reached")).toBeInTheDocument();
     expect(screen.getByText("Polling every 60s")).toBeInTheDocument();
-    expect(screen.getByText("Auto-retry on")).toBeInTheDocument();
+    expect(screen.queryByText(/Auto-retry/)).not.toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("Live updates are using polling");
 
     const sectionHeadings = screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent);

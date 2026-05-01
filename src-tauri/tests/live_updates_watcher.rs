@@ -235,7 +235,7 @@ fn live_updates_watcher_debounces_project_changes_at_500ms() {
 #[test]
 fn live_updates_watcher_enters_60s_polling_fallback_for_failed_root() {
     // LIVE-03, T-07-03: failed roots must expose explicit polling fallback status
-    // with root, reason category, fix hint, 60s cadence, and retry state.
+    // with root, reason category, fix hint, and 60s cadence.
     let runtime = WatcherRuntime::new();
     runtime.set_root_status(WatcherRootStatus::polling(
         "/tmp/project/.planning".to_string(),
@@ -251,10 +251,10 @@ fn live_updates_watcher_enters_60s_polling_fallback_for_failed_root() {
         Some(WatcherReasonCategory::WatchLimit)
     );
     assert_eq!(status.roots[0].polling_interval_seconds, Some(60));
-    assert!(status.roots[0].retry_enabled);
+    assert!(!status.roots[0].retry_enabled);
     assert_eq!(POLLING_INTERVAL_SECONDS, 60);
     assert_eq!(
         status.roots[0].fix_hint.as_deref(),
-        Some("Increase inotify watch limits, then wait for automatic retry.")
+        Some("Increase inotify watch limits, then restart the app.")
     );
 }

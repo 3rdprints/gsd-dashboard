@@ -14,7 +14,7 @@ describe("WatcherStatusPanel", () => {
             {
               root: "/Users/smacdonald/projects/example/.planning",
               mode: "native",
-              retryEnabled: true
+              retryEnabled: false
             }
           ]
         }}
@@ -37,7 +37,7 @@ describe("WatcherStatusPanel", () => {
           reasonCategory: "permission",
           fixHint: "Grant folder access and reopen the app.",
           pollingIntervalSeconds: 60,
-          retryEnabled: true
+          retryEnabled: false
         },
         {
           root: "/workspace/b/.planning",
@@ -45,7 +45,7 @@ describe("WatcherStatusPanel", () => {
           reasonCategory: "filesystem",
           fixHint: "Move the project to a local folder.",
           pollingIntervalSeconds: 60,
-          retryEnabled: true
+          retryEnabled: false
         }
       ]
     };
@@ -57,7 +57,7 @@ describe("WatcherStatusPanel", () => {
     expect(screen.getByText("Permission denied")).toBeInTheDocument();
     expect(screen.getByText("Filesystem does not support native watching")).toBeInTheDocument();
     expect(screen.getAllByText("Polling every 60s")).toHaveLength(2);
-    expect(screen.getAllByText("Auto-retry on")).toHaveLength(2);
+    expect(screen.queryByText(/Auto-retry/)).not.toBeInTheDocument();
   });
 
   it("renders loading and error states accessibly", () => {

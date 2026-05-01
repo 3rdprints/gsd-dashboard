@@ -387,7 +387,7 @@ impl WatcherRootStatus {
             reason: Some(reason_category.reason().to_string()),
             fix_hint: Some(reason_category.fix_hint().to_string()),
             polling_interval_seconds: Some(POLLING_INTERVAL_SECONDS),
-            retry_enabled: true,
+            retry_enabled: false,
         }
     }
 }
@@ -421,9 +421,9 @@ impl WatcherReasonCategory {
     pub fn fix_hint(self) -> &'static str {
         match self {
             Self::Permission => {
-                "Check folder permissions, then leave Settings open for the next retry."
+                "Check folder permissions, then restart the app to restore native watching."
             }
-            Self::WatchLimit => "Increase inotify watch limits, then wait for automatic retry.",
+            Self::WatchLimit => "Increase inotify watch limits, then restart the app.",
             Self::Filesystem => "Move the project to a local folder or keep polling enabled.",
             Self::Unknown => "No action needed unless updates feel stale.",
         }

@@ -51,7 +51,6 @@ export function WatcherStatusPanel({ status, isLoading, isError }: WatcherStatus
                   <span className="watcher-status-pill polling">Polling</span>
                   <span>{reasonLabel(root.reasonCategory)}</span>
                   <span>Polling every {root.pollingIntervalSeconds ?? 60}s</span>
-                  <span>{root.retryEnabled ? "Auto-retry on" : "Auto-retry off"}</span>
                 </div>
                 {root.fixHint ? <p className="watcher-fix-hint">{root.fixHint}</p> : null}
               </li>
