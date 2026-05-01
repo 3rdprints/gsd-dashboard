@@ -144,7 +144,7 @@ Plans:
 - [x] 07-02-PLAN.md — Add watcher contracts, narrow roots, events, and status command
 - [x] 07-03-PLAN.md — Implement project watcher refresh, debounce, polling fallback, and tray refresh
 - [x] 07-04-PLAN.md — Split session indexer and add bounded parallel live session refresh
-- [ ] 07-05-PLAN.md — Render Settings fallback status and wire frontend invalidation listeners
+- [x] 07-05-PLAN.md — Render Settings fallback status and wire frontend invalidation listeners
 **UI hint**: yes
 
 ### Phase 8: Autostart & OS Polish
