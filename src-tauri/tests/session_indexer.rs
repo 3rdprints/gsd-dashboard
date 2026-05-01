@@ -10,7 +10,8 @@ use gsd_dashboard::{
     error::AppError,
     events::SessionIndexEvent,
     sessions::{
-        indexer::{stream_session_file, StreamFileStatus},
+        file_indexer::stream_session_file,
+        StreamFileStatus,
         matcher::match_project,
         repo::{load_index_state, persist_indexed_file_result},
         IndexedSession, ProjectRoot, SessionIndexState, SessionSource,
