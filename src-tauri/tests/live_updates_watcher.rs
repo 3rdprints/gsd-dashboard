@@ -186,7 +186,7 @@ async fn live_updates_polling_discovers_new_project_under_scan_root() {
     #[allow(deprecated)]
     app.run_iteration(|_, _| {});
 
-    gsd_dashboard::watcher::service::poll_scan_roots_once_for_app(
+    gsd_dashboard::watcher::poll_scan_roots_once_for_app(
         app.handle(),
         &state,
         &home_dir,
