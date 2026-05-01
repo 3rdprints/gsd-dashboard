@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Parser & Agent Telemetry Expansion
 status: executing
-last_updated: "2026-05-01T19:19:20.326Z"
+last_updated: "2026-05-01T19:28:39.492Z"
 progress:
   total_phases: 9
   completed_phases: 5
   total_plans: 40
-  completed_plans: 34
-  percent: 85
+  completed_plans: 35
+  percent: 88
 ---
 
 # State: GSD Dashboard
@@ -23,13 +23,13 @@ progress:
 ## Current Position
 
 Phase: 07 (live-updates) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 **Milestone:** v1.0 MVP
 **Phase:** 7
-**Plan:** 4 of 5
+**Plan:** 5 of 5
 **Status:** Ready to execute
 
-**Progress:** [█████████░] 85%
+**Progress:** [█████████░] 88%
 
 ```
 Milestone: [████......] 4/10 phases
@@ -79,6 +79,7 @@ Overall:   [████......] 40%
 - Plan 07-01 duration: 2 min; tasks: 2; files modified: 5
 - Plan 07-02 duration: 7 min; tasks: 2; files modified: 16
 - Plan 07-03 duration: 9 min; tasks: 2; files modified: 11
+- Plan 07-04 duration: 7 min; tasks: 2; files modified: 8
 
 ## Accumulated Context
 
@@ -169,6 +170,9 @@ Overall:   [████......] 40%
 - [Phase 07]: Plan 07-03 uses a deterministic ProjectDebouncer seam for watcher coalescing tests instead of relying on OS notification timing.
 - [Phase 07]: Plan 07-03 keeps targeted refresh in scan_refresh/watcher::refresh and reuses existing parser plus persist_project_scan.
 - [Phase 07]: Plan 07-03 tracks tray refresh requests on AppState because this tree had no existing native tray service module.
+- [Phase 07]: Plan 07-04 splits single-file session indexing into sessions::file_indexer so sessions/indexer.rs stays below the 500-line project limit.
+- [Phase 07]: Plan 07-04 uses Tokio JoinSet bounded by SESSION_INDEX_WORKER_LIMIT = 2 for completion-order session file indexing.
+- [Phase 07]: Plan 07-04 emits session:new only after derived SQLite persistence and keeps the payload to session id plus optional project id.
 
 ### Roadmap Evolution
 
@@ -199,7 +203,7 @@ Overall:   [████......] 40%
 
 ## Session Continuity
 
-**Last session:** 2026-05-01T19:19:01.305Z
+**Last session:** 2026-05-01T19:28:39.488Z
 
 **Next session should:** Continue Phase 07 execution from the next incomplete plan.
 
