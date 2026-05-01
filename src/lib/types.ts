@@ -11,6 +11,20 @@ export type ProjectSessionSortKey =
 export type SortDirection = "asc" | "desc";
 export type ProjectChartRange = "7d" | "30d" | "90d" | "all";
 
+export type WatcherRootStatus = {
+  root: string;
+  mode: "native" | "polling";
+  reasonCategory?: "permission" | "watchLimit" | "filesystem" | "unknown";
+  reason?: string;
+  fixHint?: string;
+  pollingIntervalSeconds?: number;
+  retryEnabled: boolean;
+};
+
+export type WatcherStatus = {
+  roots: WatcherRootStatus[];
+};
+
 export type BootStatus = {
   appDataDir: string;
   cachePath: string;

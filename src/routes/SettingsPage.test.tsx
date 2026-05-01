@@ -9,7 +9,11 @@ import * as ipc from "../lib/ipc";
 import type { PortfolioDto, WatcherStatus } from "../lib/types";
 
 vi.mock("../components/ScanRootsEditor", () => ({
-  ScanRootsEditor: ({ title }: { title: string }) => <section aria-label={title} />
+  ScanRootsEditor: ({ title }: { title: string }) => (
+    <section aria-labelledby="scan-roots-title">
+      <h2 id="scan-roots-title">{title}</h2>
+    </section>
+  )
 }));
 
 const watcherStatus: WatcherStatus = {

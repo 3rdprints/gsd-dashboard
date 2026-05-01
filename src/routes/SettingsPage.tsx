@@ -3,18 +3,21 @@ import { Database, Eye, Loader2, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { ScanRootsEditor } from "../components/ScanRootsEditor";
+import { WatcherStatusPanel } from "../components/WatcherStatusPanel";
 import {
   completeScanState,
   initialScanState,
   reduceScanEvent,
   ScanProgressPanel
 } from "../components/ScanProgressPanel";
-import { clearSessionIndex, getPortfolio, getSettings, rebuildCache } from "../lib/ipc";
+import { clearSessionIndex, getPortfolio, getSettings, getWatcherStatus, rebuildCache } from "../lib/ipc";
 import {
   createSaveSettingsMutationOptions,
   portfolioQueryKey,
-  settingsQueryKey
+  settingsQueryKey,
+  watcherStatusQueryKey
 } from "../lib/queryClient";
+import "./SettingsPage.css";
 
 const REBUILD_CONFIRMATION =
   "Rebuild cache: This clears the derived project cache and runs a full rescan. Source `.planning/` files will not be changed.";
@@ -25,6 +28,7 @@ export function SettingsPage() {
   const queryClient = useQueryClient();
   const settings = useQuery({ queryKey: settingsQueryKey, queryFn: getSettings });
   const portfolio = useQuery({ queryKey: portfolioQueryKey, queryFn: getPortfolio });
+  const watcherStatus = useQuery({ queryKey: watcherStatusQueryKey(), queryFn: getWatcherStatus });
   const saveSettings = useMutation(createSaveSettingsMutationOptions(queryClient));
   const [scanState, setScanState] = useState(initialScanState);
   const [confirmedRebuild, setConfirmedRebuild] = useState(false);
@@ -109,6 +113,12 @@ export function SettingsPage() {
       </div>
 
       <ScanRootsEditor title="Scan roots" />
+
+      <WatcherStatusPanel
+        status={watcherStatus.data}
+        isLoading={watcherStatus.isLoading}
+        isError={watcherStatus.isError}
+      />
 
       <section className="settings-panel" aria-labelledby="hidden-projects-title">
         <div className="panel-heading">
