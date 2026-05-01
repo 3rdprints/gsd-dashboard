@@ -1,4 +1,4 @@
-use super::model::TrayProjectBar;
+use super::model::{TrayPortfolioSummary, TrayProjectBar};
 
 pub const SHOW_DASHBOARD_ID: &str = "show_dashboard";
 pub const PREFERENCES_ID: &str = "preferences";
@@ -46,6 +46,22 @@ pub fn project_menu_label(project: &TrayProjectBar) -> String {
     )
 }
 
+pub fn portfolio_summary_label(summary: TrayPortfolioSummary) -> String {
+    format!(
+        "{} active projects · avg {}%",
+        summary.visible_project_count,
+        rounded_pct(summary.average_progress_pct)
+    )
+}
+
+pub fn project_detail_label(project: &TrayProjectBar) -> String {
+    format!(
+        "Milestone progress {}% · {}",
+        rounded_pct(project.milestone_progress_pct),
+        project_activity_label(project.last_activity_at)
+    )
+}
+
 pub fn parse_menu_action(id: &str) -> Option<TrayMenuAction> {
     match id {
         SHOW_DASHBOARD_ID => Some(TrayMenuAction::ShowDashboard),
@@ -73,6 +89,14 @@ fn parse_scoped_project_id(id: &str, prefix: &str) -> Option<String> {
 
 fn rounded_pct(percent: f64) -> i64 {
     percent.clamp(0.0, 100.0).round() as i64
+}
+
+fn project_activity_label(timestamp_seconds: Option<i64>) -> String {
+    if timestamp_seconds.is_some() {
+        "recent activity".to_string()
+    } else {
+        "no activity".to_string()
+    }
 }
 
 #[cfg(test)]
@@ -109,6 +133,21 @@ mod tests {
         assert_eq!(
             project_menu_label(&project("alpha", "Alpha", 72.6)),
             "Alpha · 73%"
+        );
+    }
+
+    #[test]
+    fn summary_and_detail_labels_are_dense_monitoring_rows() {
+        assert_eq!(
+            portfolio_summary_label(TrayPortfolioSummary {
+                visible_project_count: 3,
+                average_progress_pct: 62.4,
+            }),
+            "3 active projects · avg 62%"
+        );
+        assert_eq!(
+            project_detail_label(&project("alpha", "Alpha", 72.6)),
+            "Milestone progress 73% · no activity"
         );
     }
 

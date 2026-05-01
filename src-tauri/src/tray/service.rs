@@ -17,11 +17,13 @@ use crate::{
     store::project_repo::{self, StoredProjectSnapshot},
     tray::{
         menu::{
-            format_tooltip, parse_menu_action, project_menu_label, TrayMenuAction,
-            COPY_NEXT_ID_PREFIX, PREFERENCES_ID, PROJECT_ID_PREFIX, QUIT_ID, SHOW_DASHBOARD_ID,
+            format_tooltip, parse_menu_action, portfolio_summary_label, project_detail_label,
+            project_menu_label, TrayMenuAction, COPY_NEXT_ID_PREFIX, PREFERENCES_ID,
+            PROJECT_ID_PREFIX, QUIT_ID, SHOW_DASHBOARD_ID,
         },
         model::{
-            adaptive_bar_count, visible_tray_projects, TrayProject, TrayProjectBar, TrayRenderSpec,
+            adaptive_bar_count, visible_tray_projects, TrayPortfolioSummary, TrayProject,
+            TrayProjectBar, TrayRenderSpec,
         },
         render::render_tray_icon_png,
     },
@@ -35,6 +37,7 @@ pub const TRAY_REFRESH_DEBOUNCE_MS: u64 = 250;
 pub struct TrayServiceState {
     pub projects: Vec<TrayProjectBar>,
     pub commands_by_project_id: HashMap<String, String>,
+    pub summary: TrayPortfolioSummary,
     pub tooltip: String,
     pub icon_png: Vec<u8>,
 }
@@ -115,15 +118,34 @@ pub fn build_tray_state_from_parts(
         .filter(|project| visible_ids.contains(&project.id))
         .map(|project| (project.id, project.next_command))
         .collect::<HashMap<_, _>>();
+    let summary = tray_summary(&visible_projects);
     let tooltip = format_tooltip(&visible_projects);
     let icon_png = render_tray_icon_png(&visible_projects, render_spec).map_err(AppError::store)?;
 
     Ok(TrayServiceState {
         projects: visible_projects,
         commands_by_project_id,
+        summary,
         tooltip,
         icon_png,
     })
+}
+
+fn tray_summary(projects: &[TrayProjectBar]) -> TrayPortfolioSummary {
+    let average_progress_pct = if projects.is_empty() {
+        0.0
+    } else {
+        projects
+            .iter()
+            .map(|project| project.milestone_progress_pct.clamp(0.0, 100.0))
+            .sum::<f64>()
+            / projects.len() as f64
+    };
+
+    TrayPortfolioSummary {
+        visible_project_count: projects.len(),
+        average_progress_pct,
+    }
 }
 
 pub fn resolve_menu_action(id: &str, tray_state: &TrayServiceState) -> Option<TrayMenuAction> {
@@ -160,7 +182,7 @@ pub async fn record_tray_refresh_request(state: &AppState) -> Result<(), AppErro
 pub fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> Result<(), AppError> {
     let update = startup_tray_update()?;
     let icon = Image::from_bytes(&update.icon_png).map_err(AppError::from)?;
-    let menu = build_native_menu(app, &[])?;
+    let menu = build_native_menu(app, None)?;
     let builder = TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon)
         .tooltip(update.tooltip)
@@ -203,7 +225,7 @@ async fn refresh_tray<R: Runtime>(app: &AppHandle<R>) -> Result<(), AppError> {
     apply_macos_template_icon(&tray)?;
     tray.set_tooltip(Some(&update.tooltip))
         .map_err(AppError::from)?;
-    let menu = build_native_menu(app, &tray_state.projects)?;
+    let menu = build_native_menu(app, Some(&tray_state))?;
     tray.set_menu(Some(menu)).map_err(AppError::from)?;
     Ok(())
 }
@@ -256,17 +278,39 @@ async fn current_menu_action<R: Runtime>(app: &AppHandle<R>, id: &str) -> Option
 
 fn build_native_menu<R: Runtime>(
     app: &AppHandle<R>,
-    projects: &[TrayProjectBar],
+    tray_state: Option<&TrayServiceState>,
 ) -> Result<Menu<R>, AppError> {
     let show_dashboard =
         MenuItem::with_id(app, SHOW_DASHBOARD_ID, "Show Dashboard", true, None::<&str>)?;
     let preferences = MenuItem::with_id(app, PREFERENCES_ID, "Preferences", true, None::<&str>)?;
+    let overview = MenuItem::with_id(
+        app,
+        "overview",
+        tray_state
+            .map(|state| portfolio_summary_label(state.summary))
+            .unwrap_or_else(|| "0 active projects · avg 0%".to_string()),
+        false,
+        None::<&str>,
+    )?;
     let first_separator = PredefinedMenuItem::separator(app)?;
     let second_separator = PredefinedMenuItem::separator(app)?;
     let quit = MenuItem::with_id(app, QUIT_ID, "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&show_dashboard, &preferences, &first_separator])?;
+    let menu = Menu::with_items(
+        app,
+        &[&show_dashboard, &preferences, &overview, &first_separator],
+    )?;
 
-    for project in projects {
+    for project in tray_state
+        .map(|state| state.projects.as_slice())
+        .unwrap_or_default()
+    {
+        let detail = MenuItem::with_id(
+            app,
+            format!("project_detail:{}", project.id),
+            project_detail_label(project),
+            false,
+            None::<&str>,
+        )?;
         let copy = MenuItem::with_id(
             app,
             format!("{COPY_NEXT_ID_PREFIX}{}", project.id),
@@ -279,7 +323,7 @@ fn build_native_menu<R: Runtime>(
             format!("{PROJECT_ID_PREFIX}{}", project.id),
             project_menu_label(project),
             true,
-            &[&copy],
+            &[&detail, &copy],
         )?;
         menu.append(&submenu)?;
     }

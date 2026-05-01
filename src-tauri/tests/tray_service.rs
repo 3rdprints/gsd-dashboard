@@ -56,6 +56,8 @@ fn tray_refresh_state_uses_same_visible_set_for_icon_menu_and_commands() {
 
     assert_eq!(tray_state.projects.len(), 1);
     assert_eq!(tray_state.projects[0].id, "bravo");
+    assert_eq!(tray_state.summary.visible_project_count, 1);
+    assert_eq!(tray_state.summary.average_progress_pct, 60.0);
     assert_eq!(
         tray_state.commands_by_project_id.get("bravo"),
         Some(&"/gsd-next bravo".to_string())
@@ -83,6 +85,7 @@ fn tray_refresh_state_caps_menu_and_tooltip_to_renderable_icon_bars() {
         .expect("tray state should build");
 
     assert_eq!(tray_state.projects.len(), 8);
+    assert_eq!(tray_state.summary.visible_project_count, 8);
     assert_eq!(tray_state.commands_by_project_id.len(), 8);
     assert!(tray_state.tooltip.starts_with("8 active projects"));
     assert!(tray_state.icon_png.starts_with(b"\x89PNG\r\n\x1a\n"));

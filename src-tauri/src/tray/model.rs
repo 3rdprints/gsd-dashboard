@@ -19,6 +19,12 @@ pub struct TrayProjectBar {
     pub last_activity_at: Option<i64>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TrayPortfolioSummary {
+    pub visible_project_count: usize,
+    pub average_progress_pct: f64,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TrayRenderSpec {
     pub width_px: u32,
