@@ -4,6 +4,7 @@ pub mod file_indexer;
 pub mod global;
 pub mod indexer;
 pub mod matcher;
+pub mod parallel;
 pub mod project_charts;
 pub mod project_detail;
 pub mod repo;

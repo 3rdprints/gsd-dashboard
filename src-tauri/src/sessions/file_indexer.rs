@@ -18,14 +18,22 @@ use crate::{
         IndexedSession, ProjectRoot, SessionIndexState, SessionParseAccumulator, SessionSource,
         StreamFileStatus,
     },
+    store::project_repo,
 };
 
 const LIVE_PARTIAL_MESSAGE: &str = "Live session still writing";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct IndexedFileResult {
+pub struct IndexedFileResult {
     pub(crate) sessions_persisted: usize,
     pub(crate) live_partial: bool,
+    pub(crate) session_changes: Vec<IndexedSessionChange>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IndexedSessionChange {
+    pub(crate) id: String,
+    pub(crate) project_id: Option<String>,
 }
 
 pub fn stream_session_file(
@@ -180,6 +188,7 @@ pub(crate) async fn index_session_file(
         return Ok(IndexedFileResult {
             sessions_persisted: 0,
             live_partial,
+            session_changes: Vec::new(),
         });
     }
 
@@ -187,11 +196,19 @@ pub(crate) async fn index_session_file(
         return Ok(IndexedFileResult {
             sessions_persisted: 0,
             live_partial,
+            session_changes: Vec::new(),
         });
     }
 
     let now = current_unix_seconds();
     let sessions_persisted = sessions.len();
+    let session_changes = sessions
+        .iter()
+        .map(|session| IndexedSessionChange {
+            id: session.id.clone(),
+            project_id: session.project_id.clone(),
+        })
+        .collect::<Vec<_>>();
     let connection = pool.get().await.map_err(AppError::store)?;
     connection
         .interact(move |connection| {
@@ -203,7 +220,26 @@ pub(crate) async fn index_session_file(
     Ok(IndexedFileResult {
         sessions_persisted,
         live_partial,
+        session_changes,
     })
+}
+
+pub(crate) async fn load_known_project_roots(pool: &Pool) -> Result<Vec<ProjectRoot>, AppError> {
+    let connection = pool.get().await.map_err(AppError::store)?;
+    connection
+        .interact(|connection| {
+            project_repo::list_project_snapshots(connection).map(|projects| {
+                projects
+                    .into_iter()
+                    .map(|project| ProjectRoot {
+                        id: project.id,
+                        root_path: project.root_path,
+                    })
+                    .collect::<Vec<_>>()
+            })
+        })
+        .await
+        .map_err(AppError::store)?
 }
 
 async fn load_previous_index_state(

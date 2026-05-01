@@ -6,11 +6,12 @@ use std::{
 
 use serde::Serialize;
 
-use crate::{app_state::AppState, error::AppError, settings};
+use crate::{
+    app_state::AppState, error::AppError, events::AppEvent, sessions::SessionSource, settings,
+};
 
 pub const PROJECT_DEBOUNCE_MS: u64 = 500;
 pub const POLLING_INTERVAL_SECONDS: u64 = 60;
-pub const SESSION_INDEX_WORKER_LIMIT: usize = 2;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -59,6 +60,18 @@ pub struct WatcherRuntime {
 pub struct ProjectDebouncer {
     debounce_ms: u64,
     pending: BTreeMap<PathBuf, u64>,
+}
+
+#[derive(Debug, Clone)]
+pub struct SessionFileDebouncer {
+    debounce_ms: u64,
+    pending: BTreeMap<PathBuf, PendingSessionFile>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PendingSessionFile {
+    pub source: SessionSource,
+    pub last_event_ms: u64,
 }
 
 impl Default for WatcherRuntime {
@@ -147,6 +160,72 @@ impl ProjectDebouncer {
 
         due_roots
     }
+}
+
+impl SessionFileDebouncer {
+    pub fn new(debounce_ms: u64) -> Self {
+        Self {
+            debounce_ms,
+            pending: BTreeMap::new(),
+        }
+    }
+
+    pub fn record_event(
+        &mut self,
+        source: SessionSource,
+        source_root: &Path,
+        event_path: impl AsRef<Path>,
+        now_ms: u64,
+    ) {
+        let event_path = event_path.as_ref();
+        if !event_path.starts_with(source_root)
+            || event_path
+                .extension()
+                .and_then(|extension| extension.to_str())
+                != Some("jsonl")
+        {
+            return;
+        }
+
+        self.pending.insert(
+            event_path.to_path_buf(),
+            PendingSessionFile {
+                source,
+                last_event_ms: now_ms,
+            },
+        );
+    }
+
+    pub fn take_due(&mut self, now_ms: u64) -> Vec<(SessionSource, PathBuf)> {
+        let due_files = self
+            .pending
+            .iter()
+            .filter_map(|(path, pending)| {
+                pending
+                    .last_event_ms
+                    .saturating_add(self.debounce_ms)
+                    .le(&now_ms)
+                    .then(|| (pending.source, path.clone()))
+            })
+            .collect::<Vec<_>>();
+
+        for (_, path) in &due_files {
+            self.pending.remove(path);
+        }
+
+        due_files
+    }
+}
+
+pub async fn refresh_session_file_for_app(
+    state: &AppState,
+    source: SessionSource,
+    source_path: &Path,
+    emit_event: impl Fn(AppEvent) -> Result<(), AppError>,
+) -> Result<(), AppError> {
+    crate::watcher::refresh::refresh_session_file(state, source, source_path, emit_event)
+        .await
+        .map(|_| ())
 }
 
 pub async fn start_watcher_service(state: &AppState) -> Result<bool, AppError> {

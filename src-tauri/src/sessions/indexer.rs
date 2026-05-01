@@ -10,14 +10,15 @@ use crate::{
     error::AppError,
     events::{AppEvent, SessionIndexEvent},
     sessions::{
-        file_indexer::index_session_file,
+        file_indexer::load_known_project_roots,
+        parallel::index_session_files_bounded,
         repo::{
             prune_indexed_paths_under, prune_orphan_index_states,
             prune_tokenless_codex_index_states, prune_unmatched_sessions,
         },
-        ProjectRoot, SessionSource,
+        SessionSource,
     },
-    store::{daily_activity, project_repo},
+    store::daily_activity,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -68,15 +69,17 @@ pub async fn index_session_roots(
         })?;
 
         let files = discover_jsonl_files(root.path.clone()).await?;
-        for source_path in files {
+        let outcomes =
+            index_session_files_bounded(pool.clone(), root.source, files, known_projects.clone())
+                .await;
+        for outcome in outcomes {
             summary.files_processed += 1;
-            match index_session_file(&pool, root.source, source_path.clone(), &known_projects).await
-            {
+            match outcome.result {
                 Ok(result) => {
                     summary.sessions_persisted += result.sessions_persisted;
                     on_event(SessionIndexEvent::FileIndexed {
                         source: root.source.as_str().to_string(),
-                        source_path: source_path.display().to_string(),
+                        source_path: outcome.source_path.display().to_string(),
                         sessions_persisted: result.sessions_persisted,
                         live_partial: result.live_partial,
                     })?;
@@ -85,7 +88,7 @@ pub async fn index_session_roots(
                     summary.error_count += 1;
                     on_event(SessionIndexEvent::FileIndexError {
                         source: root.source.as_str().to_string(),
-                        source_path: source_path.display().to_string(),
+                        source_path: outcome.source_path.display().to_string(),
                         message: error.to_string(),
                     })?;
                 }
@@ -195,24 +198,6 @@ fn collect_jsonl_files(path: &Path, files: &mut Vec<PathBuf>) -> Result<(), AppE
     }
 
     Ok(())
-}
-
-async fn load_known_project_roots(pool: &Pool) -> Result<Vec<ProjectRoot>, AppError> {
-    let connection = pool.get().await.map_err(AppError::store)?;
-    connection
-        .interact(|connection| {
-            project_repo::list_project_snapshots(connection).map(|projects| {
-                projects
-                    .into_iter()
-                    .map(|project| ProjectRoot {
-                        id: project.id,
-                        root_path: project.root_path,
-                    })
-                    .collect::<Vec<_>>()
-            })
-        })
-        .await
-        .map_err(AppError::store)?
 }
 
 async fn load_unmatched_count(pool: &Pool) -> Result<usize, AppError> {

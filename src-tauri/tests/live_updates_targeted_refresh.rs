@@ -1,9 +1,13 @@
 use std::{fs, path::Path};
 
 use gsd_dashboard::{
-    bootstrap, events::AppEvent, scan_refresh, scanner::PlanningProjectCandidate,
+    bootstrap,
+    events::AppEvent,
+    scan_refresh,
+    scanner::PlanningProjectCandidate,
     sessions::{repo::load_index_state, SessionSource},
-    store::project_repo, watcher::refresh::refresh_project_planning_dir_for_app,
+    store::project_repo,
+    watcher::refresh::refresh_project_planning_dir_for_app,
 };
 
 fn write_planning_project(project_root: &Path, project_name: &str, phase: u8, phase_name: &str) {
