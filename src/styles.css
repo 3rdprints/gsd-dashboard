@@ -797,10 +797,65 @@ input:disabled {
   color: var(--app-muted);
 }
 
-:root[data-color-scheme="dark"] button:not(.secondary-button):not(.rail-toggle),
+:root[data-color-scheme="dark"] button:not(.secondary-button):not(.rail-toggle):not(.theme-toggle button),
 :root[data-color-scheme="dark"] .scan-progress-fill {
   color: var(--app-control-text);
   background: var(--app-control);
+}
+
+:root[data-color-scheme="dark"] .theme-toggle button {
+  color: var(--app-muted);
+  background: transparent;
+}
+
+:root[data-color-scheme="dark"] .theme-toggle .theme-toggle-active {
+  color: var(--app-control-text);
+  background: var(--app-control);
+}
+
+:root[data-color-scheme="dark"] .chart-card {
+  color: var(--app-text) !important;
+  background: var(--app-surface) !important;
+  border-color: var(--app-border) !important;
+}
+
+:root[data-color-scheme="dark"] .chart-card-title {
+  color: var(--app-text) !important;
+}
+
+:root[data-color-scheme="dark"] .chart-card-subtitle,
+:root[data-color-scheme="dark"] .chart-empty-state,
+:root[data-color-scheme="dark"] .heatmap-container {
+  color: var(--app-muted) !important;
+}
+
+:root[data-color-scheme="dark"] .heatmap-container .react-calendar-heatmap text,
+:root[data-color-scheme="dark"] .heatmap-container .react-calendar-heatmap-weekday-label {
+  fill: var(--app-muted);
+}
+
+:root[data-color-scheme="dark"] .heatmap-container .react-calendar-heatmap rect {
+  stroke: var(--app-surface);
+}
+
+:root[data-color-scheme="dark"] .heatmap-cell-1 {
+  fill: #1D4ED8;
+}
+
+:root[data-color-scheme="dark"] .heatmap-cell-2 {
+  fill: #2563EB;
+}
+
+:root[data-color-scheme="dark"] .heatmap-cell-3 {
+  fill: #3B82F6;
+}
+
+:root[data-color-scheme="dark"] .heatmap-cell-4 {
+  fill: #60A5FA;
+}
+
+:root[data-color-scheme="dark"] .heatmap-cell-5 {
+  fill: #93C5FD;
 }
 
 :root[data-color-scheme="dark"] .scan-progress-track,
