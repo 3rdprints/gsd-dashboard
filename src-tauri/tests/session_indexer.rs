@@ -12,6 +12,7 @@ use gsd_dashboard::{
     sessions::{
         file_indexer::stream_session_file,
         matcher::match_project,
+        parallel::SESSION_INDEX_WORKER_LIMIT,
         repo::{load_index_state, persist_indexed_file_result},
         IndexedSession, ProjectRoot, SessionIndexState, SessionSource, StreamFileStatus,
     },
@@ -496,6 +497,11 @@ fn truncated_file_resets_incremental_offset_to_zero() {
             committed_offset: rewritten.len() as i64
         }
     );
+}
+
+#[test]
+fn session_indexer_worker_limit_is_bounded_to_two_files() {
+    assert_eq!(SESSION_INDEX_WORKER_LIMIT, 2);
 }
 
 #[tokio::test]

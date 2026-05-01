@@ -2,6 +2,7 @@ use std::{fs, path::Path};
 
 use gsd_dashboard::{
     bootstrap, events::AppEvent, scan_refresh, scanner::PlanningProjectCandidate,
+    sessions::{repo::load_index_state, SessionSource},
     store::project_repo, watcher::refresh::refresh_project_planning_dir_for_app,
 };
 
@@ -134,6 +135,105 @@ async fn live_updates_targeted_refresh_reuses_session_byte_offsets() {
     assert!(!serialized.contains("source_path"));
     assert!(!serialized.contains("transcript"));
     assert!(!serialized.contains("tool"));
+}
+
+#[tokio::test]
+async fn live_updates_targeted_session_refresh_reuses_offsets_and_emits_tiny_events() {
+    // LIVE-02, T-07-03, T-07-04: session-root refresh parses only appended
+    // bytes, persists derived metadata first, and emits tiny invalidations.
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let home_dir = temp_dir.path().join("home");
+    let app_data_dir = temp_dir.path().join("app-data");
+    let project_root = home_dir.join("workspace/project-one");
+    write_planning_project(&project_root, "Project One", 7, "Live Updates");
+    let state = bootstrap::bootstrap_from_paths(app_data_dir, home_dir.clone())
+        .await
+        .expect("bootstrap should succeed");
+    scan_refresh::scan_single_project_candidate(
+        &state.pool,
+        PlanningProjectCandidate {
+            project_root: project_root.clone(),
+            planning_path: project_root.join(".planning"),
+        },
+    )
+    .await
+    .expect("known project should scan");
+
+    let session_dir = home_dir.join(".claude/projects/-workspace-project-one");
+    fs::create_dir_all(&session_dir).expect("session dir should be created");
+    let session_path = session_dir.join("claude-live.jsonl");
+    fs::write(
+        &session_path,
+        "{\"type\":\"user\",\"timestamp\":\"2024-05-27T12:00:00Z\",\"cwd\":\"",
+    )
+    .expect("partial session should be written");
+
+    let events = std::sync::Mutex::new(Vec::new());
+    gsd_dashboard::watcher::refresh::refresh_session_file(
+        &state,
+        SessionSource::Claude,
+        &session_path,
+        |event| {
+            events.lock().expect("events lock should work").push(event);
+            Ok(())
+        },
+    )
+    .await
+    .expect("partial refresh should succeed");
+    assert!(events.lock().expect("events lock should work").is_empty());
+
+    let completed_line = format!(
+        "{{\"type\":\"user\",\"timestamp\":\"2024-05-27T12:00:00Z\",\"cwd\":\"{}\",\"sessionId\":\"claude-live\"}}\n",
+        project_root.display()
+    );
+    fs::write(&session_path, completed_line).expect("completed session should be written");
+    gsd_dashboard::watcher::refresh::refresh_session_file(
+        &state,
+        SessionSource::Claude,
+        &session_path,
+        |event| {
+            events.lock().expect("events lock should work").push(event);
+            Ok(())
+        },
+    )
+    .await
+    .expect("completed refresh should succeed");
+
+    let source_path = session_path.display().to_string();
+    let offset = state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available")
+        .interact(move |connection| {
+            load_index_state(connection, &source_path)
+                .map(|state| state.expect("session index state should exist"))
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("state should load")
+        .last_parsed_byte_offset;
+    let events = events.lock().expect("events lock should work").clone();
+    let session_events = events
+        .iter()
+        .filter(|event| matches!(event, AppEvent::SessionNew { .. }))
+        .count();
+
+    assert_eq!(
+        offset,
+        fs::metadata(&session_path)
+            .expect("session metadata should load")
+            .len() as i64
+    );
+    assert_eq!(session_events, 1);
+    assert!(events.contains(&AppEvent::DailyActivityUpdated));
+    for event in events {
+        let serialized = serde_json::to_string(&event).expect("event should serialize");
+        assert!(!serialized.contains("source_path"));
+        assert!(!serialized.contains("transcript"));
+        assert!(!serialized.contains("prompt"));
+        assert!(!serialized.contains("tool_output"));
+    }
 }
 
 #[tokio::test]
