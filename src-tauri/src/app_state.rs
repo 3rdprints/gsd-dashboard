@@ -3,6 +3,8 @@ use std::path::PathBuf;
 use deadpool_sqlite::Pool;
 use serde::Serialize;
 
+use crate::watcher::WatcherRuntime;
+
 #[derive(Clone)]
 pub struct AppState {
     pub pool: Pool,
@@ -10,6 +12,7 @@ pub struct AppState {
     pub app_data_dir: PathBuf,
     pub cache_path: PathBuf,
     pub boot_status: BootStatus,
+    pub watcher_runtime: WatcherRuntime,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -37,6 +40,7 @@ impl AppState {
             app_data_dir,
             cache_path,
             boot_status,
+            watcher_runtime: WatcherRuntime::new(),
         }
     }
 }

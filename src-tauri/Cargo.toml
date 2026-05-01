@@ -21,6 +21,8 @@ deadpool-sqlite = { package = "deadpool-sqlite", git = "https://github.com/deadp
 dirs = "6.0.0"
 gray_matter = "0.3.2"
 ignore = "0.4.25"
+notify = "8.2"
+notify-debouncer-full = "0.5"
 pulldown-cmark = "0.13.3"
 tauri-plugin-clipboard-manager = "2.3.2"
 tauri-plugin-opener = "2.5.3"

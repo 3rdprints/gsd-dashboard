@@ -12,6 +12,7 @@ pub mod scanner;
 pub mod sessions;
 pub mod settings;
 pub mod store;
+pub mod watcher;
 
 pub use commands::projects::{
     get_portfolio_heatmap, get_project_chart_data, get_project_milestones, get_project_phase_panel,

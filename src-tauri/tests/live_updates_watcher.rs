@@ -130,6 +130,6 @@ fn live_updates_watcher_enters_60s_polling_fallback_for_failed_root() {
     assert_eq!(POLLING_INTERVAL_SECONDS, 60);
     assert_eq!(
         status.roots[0].fix_hint.as_deref(),
-        Some("Increase your system watch limit, then GSD Dashboard will retry automatically.")
+        Some("Increase inotify watch limits, then wait for automatic retry.")
     );
 }
