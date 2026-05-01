@@ -13,6 +13,7 @@ use crate::{
     events::AppEvent,
     sessions::SessionSource,
     store::project_repo,
+    tray::service::request_tray_refresh,
     watcher::{
         refresh_session_file_for_app, WatcherReasonCategory, WatcherRootStatus,
         POLLING_INTERVAL_SECONDS,
@@ -95,7 +96,7 @@ pub async fn poll_scan_roots_once_for_app<R: Runtime>(
             if known_planning_paths.contains(&planning_path) {
                 continue;
             }
-            let _ = crate::watcher::refresh::refresh_project_planning_dir_for_app(
+            if crate::watcher::refresh::refresh_project_planning_dir_for_app(
                 state,
                 &candidate.planning_path,
                 |event| {
@@ -103,7 +104,11 @@ pub async fn poll_scan_roots_once_for_app<R: Runtime>(
                     Ok(())
                 },
             )
-            .await;
+            .await
+            .is_ok()
+            {
+                request_tray_refresh(app);
+            }
         }
     }
 }
@@ -131,12 +136,15 @@ async fn refresh_root<R: Runtime>(
     root: &Path,
 ) {
     if root.file_name().and_then(|name| name.to_str()) == Some(".planning") {
-        let _ =
-            crate::watcher::refresh::refresh_project_planning_dir_for_app(state, root, |event| {
-                emit_app_event(app, event);
-                Ok(())
-            })
-            .await;
+        if crate::watcher::refresh::refresh_project_planning_dir_for_app(state, root, |event| {
+            emit_app_event(app, event);
+            Ok(())
+        })
+        .await
+        .is_ok()
+        {
+            request_tray_refresh(app);
+        }
         return;
     }
 
@@ -269,5 +277,6 @@ fn emit_app_event<R: Runtime>(app: &AppHandle<R>, event: AppEvent) {
         AppEvent::WatcherStatusChanged => {
             let _ = app.emit("watcher:status-changed", ());
         }
+        AppEvent::TrayNavigate { .. } => {}
     }
 }

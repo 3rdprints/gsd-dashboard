@@ -52,6 +52,7 @@ describe("SettingsPage live update watcher status", () => {
     vi.spyOn(ipc, "getSettings").mockResolvedValue({
       scanRoots: [],
       hiddenProjectIds: [],
+      trayHiddenProjectIds: [],
       autostartEnabled: false,
       trayBarMaxProjects: 4,
       trayBarSort: "name",

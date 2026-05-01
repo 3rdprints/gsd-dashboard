@@ -17,6 +17,7 @@ fn settings_input(scan_roots: Vec<String>) -> SettingsInput {
     SettingsInput {
         scan_roots,
         hidden_project_ids: Vec::new(),
+        tray_hidden_project_ids: Vec::new(),
         autostart_enabled: false,
         tray_bar_max_projects: 8,
         tray_bar_sort: TrayBarSort::RecentActivity,
