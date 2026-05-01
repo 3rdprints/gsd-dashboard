@@ -141,7 +141,7 @@ Plans:
 **Plans**: 5 plans
 Plans:
 - [x] 07-01-PLAN.md — Create Wave 0 live update validation scaffolds
-- [ ] 07-02-PLAN.md — Add watcher contracts, narrow roots, events, and status command
+- [x] 07-02-PLAN.md — Add watcher contracts, narrow roots, events, and status command
 - [ ] 07-03-PLAN.md — Implement project watcher refresh, debounce, polling fallback, and tray refresh
 - [ ] 07-04-PLAN.md — Split session indexer and add bounded parallel live session refresh
 - [ ] 07-05-PLAN.md — Render Settings fallback status and wire frontend invalidation listeners
