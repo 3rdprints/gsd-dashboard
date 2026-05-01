@@ -1,4 +1,8 @@
-use std::sync::{Arc, RwLock};
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+    sync::{Arc, RwLock},
+};
 
 use serde::Serialize;
 
@@ -51,6 +55,12 @@ pub struct WatcherRuntime {
     status: Arc<RwLock<WatcherStatus>>,
 }
 
+#[derive(Debug, Clone)]
+pub struct ProjectDebouncer {
+    debounce_ms: u64,
+    pending: BTreeMap<PathBuf, u64>,
+}
+
 impl Default for WatcherRuntime {
     fn default() -> Self {
         Self::new()
@@ -99,6 +109,43 @@ impl WatcherRuntime {
         }
 
         self.set_roots(next_roots)
+    }
+}
+
+impl ProjectDebouncer {
+    pub fn new(debounce_ms: u64) -> Self {
+        Self {
+            debounce_ms,
+            pending: BTreeMap::new(),
+        }
+    }
+
+    pub fn record_event(
+        &mut self,
+        planning_root: &Path,
+        _event_path: impl AsRef<Path>,
+        now_ms: u64,
+    ) {
+        self.pending.insert(planning_root.to_path_buf(), now_ms);
+    }
+
+    pub fn take_due(&mut self, now_ms: u64) -> Vec<PathBuf> {
+        let due_roots = self
+            .pending
+            .iter()
+            .filter_map(|(root, last_event_ms)| {
+                last_event_ms
+                    .saturating_add(self.debounce_ms)
+                    .le(&now_ms)
+                    .then(|| root.clone())
+            })
+            .collect::<Vec<_>>();
+
+        for root in &due_roots {
+            self.pending.remove(root);
+        }
+
+        due_roots
     }
 }
 
