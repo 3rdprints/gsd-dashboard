@@ -20,7 +20,9 @@ use crate::{
             format_tooltip, parse_menu_action, project_menu_label, TrayMenuAction,
             COPY_NEXT_ID_PREFIX, PREFERENCES_ID, PROJECT_ID_PREFIX, QUIT_ID, SHOW_DASHBOARD_ID,
         },
-        model::{visible_tray_projects, TrayProject, TrayProjectBar, TrayRenderSpec},
+        model::{
+            adaptive_bar_count, visible_tray_projects, TrayProject, TrayProjectBar, TrayRenderSpec,
+        },
         render::render_tray_icon_png,
     },
 };
@@ -92,13 +94,18 @@ pub fn build_tray_state_from_parts(
         .into_iter()
         .map(TrayProject::from)
         .collect::<Vec<_>>();
-    let visible_projects = visible_tray_projects(
+    let render_spec = TrayRenderSpec {
+        max_projects,
+        ..TrayRenderSpec::default()
+    };
+    let mut visible_projects = visible_tray_projects(
         &projects,
         hidden_project_ids,
         tray_hidden_project_ids,
         sort,
         max_projects,
     );
+    visible_projects.truncate(adaptive_bar_count(visible_projects.len(), render_spec));
     let visible_ids = visible_projects
         .iter()
         .map(|project| project.id.clone())
@@ -109,8 +116,7 @@ pub fn build_tray_state_from_parts(
         .map(|project| (project.id, project.next_command))
         .collect::<HashMap<_, _>>();
     let tooltip = format_tooltip(&visible_projects);
-    let icon_png = render_tray_icon_png(&visible_projects, TrayRenderSpec::default())
-        .map_err(AppError::store)?;
+    let icon_png = render_tray_icon_png(&visible_projects, render_spec).map_err(AppError::store)?;
 
     Ok(TrayServiceState {
         projects: visible_projects,

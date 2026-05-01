@@ -67,7 +67,9 @@ fn draw_bars(pixmap: &mut tiny_skia::Pixmap, bars: &[TrayProjectBar], paint: &ti
         }
 
         let x = index as u32 * (bar_width + GAP_PX);
-        let y = pixmap.height().saturating_sub(BOTTOM_PADDING_PX + bar_height);
+        let y = pixmap
+            .height()
+            .saturating_sub(BOTTOM_PADDING_PX + bar_height);
         if let Some(rect) =
             tiny_skia::Rect::from_xywh(x as f32, y as f32, bar_width as f32, bar_height as f32)
         {
@@ -114,7 +116,11 @@ mod tests {
     #[test]
     fn project_bars_render_non_empty_png_bytes() {
         let png = render_tray_icon_png(
-            &[bar("alpha", 25.0), bar("bravo", 50.0), bar("charlie", 100.0)],
+            &[
+                bar("alpha", 25.0),
+                bar("bravo", 50.0),
+                bar("charlie", 100.0),
+            ],
             TrayRenderSpec::default(),
         )
         .unwrap();
@@ -127,7 +133,11 @@ mod tests {
     #[test]
     fn clamps_progress_and_applies_minimum_visible_height() {
         let png = render_tray_icon_png(
-            &[bar("negative", -25.0), bar("tiny", 1.0), bar("large", 250.0)],
+            &[
+                bar("negative", -25.0),
+                bar("tiny", 1.0),
+                bar("large", 250.0),
+            ],
             TrayRenderSpec::default(),
         )
         .unwrap();

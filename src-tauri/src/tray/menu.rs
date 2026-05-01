@@ -28,12 +28,13 @@ impl TrayMenuAction {
 
 pub fn format_tooltip(projects: &[TrayProjectBar]) -> String {
     let mut parts = vec![format!("{} active projects", projects.len())];
-    parts.extend(
-        projects
-            .iter()
-            .take(3)
-            .map(|project| format!("{} {}%", project.name, rounded_pct(project.milestone_progress_pct))),
-    );
+    parts.extend(projects.iter().take(3).map(|project| {
+        format!(
+            "{} {}%",
+            project.name,
+            rounded_pct(project.milestone_progress_pct)
+        )
+    }));
     parts.join(" · ")
 }
 
@@ -105,13 +106,22 @@ mod tests {
 
     #[test]
     fn project_menu_label_uses_name_and_whole_percentage() {
-        assert_eq!(project_menu_label(&project("alpha", "Alpha", 72.6)), "Alpha · 73%");
+        assert_eq!(
+            project_menu_label(&project("alpha", "Alpha", 72.6)),
+            "Alpha · 73%"
+        );
     }
 
     #[test]
     fn parser_accepts_only_fixed_and_project_scoped_ids() {
-        assert_eq!(parse_menu_action(SHOW_DASHBOARD_ID), Some(TrayMenuAction::ShowDashboard));
-        assert_eq!(parse_menu_action(PREFERENCES_ID), Some(TrayMenuAction::Preferences));
+        assert_eq!(
+            parse_menu_action(SHOW_DASHBOARD_ID),
+            Some(TrayMenuAction::ShowDashboard)
+        );
+        assert_eq!(
+            parse_menu_action(PREFERENCES_ID),
+            Some(TrayMenuAction::Preferences)
+        );
         assert_eq!(parse_menu_action(QUIT_ID), Some(TrayMenuAction::Quit));
         assert_eq!(
             parse_menu_action("project:alpha"),

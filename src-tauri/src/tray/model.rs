@@ -113,12 +113,7 @@ fn bar_width_for_count(width_px: u32, count: usize) -> u32 {
 mod tests {
     use super::*;
 
-    fn project(
-        id: &str,
-        name: &str,
-        progress: f64,
-        last_activity_at: Option<i64>,
-    ) -> TrayProject {
+    fn project(id: &str, name: &str, progress: f64, last_activity_at: Option<i64>) -> TrayProject {
         TrayProject {
             id: id.to_string(),
             name: name.to_string(),
@@ -169,8 +164,7 @@ mod tests {
         let by_progress = visible_tray_projects(&projects, &[], &[], TrayBarSort::Progress, 8);
         assert_eq!(ids(&by_progress), vec!["middle", "older", "newer"]);
 
-        let by_recent =
-            visible_tray_projects(&projects, &[], &[], TrayBarSort::RecentActivity, 8);
+        let by_recent = visible_tray_projects(&projects, &[], &[], TrayBarSort::RecentActivity, 8);
         assert_eq!(ids(&by_recent), vec!["newer", "middle", "older"]);
     }
 

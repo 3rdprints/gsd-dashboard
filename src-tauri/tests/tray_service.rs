@@ -66,6 +66,29 @@ fn tray_refresh_state_uses_same_visible_set_for_icon_menu_and_commands() {
 }
 
 #[test]
+fn tray_refresh_state_caps_menu_and_tooltip_to_renderable_icon_bars() {
+    let snapshots = (0..12)
+        .map(|index| {
+            snapshot(
+                &format!("project-{index}"),
+                &format!("Project {index}"),
+                index as f64 * 5.0,
+                &format!("/gsd-next project-{index}"),
+                index,
+            )
+        })
+        .collect::<Vec<_>>();
+
+    let tray_state = build_tray_state_from_parts(snapshots, &[], &[], TrayBarSort::Name, 12)
+        .expect("tray state should build");
+
+    assert_eq!(tray_state.projects.len(), 8);
+    assert_eq!(tray_state.commands_by_project_id.len(), 8);
+    assert!(tray_state.tooltip.starts_with("8 active projects"));
+    assert!(tray_state.icon_png.starts_with(b"\x89PNG\r\n\x1a\n"));
+}
+
+#[test]
 fn menu_action_resolution_accepts_fixed_ids_and_visible_project_scoped_ids_only() {
     let tray_state = build_tray_state_from_parts(
         vec![snapshot("alpha", "Alpha", 10.0, "/gsd-next alpha", 30)],
