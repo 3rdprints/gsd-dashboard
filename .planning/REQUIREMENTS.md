@@ -82,11 +82,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Live Updates
 
-- [ ] **LIVE-01**: Filesystem watcher observes each discovered `.planning/` directory and both session-log roots; debounced at ~500ms at the project level
-- [ ] **LIVE-02**: On watcher events, only the affected project or session file is re-parsed and re-persisted
-- [ ] **LIVE-03**: On watcher failure (FSEvents limits, Linux inotify exhaustion, permission denied), system falls back to 60-second polling for the affected root
-- [ ] **LIVE-04**: Settings surfaces a banner when any watcher is in fallback-polling mode
-- [ ] **LIVE-05**: Frontend subscribes to `project:updated` / `session:new` events carrying only IDs; re-queries via commands to refetch fresh data
+- [x] **LIVE-01**: Filesystem watcher observes each discovered `.planning/` directory and both session-log roots; debounced at ~500ms at the project level
+- [x] **LIVE-02**: On watcher events, only the affected project or session file is re-parsed and re-persisted
+- [x] **LIVE-03**: On watcher failure (FSEvents limits, Linux inotify exhaustion, permission denied), system falls back to 60-second polling for the affected root
+- [x] **LIVE-04**: Settings surfaces a banner when any watcher is in fallback-polling mode
+- [x] **LIVE-05**: Frontend subscribes to `project:updated` / `session:new` events carrying only IDs; re-queries via commands to refetch fresh data
 
 ### Clipboard Integration
 
@@ -225,11 +225,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TRAY-05 | Phase 6 | Pending |
 | TRAY-06 | Phase 6 | Pending |
 | TRAY-07 | Phase 6 | Pending |
-| LIVE-01 | Phase 7 | Pending |
-| LIVE-02 | Phase 7 | Pending |
-| LIVE-03 | Phase 7 | Pending |
-| LIVE-04 | Phase 7 | Pending |
-| LIVE-05 | Phase 7 | Pending |
+| LIVE-01 | Phase 7 | Complete |
+| LIVE-02 | Phase 7 | Complete |
+| LIVE-03 | Phase 7 | Complete |
+| LIVE-04 | Phase 7 | Complete |
+| LIVE-05 | Phase 7 | Complete |
 | CLIP-01 | Phase 3 | Complete |
 | CLIP-02 | Phase 3 | Complete |
 | AUTO-01 | Phase 8 | Pending |
