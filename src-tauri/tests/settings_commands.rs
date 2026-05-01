@@ -1,10 +1,12 @@
 use gsd_dashboard::{
     bootstrap,
     commands::settings::{
-        get_boot_status_from_state, get_settings_from_state, save_settings_for_app,
+        get_boot_status_from_state, get_settings_from_state, get_watcher_status_from_state,
+        save_settings_for_app,
     },
     error::AppError,
     settings::{SettingsInput, TrayBarSort},
+    watcher::{WatcherReasonCategory, WatcherRootStatus},
 };
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -61,6 +63,29 @@ async fn get_settings_returns_initialized_defaults_after_boot() {
     assert_eq!(settings.scan_roots, vec!["~/Documents"]);
     assert!(settings.hidden_project_ids.is_empty());
     assert!(!settings.autostart_enabled);
+}
+
+#[tokio::test]
+async fn get_watcher_status_returns_runtime_status_without_persisting_settings() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let state = bootstrap::bootstrap_from_paths(
+        temp_dir.path().join("app-data"),
+        temp_dir.path().join("home"),
+    )
+    .await
+    .expect("bootstrap should succeed");
+    state.watcher_runtime.set_root_status(WatcherRootStatus::polling(
+        "/tmp/project/.planning".to_string(),
+        WatcherReasonCategory::Filesystem,
+    ));
+
+    let status = get_watcher_status_from_state(&state)
+        .await
+        .expect("watcher status should return");
+
+    assert_eq!(status.roots.len(), 1);
+    assert_eq!(status.roots[0].root, "/tmp/project/.planning");
+    assert_eq!(status.roots[0].reason.as_deref(), Some("Filesystem does not support native watching"));
 }
 
 #[tokio::test]

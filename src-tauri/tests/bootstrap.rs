@@ -47,6 +47,59 @@ fn daily_activity_updated_serializes() {
     assert!(value.get("data").is_none());
 }
 
+#[test]
+fn live_update_events_serialize_tiny_payloads() {
+    let project_value = serde_json::to_value(AppEvent::ProjectUpdated {
+        id: "project-1".to_string(),
+    })
+    .expect("event should serialize");
+    assert_eq!(project_value["event"], "project:updated");
+    assert_eq!(project_value["data"]["id"], "project-1");
+    assert_eq!(
+        project_value["data"]
+            .as_object()
+            .expect("payload should be an object")
+            .len(),
+        1
+    );
+
+    let session_value = serde_json::to_value(AppEvent::SessionNew {
+        id: "session-1".to_string(),
+        project_id: Some("project-1".to_string()),
+    })
+    .expect("event should serialize");
+    assert_eq!(session_value["event"], "session:new");
+    assert_eq!(session_value["data"]["id"], "session-1");
+    assert_eq!(session_value["data"]["project_id"], "project-1");
+    assert_eq!(
+        session_value["data"]
+            .as_object()
+            .expect("payload should be an object")
+            .len(),
+        2
+    );
+
+    let watcher_value =
+        serde_json::to_value(AppEvent::WatcherStatusChanged).expect("event should serialize");
+    assert_eq!(watcher_value["event"], "watcher:status-changed");
+    assert!(watcher_value.get("data").is_none());
+}
+
+#[tokio::test]
+async fn bootstrap_initializes_owned_watcher_runtime_status() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let state = bootstrap::bootstrap_from_paths(
+        temp_dir.path().join("app-data"),
+        temp_dir.path().join("home"),
+    )
+    .await
+    .expect("bootstrap should succeed");
+
+    let status = state.watcher_runtime.status();
+
+    assert!(status.roots.is_empty());
+}
+
 #[tokio::test]
 async fn bootstrap_paths_create_cache_and_ready_boot_status() {
     let temp_dir = tempfile::tempdir().expect("temp dir should be created");
