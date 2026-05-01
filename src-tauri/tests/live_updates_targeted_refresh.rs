@@ -1,12 +1,8 @@
 use std::{fs, path::Path};
 
 use gsd_dashboard::{
-    bootstrap,
-    events::AppEvent,
-    scan_service,
-    scanner::PlanningProjectCandidate,
-    store::project_repo,
-    watcher::refresh::refresh_project_planning_dir_for_app,
+    bootstrap, events::AppEvent, scan_refresh, scanner::PlanningProjectCandidate,
+    store::project_repo, watcher::refresh::refresh_project_planning_dir_for_app,
 };
 
 fn write_planning_project(project_root: &Path, project_name: &str, phase: u8, phase_name: &str) {
@@ -14,9 +10,7 @@ fn write_planning_project(project_root: &Path, project_name: &str, phase: u8, ph
     fs::create_dir_all(&planning_dir).expect("planning dir should be created");
     fs::write(
         planning_dir.join("ROADMAP.md"),
-        format!(
-            "# Roadmap\n\n**Milestone:** v1.0 MVP\n\n- [ ] **Phase {phase}: {phase_name}**\n"
-        ),
+        format!("# Roadmap\n\n**Milestone:** v1.0 MVP\n\n- [ ] **Phase {phase}: {phase_name}**\n"),
     )
     .expect("roadmap should be written");
     fs::write(
@@ -30,7 +24,10 @@ fn write_planning_project(project_root: &Path, project_name: &str, phase: u8, ph
         .expect("config should be written");
 }
 
-async fn project_phase_name(state: &gsd_dashboard::app_state::AppState, project_id: &str) -> String {
+async fn project_phase_name(
+    state: &gsd_dashboard::app_state::AppState,
+    project_id: &str,
+) -> String {
     let project_id = project_id.to_string();
     let connection = state.pool.get().await.expect("connection should open");
     connection
@@ -63,7 +60,7 @@ async fn live_updates_targeted_refresh_reparses_only_affected_project() {
     let state = bootstrap::bootstrap_from_paths(app_data_dir, home_dir)
         .await
         .expect("bootstrap should succeed");
-    let first_outcome = scan_service::scan_single_project_candidate(
+    let first_outcome = scan_refresh::scan_single_project_candidate(
         &state.pool,
         PlanningProjectCandidate {
             project_root: first_root.clone(),
@@ -72,7 +69,7 @@ async fn live_updates_targeted_refresh_reparses_only_affected_project() {
     )
     .await
     .expect("first project should scan");
-    let second_outcome = scan_service::scan_single_project_candidate(
+    let second_outcome = scan_refresh::scan_single_project_candidate(
         &state.pool,
         PlanningProjectCandidate {
             project_root: second_root.clone(),
@@ -84,16 +81,13 @@ async fn live_updates_targeted_refresh_reparses_only_affected_project() {
 
     write_planning_project(&first_root, "Project One", 7, "Live Updates");
     let events = std::sync::Mutex::new(Vec::new());
-    let refreshed = refresh_project_planning_dir_for_app(
-        &state,
-        &first_root.join(".planning"),
-        |event| {
+    let refreshed =
+        refresh_project_planning_dir_for_app(&state, &first_root.join(".planning"), |event| {
             events.lock().expect("events lock should work").push(event);
             Ok(())
-        },
-    )
-    .await
-    .expect("project should refresh");
+        })
+        .await
+        .expect("project should refresh");
 
     assert_eq!(refreshed.project_id, first_outcome.project_id);
     assert_eq!(
@@ -102,6 +96,7 @@ async fn live_updates_targeted_refresh_reparses_only_affected_project() {
             id: first_outcome.project_id.clone()
         }]
     );
+    assert_eq!(state.tray_refresh_request_count(), 1);
     assert_eq!(
         project_phase_name(&state, &first_outcome.project_id).await,
         "Live Updates"
@@ -151,8 +146,8 @@ async fn live_updates_targeted_refresh_does_not_write_to_planning_sources() {
     let project_root = home_dir.join("workspace/project-one");
     write_planning_project(&project_root, "Project One", 7, "Live Updates");
     let planning_dir = project_root.join(".planning");
-    let state_before = fs::read_to_string(planning_dir.join("STATE.md"))
-        .expect("state source should be readable");
+    let state_before =
+        fs::read_to_string(planning_dir.join("STATE.md")).expect("state source should be readable");
     let roadmap_before = fs::read_to_string(planning_dir.join("ROADMAP.md"))
         .expect("roadmap source should be readable");
 

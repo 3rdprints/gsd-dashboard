@@ -1,4 +1,10 @@
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
+};
 
 use deadpool_sqlite::Pool;
 use serde::Serialize;
@@ -13,6 +19,7 @@ pub struct AppState {
     pub cache_path: PathBuf,
     pub boot_status: BootStatus,
     pub watcher_runtime: WatcherRuntime,
+    tray_refresh_requests: Arc<AtomicU64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -41,6 +48,15 @@ impl AppState {
             cache_path,
             boot_status,
             watcher_runtime: WatcherRuntime::new(),
+            tray_refresh_requests: Arc::new(AtomicU64::new(0)),
         }
+    }
+
+    pub fn request_tray_refresh(&self) -> u64 {
+        self.tray_refresh_requests.fetch_add(1, Ordering::SeqCst) + 1
+    }
+
+    pub fn tray_refresh_request_count(&self) -> u64 {
+        self.tray_refresh_requests.load(Ordering::SeqCst)
     }
 }
