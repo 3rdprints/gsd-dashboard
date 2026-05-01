@@ -157,6 +157,61 @@ async fn live_updates_watcher_starts_native_supervisor_for_registered_roots() {
     ));
 }
 
+#[tokio::test]
+async fn live_updates_polling_discovers_new_project_under_scan_root() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let home_dir = temp_dir.path().join("home");
+    let app_data_dir = temp_dir.path().join("app-data");
+    let scan_root = home_dir.join("work");
+    let project_root = scan_root.join("project-two");
+    let planning_dir = project_root.join(".planning");
+    fs::create_dir_all(&planning_dir).expect("planning dir should be created");
+    fs::write(
+        planning_dir.join("ROADMAP.md"),
+        "# Roadmap\n\n## Phases\n\n- [ ] 01 - Foundation\n",
+    )
+    .expect("roadmap should be written");
+    fs::write(
+        planning_dir.join("STATE.md"),
+        "# State\n\nCurrent Phase: 01 - Foundation\n",
+    )
+    .expect("state should be written");
+
+    let state = bootstrap::bootstrap_from_paths(app_data_dir, home_dir.clone())
+        .await
+        .expect("bootstrap should succeed");
+    let mut app = tauri::test::mock_builder()
+        .build(tauri::test::mock_context(tauri::test::noop_assets()))
+        .expect("app should build");
+    #[allow(deprecated)]
+    app.run_iteration(|_, _| {});
+
+    gsd_dashboard::watcher::service::poll_scan_roots_once_for_app(
+        app.handle(),
+        &state,
+        &home_dir,
+        &[scan_root],
+    )
+    .await;
+
+    let connection = state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available");
+    let projects = connection
+        .interact(project_repo::list_project_snapshots)
+        .await
+        .expect("interaction should complete")
+        .expect("projects should load");
+
+    assert_eq!(projects.len(), 1);
+    assert_eq!(
+        projects[0].planning_path,
+        planning_dir.display().to_string()
+    );
+}
+
 #[test]
 fn live_updates_watcher_debounces_project_changes_at_500ms() {
     // LIVE-01, T-07-01: project `.planning` changes must use injected watcher/time

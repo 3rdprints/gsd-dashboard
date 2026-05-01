@@ -16,6 +16,7 @@ use tokio::{sync::mpsc, task::JoinHandle};
 
 use crate::{
     app_state::AppState, error::AppError, events::AppEvent, sessions::SessionSource, settings,
+    store::project_repo,
 };
 
 pub const PROJECT_DEBOUNCE_MS: u64 = 500;
@@ -314,17 +315,20 @@ pub async fn start_watcher_service_for_app<R: Runtime>(
 
     let status_changed = state.watcher_runtime.set_roots(statuses);
     let changed = config.changed || status_changed;
+    let polling_roots = Arc::new(RwLock::new(polling_roots));
     let event_task = tokio::spawn(process_watcher_events(
         app.clone(),
         state.clone(),
         config.home_dir.clone(),
         native_roots,
+        Arc::clone(&polling_roots),
         event_receiver,
     ));
     let polling_task = tokio::spawn(poll_degraded_roots(
         app,
         state.clone(),
         config.home_dir,
+        config.scan_roots,
         polling_roots,
     ));
 
@@ -340,11 +344,13 @@ pub async fn start_watcher_service_for_app<R: Runtime>(
 struct WatcherConfig {
     home_dir: PathBuf,
     roots: Vec<PathBuf>,
+    scan_roots: Vec<PathBuf>,
     changed: bool,
 }
 
 async fn configure_watcher_roots(state: &AppState) -> Result<WatcherConfig, AppError> {
     let settings = settings::load_or_initialize(&state.pool, &state.home_dir).await?;
+    let scan_roots = crate::watcher::derive_polling_scan_roots(&state.home_dir, &settings)?;
     let roots =
         crate::watcher::derive_watcher_roots(&state.pool, &state.home_dir, &settings).await?;
     let statuses = roots
@@ -356,6 +362,7 @@ async fn configure_watcher_roots(state: &AppState) -> Result<WatcherConfig, AppE
     Ok(WatcherConfig {
         home_dir: state.home_dir.clone(),
         roots,
+        scan_roots,
         changed,
     })
 }
@@ -391,6 +398,7 @@ async fn process_watcher_events<R: Runtime>(
     state: AppState,
     home_dir: PathBuf,
     roots: Vec<PathBuf>,
+    polling_roots: Arc<RwLock<Vec<PathBuf>>>,
     mut events: mpsc::Receiver<DebounceEventResult>,
 ) {
     while let Some(result) = events.recv().await {
@@ -407,6 +415,7 @@ async fn process_watcher_events<R: Runtime>(
                     let category = WatcherReasonCategory::from_error_message(&error.to_string());
                     for path in error.paths {
                         if let Some(root) = roots.iter().find(|root| path.starts_with(root)) {
+                            add_polling_root(&polling_roots, root);
                             let changed =
                                 state
                                     .watcher_runtime
@@ -429,14 +438,20 @@ async fn poll_degraded_roots<R: Runtime>(
     app: AppHandle<R>,
     state: AppState,
     home_dir: PathBuf,
-    roots: Vec<PathBuf>,
+    scan_roots: Vec<PathBuf>,
+    polling_roots: Arc<RwLock<Vec<PathBuf>>>,
 ) {
     let mut interval = tokio::time::interval(Duration::from_secs(POLLING_INTERVAL_SECONDS));
     loop {
         interval.tick().await;
+        let roots = polling_roots
+            .read()
+            .expect("polling roots lock should not be poisoned")
+            .clone();
         for root in &roots {
             refresh_root(&app, &state, &home_dir, root).await;
         }
+        poll_scan_roots_once_for_app(&app, &state, &home_dir, &scan_roots).await;
     }
 }
 
@@ -448,7 +463,11 @@ async fn refresh_changed_path<R: Runtime>(
     path: &Path,
 ) {
     if let Some(root) = roots.iter().find(|root| path.starts_with(root)) {
-        refresh_root(app, state, home_dir, root).await;
+        if root.file_name().and_then(|name| name.to_str()) == Some(".planning") {
+            refresh_root(app, state, home_dir, root).await;
+        } else if path.extension().and_then(|extension| extension.to_str()) == Some("jsonl") {
+            refresh_session_path(app, state, home_dir, root, path).await;
+        }
     }
 }
 
@@ -470,12 +489,99 @@ async fn refresh_root<R: Runtime>(
 
     if let Some(source) = session_source_for_root(home_dir, root) {
         for source_path in collect_jsonl_files(root).await {
-            let _ = refresh_session_file_for_app(state, source, &source_path, |event| {
-                emit_app_event(app, event);
-                Ok(())
-            })
+            refresh_session_file(app, state, source, &source_path).await;
+        }
+    }
+}
+
+async fn refresh_session_path<R: Runtime>(
+    app: &AppHandle<R>,
+    state: &AppState,
+    home_dir: &Path,
+    root: &Path,
+    source_path: &Path,
+) {
+    if let Some(source) = session_source_for_root(home_dir, root) {
+        refresh_session_file(app, state, source, source_path).await;
+    }
+}
+
+async fn refresh_session_file<R: Runtime>(
+    app: &AppHandle<R>,
+    state: &AppState,
+    source: SessionSource,
+    source_path: &Path,
+) {
+    let _ = refresh_session_file_for_app(state, source, source_path, |event| {
+        emit_app_event(app, event);
+        Ok(())
+    })
+    .await;
+}
+
+pub async fn poll_scan_roots_once_for_app<R: Runtime>(
+    app: &AppHandle<R>,
+    state: &AppState,
+    home_dir: &Path,
+    scan_roots: &[PathBuf],
+) {
+    let known_planning_paths = load_known_planning_paths(state).await;
+    for scan_root in scan_roots {
+        let candidates = discover_scan_root_candidates(scan_root, home_dir).await;
+        for candidate in candidates {
+            let planning_path = candidate.planning_path.display().to_string();
+            if known_planning_paths.contains(&planning_path) {
+                continue;
+            }
+            let _ = crate::watcher::refresh::refresh_project_planning_dir_for_app(
+                state,
+                &candidate.planning_path,
+                |event| {
+                    emit_app_event(app, event);
+                    Ok(())
+                },
+            )
             .await;
         }
+    }
+}
+
+async fn load_known_planning_paths(state: &AppState) -> Vec<String> {
+    let Ok(connection) = state.pool.get().await else {
+        return Vec::new();
+    };
+    connection
+        .interact(project_repo::list_project_snapshots)
+        .await
+        .ok()
+        .and_then(Result::ok)
+        .unwrap_or_default()
+        .into_iter()
+        .map(|project| project.planning_path)
+        .collect()
+}
+
+async fn discover_scan_root_candidates(
+    scan_root: &Path,
+    home_dir: &Path,
+) -> Vec<crate::scanner::PlanningProjectCandidate> {
+    let scan_root = scan_root.to_path_buf();
+    let home_dir = home_dir.to_path_buf();
+    tokio::task::spawn_blocking(move || {
+        crate::scanner::discover_planning_dirs(&scan_root, &home_dir)
+    })
+    .await
+    .ok()
+    .and_then(Result::ok)
+    .unwrap_or_default()
+}
+
+fn add_polling_root(polling_roots: &Arc<RwLock<Vec<PathBuf>>>, root: &Path) {
+    let mut roots = polling_roots
+        .write()
+        .expect("polling roots lock should not be poisoned");
+    if !roots.iter().any(|existing| existing == root) {
+        roots.push(root.to_path_buf());
     }
 }
 
