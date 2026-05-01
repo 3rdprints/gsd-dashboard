@@ -1,12 +1,15 @@
-use std::{fs, path::Path};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 use gsd_dashboard::{
     bootstrap,
     settings::{SettingsInput, TrayBarSort},
     store::project_repo::{self, StoredProjectSnapshot},
     watcher::{
-        derive_watcher_roots, WatcherMode, WatcherReasonCategory, WatcherRootStatus,
-        WatcherRuntime, POLLING_INTERVAL_SECONDS, PROJECT_DEBOUNCE_MS,
+        derive_watcher_roots, ProjectDebouncer, WatcherMode, WatcherReasonCategory,
+        WatcherRootStatus, WatcherRuntime, POLLING_INTERVAL_SECONDS, PROJECT_DEBOUNCE_MS,
     },
 };
 
@@ -111,6 +114,19 @@ fn live_updates_watcher_debounces_project_changes_at_500ms() {
     // LIVE-01, T-07-01: project `.planning` changes must use injected watcher/time
     // seams so debounce assertions do not depend on real OS watcher timing.
     assert_eq!(PROJECT_DEBOUNCE_MS, 500);
+
+    let mut debouncer = ProjectDebouncer::new(PROJECT_DEBOUNCE_MS);
+    let first_project = PathBuf::from("/workspace/project-one/.planning");
+    let second_project = PathBuf::from("/workspace/project-two/.planning");
+
+    debouncer.record_event(&first_project, first_project.join("STATE.md"), 0);
+    debouncer.record_event(&first_project, first_project.join("ROADMAP.md"), 100);
+    debouncer.record_event(&second_project, second_project.join("STATE.md"), 200);
+
+    assert!(debouncer.take_due(599).is_empty());
+    assert_eq!(debouncer.take_due(600), vec![first_project]);
+    assert_eq!(debouncer.take_due(700), vec![second_project]);
+    assert!(debouncer.take_due(1_000).is_empty());
 }
 
 #[test]
