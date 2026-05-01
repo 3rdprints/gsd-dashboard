@@ -312,7 +312,8 @@ pub async fn start_watcher_service_for_app<R: Runtime>(
         }
     }
 
-    let changed = config.changed || state.watcher_runtime.set_roots(statuses);
+    let status_changed = state.watcher_runtime.set_roots(statuses);
+    let changed = config.changed || status_changed;
     let event_task = tokio::spawn(process_watcher_events(
         app.clone(),
         state.clone(),
