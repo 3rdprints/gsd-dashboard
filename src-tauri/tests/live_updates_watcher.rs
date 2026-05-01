@@ -5,8 +5,8 @@ use gsd_dashboard::{
     settings::{SettingsInput, TrayBarSort},
     store::project_repo::{self, StoredProjectSnapshot},
     watcher::{
-        derive_watcher_roots, WatcherReasonCategory, WatcherRuntime, WatcherRootStatus,
-        WatcherMode, POLLING_INTERVAL_SECONDS, PROJECT_DEBOUNCE_MS,
+        derive_watcher_roots, WatcherMode, WatcherReasonCategory, WatcherRootStatus,
+        WatcherRuntime, POLLING_INTERVAL_SECONDS, PROJECT_DEBOUNCE_MS,
     },
 };
 
@@ -61,10 +61,18 @@ async fn live_updates_watcher_registers_only_discovered_planning_and_existing_se
     let state = bootstrap::bootstrap_from_paths(app_data_dir, home_dir.clone())
         .await
         .expect("bootstrap should succeed");
-    gsd_dashboard::settings::save(&state.pool, &home_dir, settings_input(vec!["~/work".into()]))
+    gsd_dashboard::settings::save(
+        &state.pool,
+        &home_dir,
+        settings_input(vec!["~/work".into()]),
+    )
+    .await
+    .expect("settings should save");
+    let connection = state
+        .pool
+        .get()
         .await
-        .expect("settings should save");
-    let connection = state.pool.get().await.expect("connection should be available");
+        .expect("connection should be available");
     let snapshot = project_snapshot(&project_root);
     connection
         .interact(move |connection| {
@@ -93,11 +101,9 @@ async fn live_updates_watcher_registers_only_discovered_planning_and_existing_se
             home_dir.join(".codex/sessions").display().to_string(),
         ]
     );
-    assert!(
-        !root_strings
-            .iter()
-            .any(|root| root.contains("archived_sessions"))
-    );
+    assert!(!root_strings
+        .iter()
+        .any(|root| root.contains("archived_sessions")));
 }
 
 #[test]

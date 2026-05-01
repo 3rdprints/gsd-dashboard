@@ -2,6 +2,8 @@ use std::sync::{Arc, RwLock};
 
 use serde::Serialize;
 
+use crate::{app_state::AppState, error::AppError, settings};
+
 pub const PROJECT_DEBOUNCE_MS: u64 = 500;
 pub const POLLING_INTERVAL_SECONDS: u64 = 60;
 pub const SESSION_INDEX_WORKER_LIMIT: usize = 2;
@@ -100,6 +102,17 @@ impl WatcherRuntime {
     }
 }
 
+pub async fn start_watcher_service(state: &AppState) -> Result<bool, AppError> {
+    let settings = settings::load_or_initialize(&state.pool, &state.home_dir).await?;
+    let roots = crate::watcher::derive_watcher_roots(&state.pool, &state.home_dir, &settings)
+        .await?
+        .into_iter()
+        .map(|root| WatcherRootStatus::native(root.display().to_string()))
+        .collect::<Vec<_>>();
+
+    Ok(state.watcher_runtime.set_roots(roots))
+}
+
 impl WatcherRootStatus {
     pub fn native(root: String) -> Self {
         Self {
@@ -154,7 +167,9 @@ impl WatcherReasonCategory {
 
     pub fn fix_hint(self) -> &'static str {
         match self {
-            Self::Permission => "Check folder permissions, then leave Settings open for the next retry.",
+            Self::Permission => {
+                "Check folder permissions, then leave Settings open for the next retry."
+            }
             Self::WatchLimit => "Increase inotify watch limits, then wait for automatic retry.",
             Self::Filesystem => "Move the project to a local folder or keep polling enabled.",
             Self::Unknown => "No action needed unless updates feel stale.",

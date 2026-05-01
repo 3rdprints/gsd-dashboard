@@ -66,7 +66,7 @@ async fn get_settings_returns_initialized_defaults_after_boot() {
 }
 
 #[tokio::test]
-async fn get_watcher_status_returns_runtime_status_without_persisting_settings() {
+async fn settings_commands_get_watcher_status_returns_runtime_status_without_persisting_settings() {
     let temp_dir = tempfile::tempdir().expect("temp dir should be created");
     let state = bootstrap::bootstrap_from_paths(
         temp_dir.path().join("app-data"),
@@ -74,10 +74,12 @@ async fn get_watcher_status_returns_runtime_status_without_persisting_settings()
     )
     .await
     .expect("bootstrap should succeed");
-    state.watcher_runtime.set_root_status(WatcherRootStatus::polling(
-        "/tmp/project/.planning".to_string(),
-        WatcherReasonCategory::Filesystem,
-    ));
+    state
+        .watcher_runtime
+        .set_root_status(WatcherRootStatus::polling(
+            "/tmp/project/.planning".to_string(),
+            WatcherReasonCategory::Filesystem,
+        ));
 
     let status = get_watcher_status_from_state(&state)
         .await
@@ -85,7 +87,10 @@ async fn get_watcher_status_returns_runtime_status_without_persisting_settings()
 
     assert_eq!(status.roots.len(), 1);
     assert_eq!(status.roots[0].root, "/tmp/project/.planning");
-    assert_eq!(status.roots[0].reason.as_deref(), Some("Filesystem does not support native watching"));
+    assert_eq!(
+        status.roots[0].reason.as_deref(),
+        Some("Filesystem does not support native watching")
+    );
 }
 
 #[tokio::test]

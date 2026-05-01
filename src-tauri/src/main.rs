@@ -28,6 +28,7 @@ fn main() {
             gsd_dashboard::commands::sessions::list_global_sessions,
             gsd_dashboard::commands::settings::get_boot_status,
             gsd_dashboard::commands::settings::get_settings,
+            gsd_dashboard::commands::settings::get_watcher_status,
             gsd_dashboard::commands::settings::save_settings
         ])
         .run(tauri::generate_context!())

@@ -9,6 +9,17 @@ pub enum AppEvent {
     SettingsChanged,
     #[serde(rename = "daily_activity_updated")]
     DailyActivityUpdated,
+    #[serde(rename = "project:updated")]
+    ProjectUpdated {
+        id: String,
+    },
+    #[serde(rename = "session:new")]
+    SessionNew {
+        id: String,
+        project_id: Option<String>,
+    },
+    #[serde(rename = "watcher:status-changed")]
+    WatcherStatusChanged,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

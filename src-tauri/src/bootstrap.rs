@@ -5,7 +5,7 @@ use tauri::Manager;
 use crate::{
     app_state::{AppState, BootStatus},
     error::AppError,
-    settings, store,
+    settings, store, watcher,
 };
 
 pub async fn bootstrap_app<R: tauri::Runtime>(app: &tauri::App<R>) -> Result<AppState, AppError> {
@@ -41,11 +41,8 @@ pub async fn bootstrap_from_paths(
         settings_initialized: true,
     };
 
-    Ok(AppState::new(
-        pool,
-        home_dir,
-        app_data_dir,
-        cache_path,
-        boot_status,
-    ))
+    let state = AppState::new(pool, home_dir, app_data_dir, cache_path, boot_status);
+    watcher::start_watcher_service(&state).await?;
+
+    Ok(state)
 }
