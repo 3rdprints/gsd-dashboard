@@ -36,11 +36,29 @@ pub struct TrayRenderSpec {
 impl Default for TrayRenderSpec {
     fn default() -> Self {
         Self {
-            width_px: 44,
+            width_px: 32,
             height_px: 44,
             scale_factor: 2,
             max_projects: 8,
         }
+    }
+}
+
+pub fn tray_render_spec_for_projects(project_count: usize, max_projects: u8) -> TrayRenderSpec {
+    let visible_count = project_count.min(max_projects.max(1) as usize);
+    let width_px = if visible_count == 0 {
+        32
+    } else {
+        (visible_count as u32)
+            .saturating_mul(8)
+            .saturating_add(12)
+            .clamp(32, 96)
+    };
+
+    TrayRenderSpec {
+        width_px,
+        max_projects,
+        ..TrayRenderSpec::default()
     }
 }
 
@@ -191,6 +209,14 @@ mod tests {
         };
 
         assert_eq!(adaptive_bar_count(8, capped), 4);
+    }
+
+    #[test]
+    fn render_spec_expands_and_contracts_with_visible_project_count() {
+        assert_eq!(tray_render_spec_for_projects(0, 8).width_px, 32);
+        assert_eq!(tray_render_spec_for_projects(1, 8).width_px, 32);
+        assert_eq!(tray_render_spec_for_projects(4, 8).width_px, 44);
+        assert_eq!(tray_render_spec_for_projects(12, 16).width_px, 96);
     }
 
     fn ids(projects: &[TrayProjectBar]) -> Vec<&str> {

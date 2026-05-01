@@ -84,11 +84,14 @@ fn tray_refresh_state_caps_menu_and_tooltip_to_renderable_icon_bars() {
     let tray_state = build_tray_state_from_parts(snapshots, &[], &[], TrayBarSort::Name, 12)
         .expect("tray state should build");
 
-    assert_eq!(tray_state.projects.len(), 8);
-    assert_eq!(tray_state.summary.visible_project_count, 8);
-    assert_eq!(tray_state.commands_by_project_id.len(), 8);
-    assert!(tray_state.tooltip.starts_with("8 active projects"));
+    assert_eq!(tray_state.projects.len(), 12);
+    assert_eq!(tray_state.summary.visible_project_count, 12);
+    assert_eq!(tray_state.commands_by_project_id.len(), 12);
+    assert!(tray_state.tooltip.starts_with("12 active projects"));
     assert!(tray_state.icon_png.starts_with(b"\x89PNG\r\n\x1a\n"));
+    let pixmap =
+        tiny_skia::Pixmap::decode_png(&tray_state.icon_png).expect("tray icon png should decode");
+    assert_eq!(pixmap.width(), 96);
 }
 
 #[test]

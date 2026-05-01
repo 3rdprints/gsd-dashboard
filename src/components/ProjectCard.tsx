@@ -73,8 +73,8 @@ export function ProjectCard({ project, onHideProject, hideDisabled = false }: Pr
         </div>
 
         <div className="project-module-strip" aria-label={`${project.name} metrics`}>
-          <MetricModule label="Milestone" value={`${progressPct}%`} />
-          <MetricModule label="7d sessions" value={project.sessionsLast7d.toString()} />
+          <MetricModule label="Milestone %" value={progressPct.toString()} />
+          <MetricModule label="Sessions 7d" value={project.sessionsLast7d.toString()} />
           <MetricModule
             label="Activity"
             value={formatRelativeActivity(project.lastActivityAt ?? project.lastScannedAt)}
@@ -85,7 +85,7 @@ export function ProjectCard({ project, onHideProject, hideDisabled = false }: Pr
 
         <div className="project-card-meta">
           <span>{phaseLabel}</span>
-          <span>{project.currentMilestoneName ?? "Milestone not available"}</span>
+          <span>{formatRelativeActivity(project.lastActivityAt ?? project.lastScannedAt)}</span>
         </div>
       </Link>
 

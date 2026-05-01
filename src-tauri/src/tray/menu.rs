@@ -56,7 +56,8 @@ pub fn portfolio_summary_label(summary: TrayPortfolioSummary) -> String {
 
 pub fn project_detail_label(project: &TrayProjectBar) -> String {
     format!(
-        "Milestone progress {}% · {}",
+        "{} {}% · {}",
+        progress_graph(project.milestone_progress_pct),
         rounded_pct(project.milestone_progress_pct),
         project_activity_label(project.last_activity_at)
     )
@@ -97,6 +98,12 @@ fn project_activity_label(timestamp_seconds: Option<i64>) -> String {
     } else {
         "no activity".to_string()
     }
+}
+
+fn progress_graph(percent: f64) -> String {
+    let filled = ((percent.clamp(0.0, 100.0) / 100.0) * 10.0).round() as usize;
+    let empty = 10usize.saturating_sub(filled);
+    format!("{}{}", "█".repeat(filled), "░".repeat(empty))
 }
 
 #[cfg(test)]
@@ -147,7 +154,7 @@ mod tests {
         );
         assert_eq!(
             project_detail_label(&project("alpha", "Alpha", 72.6)),
-            "Milestone progress 73% · no activity"
+            "███████░░░ 73% · no activity"
         );
     }
 

@@ -16,7 +16,7 @@
   border: 1px solid #E5E7EB;
   border-radius: 6px;
   padding: 8px;
-  background: #F9FAFB;
+  background: var(--app-surface-muted);
 }
 
 .project-module span {
@@ -38,4 +38,16 @@
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+:root[data-color-scheme="dark"] .project-module {
+  border-color: var(--app-border-soft);
+}
+
+:root[data-color-scheme="dark"] .project-module span {
+  color: var(--app-subtle);
+}
+
+:root[data-color-scheme="dark"] .project-module strong {
+  color: var(--app-text);
 }

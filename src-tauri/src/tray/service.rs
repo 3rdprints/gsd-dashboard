@@ -22,8 +22,8 @@ use crate::{
             PROJECT_ID_PREFIX, QUIT_ID, SHOW_DASHBOARD_ID,
         },
         model::{
-            adaptive_bar_count, visible_tray_projects, TrayPortfolioSummary, TrayProject,
-            TrayProjectBar, TrayRenderSpec,
+            adaptive_bar_count, tray_render_spec_for_projects, visible_tray_projects,
+            TrayPortfolioSummary, TrayProject, TrayProjectBar, TrayRenderSpec,
         },
         render::render_tray_icon_png,
     },
@@ -97,10 +97,6 @@ pub fn build_tray_state_from_parts(
         .into_iter()
         .map(TrayProject::from)
         .collect::<Vec<_>>();
-    let render_spec = TrayRenderSpec {
-        max_projects,
-        ..TrayRenderSpec::default()
-    };
     let mut visible_projects = visible_tray_projects(
         &projects,
         hidden_project_ids,
@@ -108,6 +104,7 @@ pub fn build_tray_state_from_parts(
         sort,
         max_projects,
     );
+    let render_spec = tray_render_spec_for_projects(visible_projects.len(), max_projects);
     visible_projects.truncate(adaptive_bar_count(visible_projects.len(), render_spec));
     let visible_ids = visible_projects
         .iter()
