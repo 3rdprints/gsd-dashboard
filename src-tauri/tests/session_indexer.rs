@@ -11,10 +11,9 @@ use gsd_dashboard::{
     events::SessionIndexEvent,
     sessions::{
         file_indexer::stream_session_file,
-        StreamFileStatus,
         matcher::match_project,
         repo::{load_index_state, persist_indexed_file_result},
-        IndexedSession, ProjectRoot, SessionIndexState, SessionSource,
+        IndexedSession, ProjectRoot, SessionIndexState, SessionSource, StreamFileStatus,
     },
     store::project_repo::{self, StoredProjectSnapshot},
 };

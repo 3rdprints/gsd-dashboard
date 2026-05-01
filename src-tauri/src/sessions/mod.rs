@@ -1,5 +1,6 @@
 pub mod claude;
 pub mod codex;
+pub mod file_indexer;
 pub mod global;
 pub mod indexer;
 pub mod matcher;
