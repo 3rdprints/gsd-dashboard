@@ -12,7 +12,9 @@ pub async fn bootstrap_app<R: tauri::Runtime>(app: &tauri::App<R>) -> Result<App
     let app_data_dir = app.handle().path().app_data_dir()?;
     let home_dir = app.handle().path().home_dir()?;
 
-    bootstrap_from_paths(app_data_dir, home_dir).await
+    let state = bootstrap_from_paths(app_data_dir, home_dir).await?;
+    watcher::start_watcher_service_for_app(app.handle().clone(), &state).await?;
+    Ok(state)
 }
 
 pub async fn bootstrap_from_paths(

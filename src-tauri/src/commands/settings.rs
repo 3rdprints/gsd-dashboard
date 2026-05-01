@@ -5,7 +5,7 @@ use crate::{
     error::AppError,
     events::AppEvent,
     settings::{self, AppSettings, SettingsInput},
-    watcher::WatcherStatus,
+    watcher::{self, WatcherStatus},
 };
 
 const SETTINGS_CHANGED_EVENT: &str = "settings-changed";
@@ -52,6 +52,10 @@ pub async fn save_settings_for_app<R: Runtime>(
     input: SettingsInput,
 ) -> Result<AppSettings, AppError> {
     let saved_settings = settings::save(&state.pool, &state.home_dir, input).await?;
+    let watcher_changed = watcher::start_watcher_service_for_app(app.clone(), state).await?;
     app.emit(SETTINGS_CHANGED_EVENT, AppEvent::SettingsChanged)?;
+    if watcher_changed {
+        app.emit("watcher:status-changed", AppEvent::WatcherStatusChanged)?;
+    }
     Ok(saved_settings)
 }

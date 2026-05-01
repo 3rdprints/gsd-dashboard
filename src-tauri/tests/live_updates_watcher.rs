@@ -109,6 +109,54 @@ async fn live_updates_watcher_registers_only_discovered_planning_and_existing_se
         .any(|root| root.contains("archived_sessions")));
 }
 
+#[tokio::test]
+async fn live_updates_watcher_starts_native_supervisor_for_registered_roots() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let home_dir = temp_dir.path().join("home");
+    let app_data_dir = temp_dir.path().join("app-data");
+    let project_root = home_dir.join("work/project-one");
+    let planning_dir = project_root.join(".planning");
+    fs::create_dir_all(&planning_dir).expect("planning dir should be created");
+
+    let state = bootstrap::bootstrap_from_paths(app_data_dir, home_dir.clone())
+        .await
+        .expect("bootstrap should succeed");
+    let connection = state
+        .pool
+        .get()
+        .await
+        .expect("connection should be available");
+    let snapshot = project_snapshot(&project_root);
+    connection
+        .interact(move |connection| {
+            project_repo::upsert_project_snapshot(connection, snapshot, Vec::new(), 1)
+        })
+        .await
+        .expect("interaction should complete")
+        .expect("project should persist");
+
+    let mut app = tauri::test::mock_builder()
+        .build(tauri::test::mock_context(tauri::test::noop_assets()))
+        .expect("app should build");
+    #[allow(deprecated)]
+    app.run_iteration(|_, _| {});
+
+    gsd_dashboard::watcher::start_watcher_service_for_app(app.handle().clone(), &state)
+        .await
+        .expect("watcher should start");
+
+    assert!(state.watcher_runtime.is_running());
+    assert_eq!(state.watcher_runtime.status().roots.len(), 1);
+    assert_eq!(
+        state.watcher_runtime.status().roots[0].root,
+        planning_dir.display().to_string()
+    );
+    assert!(matches!(
+        state.watcher_runtime.status().roots[0].mode,
+        WatcherMode::Native | WatcherMode::Polling
+    ));
+}
+
 #[test]
 fn live_updates_watcher_debounces_project_changes_at_500ms() {
     // LIVE-01, T-07-01: project `.planning` changes must use injected watcher/time
