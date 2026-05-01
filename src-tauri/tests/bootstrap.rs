@@ -128,6 +128,47 @@ async fn bootstrap_paths_create_cache_and_ready_boot_status() {
     );
 }
 
+#[tokio::test]
+async fn bootstrap_rebuilds_derived_cache_when_schema_is_newer_than_branch() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let app_data_dir = temp_dir.path().join("app-data");
+    let home_dir = temp_dir.path().join("home");
+    std::fs::create_dir_all(&app_data_dir).expect("app data dir should be created");
+    std::fs::create_dir_all(&home_dir).expect("home dir should be created");
+    let cache_path = app_data_dir.join("cache.db");
+    {
+        let connection = rusqlite::Connection::open(&cache_path).expect("cache should open");
+        connection
+            .pragma_update(None, "user_version", EXPECTED_MIGRATIONS_APPLIED + 1)
+            .expect("user_version should update");
+        connection
+            .execute(
+                "CREATE TABLE stale_future_table (id INTEGER PRIMARY KEY)",
+                [],
+            )
+            .expect("future table should be created");
+    }
+
+    let state = bootstrap::bootstrap_from_paths(app_data_dir.clone(), home_dir)
+        .await
+        .expect("bootstrap should rebuild stale derived cache");
+
+    assert_eq!(state.cache_path, cache_path);
+    assert_eq!(
+        state.boot_status.migrations_applied,
+        EXPECTED_MIGRATIONS_APPLIED
+    );
+    let connection = rusqlite::Connection::open(state.cache_path).expect("cache should reopen");
+    let stale_table_count: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'stale_future_table'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("stale table lookup should run");
+    assert_eq!(stale_table_count, 0);
+}
+
 #[test]
 fn tauri_setup_manages_app_state_before_commands_run() {
     let mut app = tauri::test::mock_builder()
