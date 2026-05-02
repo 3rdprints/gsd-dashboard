@@ -16,6 +16,8 @@ import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
 const INVALID_SCAN_ROOT_MESSAGE =
   "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace.";
+const AUTOSTART_ERROR_MESSAGE =
+  "Launch on login could not be updated. The setting was not changed; try again from the desktop app.";
 const AUTOSTART_UNCHECKED_HELPER =
   "Off by default. Enable this to keep the tray dashboard available after sign-in.";
 const AUTOSTART_CHECKED_HELPER =
@@ -305,6 +307,10 @@ function getSaveErrorMessage(error: unknown) {
         return "Settings can only be saved from the Tauri desktop app. The browser preview can edit the form, but it cannot persist settings.";
       }
 
+      if (isAutostartErrorMessage(message)) {
+        return AUTOSTART_ERROR_MESSAGE;
+      }
+
       return message;
     }
   }
@@ -316,6 +322,10 @@ function isMissingTauriBridgeMessage(message: string) {
   const lowerMessage = message.toLowerCase();
 
   return lowerMessage.includes("invoke") || lowerMessage.includes("__tauri");
+}
+
+function isAutostartErrorMessage(message: string) {
+  return message.toLowerCase().includes("autostart");
 }
 
 function normalizeScanRootDrafts(scanRootDrafts: string[]) {

@@ -24,6 +24,7 @@ vi.mock("../lib/ipc", async (importOriginal) => {
 
 describe("ScanRootsEditor tray display settings", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     getSettingsMock.mockResolvedValue(baseSettings());
     saveSettingsMock.mockImplementation((input) => Promise.resolve(input));
     getPortfolioMock.mockResolvedValue(basePortfolio());
@@ -58,8 +59,11 @@ describe("ScanRootsEditor tray display settings", () => {
     renderScanRootsEditor();
 
     const launchOnLoginToggle = await screen.findByLabelText("Launch on login");
+    const saveButton = screen.getByRole("button", { name: "Save Settings" });
+    await waitFor(() => expect(saveButton).toBeEnabled());
+
     fireEvent.click(launchOnLoginToggle);
-    fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
+    fireEvent.click(saveButton);
 
     await waitFor(() => {
       expect(saveSettingsMock).toHaveBeenCalledWith(
@@ -74,7 +78,10 @@ describe("ScanRootsEditor tray display settings", () => {
     renderScanRootsEditor();
 
     await screen.findByLabelText("Launch on login");
-    fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
+    const saveButton = screen.getByRole("button", { name: "Save Settings" });
+    await waitFor(() => expect(saveButton).toBeEnabled());
+
+    fireEvent.click(saveButton);
 
     await waitFor(() => {
       expect(saveSettingsMock).toHaveBeenCalledWith(
@@ -93,8 +100,11 @@ describe("ScanRootsEditor tray display settings", () => {
     renderScanRootsEditor();
 
     const launchOnLoginToggle = await screen.findByLabelText("Launch on login");
+    const saveButton = screen.getByRole("button", { name: "Save Settings" });
+    await waitFor(() => expect(saveButton).toBeEnabled());
+
     fireEvent.click(launchOnLoginToggle);
-    fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
+    fireEvent.click(saveButton);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Launch on login could not be updated. The setting was not changed; try again from the desktop app."
