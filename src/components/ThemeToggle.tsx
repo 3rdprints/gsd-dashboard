@@ -15,7 +15,7 @@ const THEME_OPTIONS: Array<{ value: ThemeMode; label: string; icon: typeof Sun }
 
 export function ThemeToggle({ onThemeModeChange, themeMode }: ThemeToggleProps) {
   return (
-    <div className="theme-toggle" aria-label="Theme mode">
+    <div className="theme-toggle" aria-label="Theme mode" role="group">
       {THEME_OPTIONS.map((option) => {
         const Icon = option.icon;
         return (

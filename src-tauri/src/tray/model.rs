@@ -29,6 +29,7 @@ pub struct TrayPortfolioSummary {
 pub struct TrayRenderSpec {
     pub width_px: u32,
     pub height_px: u32,
+    pub is_macos_template: bool,
     pub scale_factor: u32,
     pub max_projects: u8,
 }
@@ -38,6 +39,7 @@ impl Default for TrayRenderSpec {
         Self {
             width_px: 32,
             height_px: 44,
+            is_macos_template: cfg!(target_os = "macos"),
             scale_factor: 2,
             max_projects: 8,
         }

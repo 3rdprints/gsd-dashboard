@@ -3,7 +3,7 @@ use deadpool_sqlite::Pool;
 use crate::{
     error::AppError,
     scan_persistence,
-    scan_service::{self, infer_project_identity},
+    scan_service::{self, ProjectIdentity},
     scanner::PlanningProjectCandidate,
 };
 
@@ -18,11 +18,11 @@ pub async fn scan_single_project_candidate(
     pool: &Pool,
     candidate: PlanningProjectCandidate,
 ) -> Result<ProjectRefreshOutcome, AppError> {
-    let identity_candidate = candidate.clone();
-    let identity = tokio::task::spawn_blocking(move || infer_project_identity(&identity_candidate))
-        .await
-        .map_err(AppError::io)?;
     let project_scan = scan_service::read_and_parse_candidate(candidate.clone()).await?;
+    let identity = ProjectIdentity {
+        id: project_scan.snapshot.project_id.clone(),
+        name: project_scan.snapshot.project_name.clone(),
+    };
     let had_parse_errors = !project_scan.parse_issues.is_empty();
     scan_persistence::persist_project_scan(pool, &candidate, &identity, project_scan).await?;
 

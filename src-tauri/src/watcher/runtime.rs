@@ -4,7 +4,6 @@ use std::{
     time::Duration,
 };
 
-use notify_debouncer_full::DebounceEventResult;
 use tauri::{AppHandle, Emitter, Runtime};
 use tokio::sync::mpsc;
 
@@ -14,6 +13,7 @@ use crate::{
     sessions::SessionSource,
     store::project_repo,
     tray::service::request_tray_refresh,
+    watcher::service::WatcherDebounceEvent,
     watcher::{
         refresh_session_file_for_app, WatcherReasonCategory, WatcherRootStatus,
         POLLING_INTERVAL_SECONDS,
@@ -26,18 +26,17 @@ pub async fn process_watcher_events<R: Runtime>(
     home_dir: PathBuf,
     roots: Vec<PathBuf>,
     polling_roots: Arc<RwLock<Vec<PathBuf>>>,
-    mut events: mpsc::Receiver<DebounceEventResult>,
+    mut events: mpsc::Receiver<WatcherDebounceEvent>,
 ) {
-    while let Some(result) = events.recv().await {
-        match result {
-            Ok(events) => {
-                for event in events {
-                    for path in &event.paths {
-                        refresh_changed_path(&app, &state, &home_dir, &roots, path).await;
-                    }
-                }
+    while let Some(event) = events.recv().await {
+        match event {
+            WatcherDebounceEvent::Project(root) => {
+                refresh_root(&app, &state, &home_dir, &root).await;
             }
-            Err(errors) => {
+            WatcherDebounceEvent::SessionFile { source, path } => {
+                refresh_session_file(&app, &state, source, &path).await;
+            }
+            WatcherDebounceEvent::Errors(errors) => {
                 for error in errors {
                     let category = WatcherReasonCategory::from_error_message(&error.to_string());
                     for path in error.paths {
@@ -113,22 +112,6 @@ pub async fn poll_scan_roots_once_for_app<R: Runtime>(
     }
 }
 
-async fn refresh_changed_path<R: Runtime>(
-    app: &AppHandle<R>,
-    state: &AppState,
-    home_dir: &Path,
-    roots: &[PathBuf],
-    path: &Path,
-) {
-    if let Some(root) = roots.iter().find(|root| path.starts_with(root)) {
-        if root.file_name().and_then(|name| name.to_str()) == Some(".planning") {
-            refresh_root(app, state, home_dir, root).await;
-        } else if path.extension().and_then(|extension| extension.to_str()) == Some("jsonl") {
-            refresh_session_path(app, state, home_dir, root, path).await;
-        }
-    }
-}
-
 async fn refresh_root<R: Runtime>(
     app: &AppHandle<R>,
     state: &AppState,
@@ -152,18 +135,6 @@ async fn refresh_root<R: Runtime>(
         for source_path in collect_jsonl_files(root).await {
             refresh_session_file(app, state, source, &source_path).await;
         }
-    }
-}
-
-async fn refresh_session_path<R: Runtime>(
-    app: &AppHandle<R>,
-    state: &AppState,
-    home_dir: &Path,
-    root: &Path,
-    source_path: &Path,
-) {
-    if let Some(source) = session_source_for_root(home_dir, root) {
-        refresh_session_file(app, state, source, source_path).await;
     }
 }
 

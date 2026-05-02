@@ -2,7 +2,7 @@ use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
     sync::{Arc, Mutex, RwLock},
-    time::Duration,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use notify_debouncer_full::{
@@ -87,6 +87,16 @@ pub struct SessionFileDebouncer {
 pub struct PendingSessionFile {
     pub source: SessionSource,
     pub last_event_ms: u64,
+}
+
+#[derive(Debug)]
+pub enum WatcherDebounceEvent {
+    Project(PathBuf),
+    SessionFile {
+        source: SessionSource,
+        path: PathBuf,
+    },
+    Errors(Vec<notify_debouncer_full::notify::Error>),
 }
 
 impl Default for WatcherRuntime {
@@ -282,11 +292,59 @@ pub async fn start_watcher_service_for_app<R: Runtime>(
     let state = state.clone();
     let config = configure_watcher_roots(&state).await?;
     let (event_sender, event_receiver) = mpsc::channel(128);
+    let debounce_roots = config.roots.clone();
+    let project_debouncer = Arc::new(Mutex::new(ProjectDebouncer::new(PROJECT_DEBOUNCE_MS)));
+    let session_debouncer = Arc::new(Mutex::new(SessionFileDebouncer::new(PROJECT_DEBOUNCE_MS)));
     let mut debouncer = new_debouncer(
         Duration::from_millis(PROJECT_DEBOUNCE_MS),
         None,
         move |result: DebounceEventResult| {
-            let _ = event_sender.blocking_send(result);
+            let now_ms = current_unix_ms();
+            match result {
+                Ok(events) => {
+                    for event in events {
+                        for path in &event.paths {
+                            let Some(root) =
+                                debounce_roots.iter().find(|root| path.starts_with(root))
+                            else {
+                                continue;
+                            };
+                            if root.file_name().and_then(|name| name.to_str()) == Some(".planning")
+                            {
+                                project_debouncer
+                                    .lock()
+                                    .expect("project debouncer lock should not be poisoned")
+                                    .record_event(root, &path, now_ms);
+                            } else if let Some(source) = session_source_for_root(root) {
+                                session_debouncer
+                                    .lock()
+                                    .expect("session debouncer lock should not be poisoned")
+                                    .record_event(source, root, &path, now_ms);
+                            }
+                        }
+                    }
+
+                    let due_ms = now_ms.saturating_add(PROJECT_DEBOUNCE_MS);
+                    for root in project_debouncer
+                        .lock()
+                        .expect("project debouncer lock should not be poisoned")
+                        .take_due(due_ms)
+                    {
+                        let _ = event_sender.blocking_send(WatcherDebounceEvent::Project(root));
+                    }
+                    for (source, path) in session_debouncer
+                        .lock()
+                        .expect("session debouncer lock should not be poisoned")
+                        .take_due(due_ms)
+                    {
+                        let _ = event_sender
+                            .blocking_send(WatcherDebounceEvent::SessionFile { source, path });
+                    }
+                }
+                Err(errors) => {
+                    let _ = event_sender.blocking_send(WatcherDebounceEvent::Errors(errors));
+                }
+            }
         },
     )
     .map_err(AppError::io)?;
@@ -400,6 +458,8 @@ impl WatcherReasonCategory {
         } else if normalized.contains("inotify")
             || normalized.contains("watch limit")
             || normalized.contains("too many open files")
+            || normalized.contains("no space left on device")
+            || normalized.contains("enospc")
         {
             Self::WatchLimit
         } else if normalized.contains("filesystem") || normalized.contains("not supported") {
@@ -428,4 +488,22 @@ impl WatcherReasonCategory {
             Self::Unknown => "No action needed unless updates feel stale.",
         }
     }
+}
+
+fn session_source_for_root(root: &Path) -> Option<SessionSource> {
+    let root = root.to_string_lossy();
+    if root.contains(".claude/projects") {
+        Some(SessionSource::Claude)
+    } else if root.contains(".codex/sessions") {
+        Some(SessionSource::Codex)
+    } else {
+        None
+    }
+}
+
+fn current_unix_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
 }

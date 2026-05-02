@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use tauri::{
@@ -32,6 +33,7 @@ use crate::{
 pub const TRAY_ID: &str = "main-tray";
 const MAIN_WINDOW_LABEL: &str = "main";
 pub const TRAY_REFRESH_DEBOUNCE_MS: u64 = 250;
+static TRAY_REFRESH_PENDING: AtomicBool = AtomicBool::new(false);
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TrayServiceState {
@@ -162,9 +164,17 @@ pub fn resolve_menu_action(id: &str, tray_state: &TrayServiceState) -> Option<Tr
 }
 
 pub fn request_tray_refresh<R: Runtime>(app: &AppHandle<R>) {
+    if TRAY_REFRESH_PENDING
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err()
+    {
+        return;
+    }
+
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(Duration::from_millis(TRAY_REFRESH_DEBOUNCE_MS)).await;
+        TRAY_REFRESH_PENDING.store(false, Ordering::SeqCst);
         if let Err(error) = refresh_tray(&app).await {
             eprintln!("tray refresh failed: {error}");
         }
@@ -249,9 +259,17 @@ fn dispatch_menu_action<R: Runtime>(app: &AppHandle<R>, id: &str) {
             TrayMenuAction::ShowDashboard
             | TrayMenuAction::Preferences
             | TrayMenuAction::OpenProject { .. } => {
-                show_dashboard_window(&app);
                 if let Some(route) = action.navigation_route() {
-                    let _ = app.emit("trayNavigate", AppEvent::TrayNavigate { route });
+                    show_dashboard_window(&app, Some(route.clone()));
+                    if app.get_webview_window(MAIN_WINDOW_LABEL).is_some() {
+                        let _ = app.emit_to(
+                            MAIN_WINDOW_LABEL,
+                            "trayNavigate",
+                            AppEvent::TrayNavigate { route },
+                        );
+                    }
+                } else {
+                    show_dashboard_window(&app, None);
                 }
             }
             TrayMenuAction::CopyNextCommand { project_id } => {
@@ -340,11 +358,11 @@ fn toggle_dashboard_window<R: Runtime>(app: &AppHandle<R>) {
             let _ = window.set_focus();
         }
     } else {
-        show_dashboard_window(app);
+        show_dashboard_window(app, None);
     }
 }
 
-fn show_dashboard_window<R: Runtime>(app: &AppHandle<R>) {
+fn show_dashboard_window<R: Runtime>(app: &AppHandle<R>, route: Option<String>) {
     if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
         let _ = window.unminimize();
         let _ = window.show();
@@ -352,7 +370,11 @@ fn show_dashboard_window<R: Runtime>(app: &AppHandle<R>) {
         return;
     }
 
-    let _ = WebviewWindowBuilder::new(app, MAIN_WINDOW_LABEL, WebviewUrl::default())
+    let url = route
+        .as_deref()
+        .map(|route| WebviewUrl::App(route.trim_start_matches('/').into()))
+        .unwrap_or_else(WebviewUrl::default);
+    let _ = WebviewWindowBuilder::new(app, MAIN_WINDOW_LABEL, url)
         .title("GSD Dashboard")
         .build();
 }

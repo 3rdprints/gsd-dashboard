@@ -29,6 +29,7 @@ export function useThemeMode() {
 
   useEffect(() => {
     document.documentElement.dataset.colorScheme = resolvedTheme;
+    document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
   }, [resolvedTheme]);
 
   function setThemeMode(nextThemeMode: ThemeMode) {

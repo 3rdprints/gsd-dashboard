@@ -56,10 +56,12 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
   const canSaveSettings = Boolean(settings.data) || settings.isError;
 
   useEffect(() => {
-    if (settings.data && !hasLoadedSettings && !hasEditedDrafts.current) {
-      setScanRootDrafts(
-        settings.data.scanRoots.length > 0 ? settings.data.scanRoots : [DEFAULT_SCAN_ROOT]
-      );
+    if (settings.data && !hasLoadedSettings) {
+      if (!hasEditedDrafts.current) {
+        setScanRootDrafts(
+          settings.data.scanRoots.length > 0 ? settings.data.scanRoots : [DEFAULT_SCAN_ROOT]
+        );
+      }
       if (!hasEditedTraySettings.current) {
         setTrayBarMaxProjects(settings.data.trayBarMaxProjects);
         setTrayBarSort(settings.data.trayBarSort);

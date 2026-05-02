@@ -626,7 +626,7 @@ async fn index_sessions_for_app_prunes_and_skips_unmatched_sessions() {
     assert_eq!(summary.sessions_persisted, 0);
     assert_eq!(summary.unmatched_count, 0);
     assert_eq!(unmatched_count, 0);
-    assert_eq!(unmatched_state_count, 0);
+    assert_eq!(unmatched_state_count, 1);
     assert_eq!(stale_state_count, 0);
 }
 

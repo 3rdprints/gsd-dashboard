@@ -10,7 +10,14 @@ pub fn render_tray_icon_png(
     spec: TrayRenderSpec,
 ) -> Result<Vec<u8>, String> {
     let width = spec.width_px.max(1);
-    let height = spec.height_px.max(1);
+    let height = if spec.is_macos_template {
+        if spec.height_px != 44 {
+            return Err("macOS template tray icons must be rendered at 44px height".to_string());
+        }
+        44
+    } else {
+        spec.height_px.max(1)
+    };
     let mut pixmap =
         tiny_skia::Pixmap::new(width, height).ok_or_else(|| "invalid tray size".to_string())?;
     let mut paint = tiny_skia::Paint::default();
@@ -147,6 +154,20 @@ mod tests {
         let pixmap = tiny_skia::Pixmap::decode_png(&png).unwrap();
         assert!(opaque_pixels(&pixmap) > 0);
         assert_black_alpha_pixels(&png);
+    }
+
+    #[test]
+    fn rejects_wrong_sized_macos_template_specs() {
+        let result = render_tray_icon_png(
+            &[bar("alpha", 50.0)],
+            TrayRenderSpec {
+                height_px: 22,
+                is_macos_template: true,
+                ..TrayRenderSpec::default()
+            },
+        );
+
+        assert!(result.is_err());
     }
 
     fn assert_black_alpha_pixels(png: &[u8]) {

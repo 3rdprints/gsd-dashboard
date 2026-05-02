@@ -109,8 +109,10 @@ async fn tray_visibility_is_independent_from_portfolio_hidden_state() {
 
     assert_eq!(saved.hidden_project_ids, vec!["portfolio-hidden"]);
     assert_eq!(saved.tray_hidden_project_ids, vec!["tray-hidden"]);
+    drop(pool);
 
-    let reopened = settings::load_or_initialize(&pool, temp_dir.path())
+    let reopened_pool = open_migrated_pool(&db_path).await;
+    let reopened = settings::load_or_initialize(&reopened_pool, temp_dir.path())
         .await
         .expect("settings should reload");
 

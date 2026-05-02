@@ -207,7 +207,8 @@ async fn save_settings_restarts_watcher_status_for_current_roots() {
     .await
     .expect("settings should save and watcher should restart");
 
-    for _ in 0..10 {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(1);
+    while std::time::Instant::now() < deadline {
         if watcher_event_seen.load(Ordering::SeqCst) {
             break;
         }

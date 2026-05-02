@@ -29,8 +29,15 @@ pub async fn derive_watcher_roots(
         home_dir.join(".claude/projects"),
         home_dir.join(".codex/sessions"),
     ] {
-        if root.exists() && !roots.contains(&root) {
-            roots.push(root);
+        let candidate = root.clone();
+        let existing_root =
+            tokio::task::spawn_blocking(move || candidate.exists().then_some(candidate))
+                .await
+                .map_err(AppError::io)?;
+        if let Some(root) = existing_root {
+            if !roots.contains(&root) {
+                roots.push(root);
+            }
         }
     }
 

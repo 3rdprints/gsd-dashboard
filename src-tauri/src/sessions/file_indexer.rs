@@ -156,7 +156,6 @@ pub(crate) async fn index_session_file(
     let offset_was_reset = previous_offset > file_state.file_size;
     let should_persist_session = (offset_was_reset || committed_offset > previous_offset)
         && accumulator.session.message_count > 0;
-    let mut skipped_unmatched_session = false;
     let sessions = if should_persist_session {
         if previous_offset > 0 && !offset_was_reset {
             if let Some(previous_session) =
@@ -177,20 +176,11 @@ pub(crate) async fn index_session_file(
         if session.project_id.is_some() {
             vec![session]
         } else {
-            skipped_unmatched_session = true;
             Vec::new()
         }
     } else {
         Vec::new()
     };
-
-    if skipped_unmatched_session {
-        return Ok(IndexedFileResult {
-            sessions_persisted: 0,
-            live_partial,
-            session_changes: Vec::new(),
-        });
-    }
 
     if committed_offset == previous_offset && sessions.is_empty() {
         return Ok(IndexedFileResult {
