@@ -16,6 +16,10 @@ import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
 const INVALID_SCAN_ROOT_MESSAGE =
   "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace.";
+const AUTOSTART_UNCHECKED_HELPER =
+  "Off by default. Enable this to keep the tray dashboard available after sign-in.";
+const AUTOSTART_CHECKED_HELPER =
+  "On. At next sign-in, GSD Dashboard starts in the tray without opening the window.";
 const DEFAULT_SCAN_ROOT = "~/Documents";
 const DEFAULT_SETTINGS_INPUT: SettingsInput = {
   scanRoots: [DEFAULT_SCAN_ROOT],
@@ -50,6 +54,9 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
   const [trayHiddenProjectIds, setTrayHiddenProjectIds] = useState<string[]>(
     DEFAULT_SETTINGS_INPUT.trayHiddenProjectIds
   );
+  const [autostartEnabled, setAutostartEnabled] = useState(
+    DEFAULT_SETTINGS_INPUT.autostartEnabled
+  );
   const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
   const hasEditedDrafts = useRef(false);
   const hasEditedTraySettings = useRef(false);
@@ -70,6 +77,7 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
         setTrayBarMaxProjects(settings.data.trayBarMaxProjects);
         setTrayBarSort(settings.data.trayBarSort);
         setTrayHiddenProjectIds(settings.data.trayHiddenProjectIds);
+        setAutostartEnabled(settings.data.autostartEnabled);
       }
       setHasLoadedSettings(true);
     }
@@ -84,7 +92,8 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
         scanRoots: normalizeScanRootDrafts(scanRootDrafts),
         trayBarMaxProjects: clampTrayBarMaxProjects(trayBarMaxProjects),
         trayBarSort,
-        trayHiddenProjectIds
+        trayHiddenProjectIds,
+        autostartEnabled
       },
       {
         onSuccess: () => setHasSavedSettings(true),
@@ -147,6 +156,23 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
               </div>
             );
           })}
+        </div>
+
+        <div className="scan-root-row">
+          <label className="field-label">
+            <Checkbox
+              checked={autostartEnabled}
+              onCheckedChange={(checked) => {
+                setAutostartEnabled(checked === true);
+                hasEditedTraySettings.current = true;
+                setHasSavedSettings(false);
+              }}
+            />
+            Launch on login
+          </label>
+          <p className="label-text">
+            {autostartEnabled ? AUTOSTART_CHECKED_HELPER : AUTOSTART_UNCHECKED_HELPER}
+          </p>
         </div>
 
         <section className="scan-root-row" aria-labelledby="tray-display-title">
