@@ -73,7 +73,7 @@ pub async fn save_settings_with_autostart_backend<R: Runtime, B: autostart::Auto
         };
 
         if let Err(error) = backend_result {
-            let _ = settings::save(&state.pool, &state.home_dir, current_settings.into()).await;
+            settings::save(&state.pool, &state.home_dir, current_settings.into()).await?;
             return Err(error);
         }
     }

@@ -261,7 +261,7 @@ fn dispatch_menu_action<R: Runtime>(app: &AppHandle<R>, id: &str) {
             | TrayMenuAction::Preferences
             | TrayMenuAction::OpenProject { .. } => {
                 if let Some(route) = action.navigation_route() {
-                    show_dashboard_window(&app, Some(route.as_str()));
+                    let _ = show_dashboard_window(&app, Some(route.as_str()));
                     if app.get_webview_window(MAIN_WINDOW_LABEL).is_some() {
                         let _ = app.emit_to(
                             MAIN_WINDOW_LABEL,
@@ -270,7 +270,7 @@ fn dispatch_menu_action<R: Runtime>(app: &AppHandle<R>, id: &str) {
                         );
                     }
                 } else {
-                    show_dashboard_window(&app, None);
+                    let _ = show_dashboard_window(&app, None);
                 }
             }
             TrayMenuAction::CopyNextCommand { project_id } => {
@@ -364,24 +364,28 @@ fn toggle_dashboard_window<R: Runtime>(app: &AppHandle<R>) {
             let _ = window.set_focus();
         }
     } else {
-        show_dashboard_window(app, None);
+        let _ = show_dashboard_window(app, None);
     }
 }
 
-pub fn show_dashboard_window<R: Runtime>(app: &AppHandle<R>, route: Option<&str>) {
+pub fn show_dashboard_window<R: Runtime>(
+    app: &AppHandle<R>,
+    route: Option<&str>,
+) -> Result<(), AppError> {
     if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
         let _ = window.unminimize();
         let _ = window.show();
         let _ = window.set_focus();
-        return;
+        return Ok(());
     }
 
     let url = route
         .map(|route| WebviewUrl::App(route.trim_start_matches('/').into()))
         .unwrap_or_else(WebviewUrl::default);
-    let _ = WebviewWindowBuilder::new(app, MAIN_WINDOW_LABEL, url)
+    WebviewWindowBuilder::new(app, MAIN_WINDOW_LABEL, url)
         .title("GSD Dashboard")
-        .build();
+        .build()?;
+    Ok(())
 }
 
 impl From<StoredProjectSnapshot> for TrayProject {

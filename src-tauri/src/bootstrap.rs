@@ -43,19 +43,20 @@ pub fn manage_app_state_and_tray<R: Runtime>(
 ) -> Result<(), AppError> {
     app.manage(state);
     let is_autostart_launch = is_autostart_launch(std::env::args());
-    let tray_setup_result = setup_tray(app.handle());
-    let tray_setup_succeeded = tray_setup_result.is_ok();
+    let tray_setup_succeeded = match setup_tray(app.handle()) {
+        Ok(()) => true,
+        Err(error) => {
+            eprintln!("tray setup failed: {error}");
+            false
+        }
+    };
 
     match startup_visibility_action(is_autostart_launch, tray_setup_succeeded) {
-        StartupVisibilityAction::ShowDashboard => show_dashboard_window(app.handle(), None),
+        StartupVisibilityAction::ShowDashboard => show_dashboard_window(app.handle(), None)?,
         StartupVisibilityAction::KeepHidden => {}
     }
 
-    if is_autostart_launch && !tray_setup_succeeded {
-        Ok(())
-    } else {
-        tray_setup_result
-    }
+    Ok(())
 }
 
 pub async fn bootstrap_from_paths(
