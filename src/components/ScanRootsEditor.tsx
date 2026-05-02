@@ -161,7 +161,7 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
         </div>
 
         <div className="scan-root-row">
-          <label className="field-label">
+          <label className="choice-row">
             <Checkbox
               checked={autostartEnabled}
               onCheckedChange={(checked) => {
@@ -211,7 +211,7 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
             <fieldset className="scan-root-row">
               <legend className="field-label">Sort order</legend>
               <RadioGroup
-                className="control-row"
+                className="option-list"
                 value={trayBarSort}
                 onValueChange={(value) => {
                   setTrayBarSort(value as TrayBarSort);
@@ -220,7 +220,7 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
                 }}
               >
                 {TRAY_SORT_OPTIONS.map((option) => (
-                  <label className="field-label" htmlFor={`tray-bar-sort-${option.value}`} key={option.value}>
+                  <label className="choice-row" htmlFor={`tray-bar-sort-${option.value}`} key={option.value}>
                     <RadioGroupItem
                       id={`tray-bar-sort-${option.value}`}
                       value={option.value}
@@ -233,9 +233,9 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
 
             <div className="scan-root-row">
               <div className="field-label">Projects shown in tray</div>
-              <div className="scan-root-list">
+              <div className="option-list">
                 {(portfolio.data?.projects ?? []).map((project) => (
-                  <label className="field-label" key={project.id}>
+                  <label className="choice-row" key={project.id}>
                     <Checkbox
                       checked={!trayHiddenProjectIds.includes(project.id)}
                       onCheckedChange={(checked) => {
