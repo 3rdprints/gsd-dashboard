@@ -589,6 +589,7 @@ input:focus-visible {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   margin-top: 24px;
+  margin-bottom: 20px;
 }
 
 .scan-root-form,
@@ -640,7 +641,7 @@ input[type="checkbox"] {
   padding: 0;
 }
 
-button:not([data-slot="checkbox"]):not([data-slot="radio-group-item"]) {
+button:not([data-slot]) {
   min-width: 44px;
   height: 40px;
   display: inline-flex;
@@ -824,7 +825,7 @@ input:disabled {
   color: var(--app-muted);
 }
 
-:root[data-color-scheme="dark"] button:not(.secondary-button):not(.rail-toggle):not(.theme-toggle button):not([data-slot="checkbox"]):not([data-slot="radio-group-item"]),
+:root[data-color-scheme="dark"] button:not([data-slot]):not(.secondary-button):not(.rail-toggle):not(.theme-toggle button),
 :root[data-color-scheme="dark"] .scan-progress-fill {
   color: var(--app-control-text);
   background: var(--app-control);
