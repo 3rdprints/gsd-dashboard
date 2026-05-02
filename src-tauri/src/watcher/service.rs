@@ -483,7 +483,9 @@ impl WatcherReasonCategory {
             Self::Permission => {
                 "Check folder permissions, then restart the app to restore native watching."
             }
-            Self::WatchLimit => "Increase inotify watch limits, then restart the app.",
+            Self::WatchLimit => {
+                "Increase system watch/file descriptor limits or consult your OS docs, then restart the app."
+            }
             Self::Filesystem => "Move the project to a local folder or keep polling enabled.",
             Self::Unknown => "No action needed unless updates feel stale.",
         }

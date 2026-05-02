@@ -38,6 +38,7 @@ async fn missing_settings_row_initializes_phase_one_defaults() {
 
     assert_eq!(settings.scan_roots, vec!["~/Documents"]);
     assert!(settings.hidden_project_ids.is_empty());
+    assert!(settings.tray_hidden_project_ids.is_empty());
     assert!(!settings.autostart_enabled);
     assert_eq!(settings.tray_bar_max_projects, 8);
     assert_eq!(settings.tray_bar_sort, TrayBarSort::RecentActivity);

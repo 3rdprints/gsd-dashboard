@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     path::{Path, PathBuf},
     sync::{Arc, RwLock},
     time::Duration,
@@ -39,19 +40,26 @@ pub async fn process_watcher_events<R: Runtime>(
             WatcherDebounceEvent::Errors(errors) => {
                 for error in errors {
                     let category = WatcherReasonCategory::from_error_message(&error.to_string());
-                    for path in error.paths {
-                        if let Some(root) = roots.iter().find(|root| path.starts_with(root)) {
-                            add_polling_root(&polling_roots, root);
-                            let changed =
-                                state
-                                    .watcher_runtime
-                                    .set_root_status(WatcherRootStatus::polling(
-                                        root.display().to_string(),
-                                        category,
-                                    ));
-                            if changed {
-                                emit_app_event(&app, AppEvent::WatcherStatusChanged);
-                            }
+                    let affected_roots = if error.paths.is_empty() {
+                        roots.iter().collect::<Vec<_>>()
+                    } else {
+                        error
+                            .paths
+                            .iter()
+                            .filter_map(|path| roots.iter().find(|root| path.starts_with(root)))
+                            .collect::<Vec<_>>()
+                    };
+                    for root in affected_roots {
+                        add_polling_root(&polling_roots, root);
+                        let changed =
+                            state
+                                .watcher_runtime
+                                .set_root_status(WatcherRootStatus::polling(
+                                    root.display().to_string(),
+                                    category,
+                                ));
+                        if changed {
+                            emit_app_event(&app, AppEvent::WatcherStatusChanged);
                         }
                     }
                 }
@@ -87,12 +95,12 @@ pub async fn poll_scan_roots_once_for_app<R: Runtime>(
     home_dir: &Path,
     scan_roots: &[PathBuf],
 ) {
-    let known_planning_paths = load_known_planning_paths(state).await;
+    let mut known_planning_paths = load_known_planning_paths(state).await;
     for scan_root in scan_roots {
         let candidates = discover_scan_root_candidates(scan_root, home_dir).await;
         for candidate in candidates {
             let planning_path = candidate.planning_path.display().to_string();
-            if known_planning_paths.contains(&planning_path) {
+            if !known_planning_paths.insert(planning_path) {
                 continue;
             }
             if crate::watcher::refresh::refresh_project_planning_dir_for_app(
@@ -151,9 +159,9 @@ async fn refresh_session_file<R: Runtime>(
     .await;
 }
 
-async fn load_known_planning_paths(state: &AppState) -> Vec<String> {
+async fn load_known_planning_paths(state: &AppState) -> HashSet<String> {
     let Ok(connection) = state.pool.get().await else {
-        return Vec::new();
+        return HashSet::new();
     };
     connection
         .interact(project_repo::list_project_snapshots)
