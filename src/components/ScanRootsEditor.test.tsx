@@ -40,7 +40,7 @@ describe("ScanRootsEditor tray display settings", () => {
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
   });
 
-  it("renders a single launch on login toggle with default off copy", async () => {
+  it("renders_launch_on_login_default_off", async () => {
     renderScanRootsEditor();
 
     const launchOnLoginToggle = await screen.findByLabelText("Launch on login");
@@ -52,6 +52,53 @@ describe("ScanRootsEditor tray display settings", () => {
         "Off by default. Enable this to keep the tray dashboard available after sign-in."
       )
     ).toBeInTheDocument();
+  });
+
+  it("saves_autostart_enabled_when_toggle_is_checked", async () => {
+    renderScanRootsEditor();
+
+    const launchOnLoginToggle = await screen.findByLabelText("Launch on login");
+    fireEvent.click(launchOnLoginToggle);
+    fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
+
+    await waitFor(() => {
+      expect(saveSettingsMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          autostartEnabled: true
+        })
+      );
+    });
+  });
+
+  it("saves_autostart_disabled_when_toggle_is_not_checked", async () => {
+    renderScanRootsEditor();
+
+    await screen.findByLabelText("Launch on login");
+    fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
+
+    await waitFor(() => {
+      expect(saveSettingsMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          autostartEnabled: false
+        })
+      );
+    });
+  });
+
+  it("shows_autostart_error_copy_when_save_fails", async () => {
+    saveSettingsMock.mockRejectedValueOnce({
+      kind: "settings",
+      message: "failed to update autostart"
+    });
+    renderScanRootsEditor();
+
+    const launchOnLoginToggle = await screen.findByLabelText("Launch on login");
+    fireEvent.click(launchOnLoginToggle);
+    fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Launch on login could not be updated. The setting was not changed; try again from the desktop app."
+    );
   });
 
   it("saves max tray bars through the form-level Save Settings action", async () => {
