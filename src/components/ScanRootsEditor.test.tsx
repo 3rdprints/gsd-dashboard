@@ -40,6 +40,20 @@ describe("ScanRootsEditor tray display settings", () => {
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
   });
 
+  it("renders a single launch on login toggle with default off copy", async () => {
+    renderScanRootsEditor();
+
+    const launchOnLoginToggle = await screen.findByLabelText("Launch on login");
+
+    expect(launchOnLoginToggle).not.toBeChecked();
+    expect(screen.getAllByText("Launch on login")).toHaveLength(1);
+    expect(
+      screen.getByText(
+        "Off by default. Enable this to keep the tray dashboard available after sign-in."
+      )
+    ).toBeInTheDocument();
+  });
+
   it("saves max tray bars through the form-level Save Settings action", async () => {
     renderScanRootsEditor();
 
