@@ -50,28 +50,6 @@ export function ProjectDetailPage() {
     }
   }
 
-  function selectTabByOffset(offset: number) {
-    const currentIndex = detailTabs.findIndex((tab) => tab.id === activeTab);
-    const nextIndex = (currentIndex + offset + detailTabs.length) % detailTabs.length;
-    setActiveTab(detailTabs[nextIndex].id);
-  }
-
-  function handleTabKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
-    if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      selectTabByOffset(-1);
-    } else if (event.key === "ArrowRight") {
-      event.preventDefault();
-      selectTabByOffset(1);
-    } else if (event.key === "Home") {
-      event.preventDefault();
-      setActiveTab(detailTabs[0].id);
-    } else if (event.key === "End") {
-      event.preventDefault();
-      setActiveTab(detailTabs[detailTabs.length - 1].id);
-    }
-  }
-
   if (!id) {
     return (
       <section className="settings-panel">
@@ -185,7 +163,7 @@ export function ProjectDetailPage() {
         >
           <TabsList aria-label="Project detail sections" variant="line">
             {detailTabs.map((tab) => (
-              <TabsTrigger key={tab.id} value={tab.id} onKeyDown={handleTabKeyDown}>
+              <TabsTrigger key={tab.id} value={tab.id}>
                 {tab.label}
               </TabsTrigger>
             ))}

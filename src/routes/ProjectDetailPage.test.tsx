@@ -65,7 +65,7 @@ describe("ProjectDetailPage tab shell", () => {
     expect(screen.getByRole("tabpanel", { name: "Overview" })).toHaveAttribute("id");
   });
 
-  it("supports arrow, Home, and End keyboard tab navigation", async () => {
+  it("allows Radix to handle keyboard tab navigation", async () => {
     getProjectMock.mockResolvedValue(projectDetail);
 
     renderProjectDetail();
@@ -73,11 +73,17 @@ describe("ProjectDetailPage tab shell", () => {
     const overviewTab = await screen.findByRole("tab", { name: "Overview" });
     overviewTab.focus();
     fireEvent.keyDown(overviewTab, { key: "ArrowRight" });
-    expect(screen.getByRole("tab", { name: "Sessions" })).toHaveAttribute("aria-selected", "true");
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: "Sessions" })).toHaveAttribute("aria-selected", "true");
+    });
     fireEvent.keyDown(screen.getByRole("tab", { name: "Sessions" }), { key: "End" });
-    expect(screen.getByRole("tab", { name: "Charts" })).toHaveAttribute("aria-selected", "true");
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: "Charts" })).toHaveAttribute("aria-selected", "true");
+    });
     fireEvent.keyDown(screen.getByRole("tab", { name: "Charts" }), { key: "Home" });
-    expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute("aria-selected", "true");
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute("aria-selected", "true");
+    });
   });
 });
 
