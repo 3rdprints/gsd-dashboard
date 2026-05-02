@@ -100,7 +100,7 @@ async fn app_and_state() -> (
 }
 
 #[tokio::test]
-async fn autostart_settings_save_settings_applies_autostart_before_persisting_enabled_intent() {
+async fn autostart_settings_save_settings_applies_autostart_after_persisting_enabled_intent() {
     let (_temp_dir, app, state) = app_and_state().await;
     let current = settings::load_or_initialize(&state.pool, &state.home_dir)
         .await
@@ -128,7 +128,7 @@ async fn autostart_settings_save_settings_applies_autostart_before_persisting_en
 }
 
 #[tokio::test]
-async fn autostart_settings_save_settings_applies_autostart_before_persisting_disabled_intent() {
+async fn autostart_settings_save_settings_applies_autostart_after_persisting_disabled_intent() {
     let (_temp_dir, app, state) = app_and_state().await;
     let enabled = settings::save(
         &state.pool,
@@ -159,6 +159,32 @@ async fn autostart_settings_save_settings_applies_autostart_before_persisting_di
     assert!(!saved.autostart_enabled);
     assert_eq!(backend.enable_calls(), 0);
     assert_eq!(backend.disable_calls(), 1);
+
+    let persisted = settings::load_or_initialize(&state.pool, &state.home_dir)
+        .await
+        .expect("settings should reload");
+    assert!(!persisted.autostart_enabled);
+}
+
+#[tokio::test]
+async fn autostart_settings_save_does_not_mutate_backend_when_validation_fails() {
+    let (_temp_dir, app, state) = app_and_state().await;
+    let current = settings::load_or_initialize(&state.pool, &state.home_dir)
+        .await
+        .expect("settings should load");
+    assert!(!current.autostart_enabled);
+
+    let backend = FakeAutostartBackend::default();
+    let mut input = settings_input(&current, true);
+    input.scan_roots = vec!["/".to_string()];
+
+    let error = save_settings_with_autostart_backend(app.handle(), &state, input, &backend)
+        .await
+        .expect_err("invalid settings should reject before autostart mutation");
+
+    assert!(matches!(error, AppError::InvalidScanRoot { .. }));
+    assert_eq!(backend.enable_calls(), 0);
+    assert_eq!(backend.disable_calls(), 0);
 
     let persisted = settings::load_or_initialize(&state.pool, &state.home_dir)
         .await

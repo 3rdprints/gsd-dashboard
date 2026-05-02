@@ -64,15 +64,20 @@ pub async fn save_settings_with_autostart_backend<R: Runtime, B: autostart::Auto
     backend: &B,
 ) -> Result<AppSettings, AppError> {
     let current_settings = settings::load_or_initialize(&state.pool, &state.home_dir).await?;
-    if current_settings.autostart_enabled != input.autostart_enabled {
-        if input.autostart_enabled {
-            backend.enable()?;
+    let saved_settings = settings::save(&state.pool, &state.home_dir, input).await?;
+    if current_settings.autostart_enabled != saved_settings.autostart_enabled {
+        let backend_result = if saved_settings.autostart_enabled {
+            backend.enable()
         } else {
-            backend.disable()?;
+            backend.disable()
+        };
+
+        if let Err(error) = backend_result {
+            let _ = settings::save(&state.pool, &state.home_dir, current_settings.into()).await;
+            return Err(error);
         }
     }
 
-    let saved_settings = settings::save(&state.pool, &state.home_dir, input).await?;
     let watcher_changed = match watcher::start_watcher_service_for_app(app.clone(), state).await {
         Ok(changed) => changed,
         Err(error) => {
