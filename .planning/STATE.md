@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Parser & Agent Telemetry Expansion
-status: "Phase 07 shipped — PR #16"
-last_updated: "2026-05-02T12:09:16.695Z"
+status: verifying
+last_updated: "2026-05-02T19:28:02.720Z"
 progress:
   total_phases: 9
-  completed_phases: 7
-  total_plans: 40
-  completed_plans: 40
+  completed_phases: 8
+  total_plans: 43
+  completed_plans: 43
   percent: 100
 ---
 
@@ -18,18 +18,18 @@ progress:
 
 **Core Value:** At a glance, the user knows what every GSD project is doing right now — which milestone, which phase, how far along — without opening a terminal or reading markdown files.
 
-**Current Focus:** Phase 07 — live-updates
+**Current Focus:** Phase 08 — autostart-os-polish
 
 ## Current Position
 
-Phase: 07 (live-updates) — EXECUTING
-Plan: 5 of 5
+Phase: 08 (autostart-os-polish) — EXECUTING
+Plan: 3 of 3
 **Milestone:** v1.0 MVP
 **Phase:** 7
 **Plan:** 5 of 5
-**Status:** Phase 07 shipped — PR #16
+**Status:** Phase complete — ready for verification
 
-**Progress:** [█████████░] 90%
+**Progress:** [██████████] 100%
 
 ```
 Milestone: [████......] 4/10 phases
@@ -81,6 +81,7 @@ Overall:   [████......] 40%
 - Plan 07-03 duration: 9 min; tasks: 2; files modified: 11
 - Plan 07-04 duration: 7 min; tasks: 2; files modified: 8
 - Plan 07-05 duration: 4 min; tasks: 2; files modified: 10
+- Plan 08-02 duration: 7 min; tasks: 2; files modified: 6
 
 ## Accumulated Context
 
@@ -177,6 +178,8 @@ Overall:   [████......] 40%
 - [Phase 07]: Plan 07-05 keeps watcher fallback UX Settings-only and avoids portfolio/project badges, toasts, countdowns, retry buttons, or a new Live Updates page.
 - [Phase 07]: Plan 07-05 treats project/session/watcher events as tiny invalidation hints and refetches display data through TanStack Query.
 - [Phase 07]: Plan 07-05 keeps watcher status styles route-scoped in SettingsPage.css rather than expanding src/styles.css.
+- [Phase 08]: Plan 08-02 preserves the native Show Dashboard tray recovery action as the fallback path for hidden startup.
+- [Phase 08]: Plan 08-02 uses visible=false plus explicit startup_visibility_action to keep autostart tray-only only after tray setup succeeds.
 
 ### Roadmap Evolution
 
@@ -207,9 +210,9 @@ Overall:   [████......] 40%
 
 ## Session Continuity
 
-**Last session:** 2026-05-02T11:59:36.850Z
+**Last session:** 2026-05-02T19:27:41.427Z
 
-**Next session should:** Run Phase 07 verification.
+**Next session should:** Run Phase 08 verification.
 
 ---
 *State initialized: 2026-04-23*

@@ -96,7 +96,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Autostart
 
 - [ ] **AUTO-01**: Settings toggle enables/disables launch-on-login via OS-appropriate mechanism (macOS LaunchAgent, Windows Run key, Linux .desktop autostart); default off
-- [ ] **AUTO-02**: When launched via autostart, app starts hidden (tray only, no main window)
+- [x] **AUTO-02**: When launched via autostart, app starts hidden (tray only, no main window)
 
 ### Settings UI
 
@@ -233,7 +233,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CLIP-01 | Phase 3 | Complete |
 | CLIP-02 | Phase 3 | Complete |
 | AUTO-01 | Phase 8 | Pending |
-| AUTO-02 | Phase 8 | Pending |
+| AUTO-02 | Phase 8 | Complete |
 | SET-01 | Phase 3 | Complete |
 | SET-02 | Phase 3 | Complete |
 | SET-03 | Phase 6 | Pending |
