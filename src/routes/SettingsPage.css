@@ -1,0 +1,82 @@
+.watcher-status-banner {
+  border: 1px solid #b45309;
+  border-radius: 8px;
+  background: #fffbeb;
+  color: #92400e;
+  padding: 16px;
+}
+
+.watcher-status-banner p {
+  margin: 4px 0 0;
+}
+
+.watcher-status-list {
+  display: grid;
+  gap: 16px;
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+}
+
+.watcher-root-row {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 16px;
+}
+
+.watcher-root-path {
+  color: #111827;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.watcher-root-meta {
+  align-items: center;
+  color: #6b7280;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.watcher-status-pill {
+  align-items: center;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  display: inline-flex;
+  min-height: 24px;
+  padding: 0 8px;
+}
+
+.watcher-status-pill.native {
+  color: #2563eb;
+}
+
+.watcher-status-pill.polling {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.watcher-fix-hint {
+  color: #92400e;
+  margin: 8px 0 0;
+}
+
+.watcher-status-skeleton {
+  align-items: center;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  color: #6b7280;
+  display: flex;
+  min-height: 40px;
+  padding: 0 16px;
+}
+
+@media (max-width: 640px) {
+  .watcher-root-meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

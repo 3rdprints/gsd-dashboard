@@ -1,4 +1,5 @@
 import { openProjectInVsCode } from "../../lib/actions";
+import { Button } from "../ui/button";
 
 type StateExcerptProps = {
   statePath: string;
@@ -15,13 +16,13 @@ export function StateExcerpt({ statePath, excerpt }: StateExcerptProps) {
         {lines.map((line, index) => renderLine(line, index))}
       </div>
       <div className="state-excerpt-overflow">
-        <button
+        <Button
           type="button"
-          className="secondary-button"
+          variant="outline"
           onClick={() => void openProjectInVsCode(statePath)}
         >
           Open STATE.md
-        </button>
+        </Button>
       </div>
     </section>
   );

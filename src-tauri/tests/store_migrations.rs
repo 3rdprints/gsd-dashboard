@@ -228,6 +228,24 @@ async fn migration_5_adds_daily_activity() {
     .expect("daily activity schema should hold");
 }
 
+#[tokio::test]
+async fn settings_table_has_tray_visibility_column() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let db_path = temp_dir.path().join("cache.db");
+
+    let pool = migrated_pool(&db_path).await;
+    let conn = pool.get().await.expect("connection should be available");
+    conn.interact(|conn| {
+        let settings_columns = table_column_names(conn, "settings")?;
+        assert!(settings_columns.contains(&"tray_hidden_project_ids_json".to_string()));
+
+        Ok::<_, rusqlite::Error>(())
+    })
+    .await
+    .expect("interaction should complete")
+    .expect("settings schema should hold");
+}
+
 fn table_column_names(
     conn: &rusqlite::Connection,
     table_name: &str,

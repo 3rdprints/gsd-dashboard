@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-milestone_name: milestone
-status: "Phase 05 shipped — PR #15"
-last_updated: "2026-04-29T12:31:09.918Z"
+milestone_name: Parser & Agent Telemetry Expansion
+status: "Phase 07 shipped — PR #16"
+last_updated: "2026-05-02T12:09:16.695Z"
 progress:
   total_phases: 9
-  completed_phases: 5
-  total_plans: 30
-  completed_plans: 30
+  completed_phases: 7
+  total_plans: 40
+  completed_plans: 40
   percent: 100
 ---
 
@@ -18,26 +18,26 @@ progress:
 
 **Core Value:** At a glance, the user knows what every GSD project is doing right now — which milestone, which phase, how far along — without opening a terminal or reading markdown files.
 
-**Current Focus:** Phase 05 — project-detail-global-sessions-charts
+**Current Focus:** Phase 07 — live-updates
 
 ## Current Position
 
-Phase: 05 (project-detail-global-sessions-charts) — EXECUTING
-Plan: 12 of 12
+Phase: 07 (live-updates) — EXECUTING
+Plan: 5 of 5
 **Milestone:** v1.0 MVP
-**Phase:** 5
-**Plan:** 12 of 12
-**Status:** Phase 05 shipped — PR #15
+**Phase:** 7
+**Plan:** 5 of 5
+**Status:** Phase 07 shipped — PR #16
 
-**Progress:** [██████████] 100%
+**Progress:** [█████████░] 90%
 
 ```
-Milestone: [████......] 4/9 phases
+Milestone: [████......] 4/10 phases
 Phase 1:   [██████████] 4/4 plans
 Phase 2:   [██████████] 4/4 plans
 Phase 3:   [██████████] 6/6 plans
 Phase 4:   [██████████] 4/4 plans
-Overall:   [████......] 44%
+Overall:   [████......] 40%
 ```
 
 ## Next Command
@@ -48,7 +48,7 @@ Overall:   [████......] 44%
 
 ## Performance Metrics
 
-- Phases completed: 4 / 9
+- Phases completed: 4 / 10
 - Plans completed: 18
 - Avg plan duration: 12.0 min
 - Nodes retried: 0
@@ -76,6 +76,11 @@ Overall:   [████......] 44%
 - Plan 05-10 duration: 7 min; tasks: 2; files modified: 11
 - Plan 05-11 duration: 5 min; tasks: 2; files modified: 10
 - Plan 05-12 duration: 4 min; tasks: 2; files modified: 10
+- Plan 07-01 duration: 2 min; tasks: 2; files modified: 5
+- Plan 07-02 duration: 7 min; tasks: 2; files modified: 16
+- Plan 07-03 duration: 9 min; tasks: 2; files modified: 11
+- Plan 07-04 duration: 7 min; tasks: 2; files modified: 8
+- Plan 07-05 duration: 4 min; tasks: 2; files modified: 10
 
 ## Accumulated Context
 
@@ -146,6 +151,37 @@ Overall:   [████......] 44%
 - [Phase 05]: Plan 05-11 reuses filtersToGlobalSessionFilters for both Global Sessions table and chart queries.
 - [Phase 05]: Plan 05-12 uses react-calendar-heatmap with local CSS classes and no package stylesheet import for the Portfolio activity heatmap.
 - [Phase 05]: Plan 05-12 invalidates portfolioHeatmapQueryKey from daily_activity_updated without trusting event payloads.
+- [Phase 06]: Plan 06-02 uses Portfolio getPortfolio / portfolioQueryKey rows for tray visibility controls.
+- [Phase 06]: Plan 06-02 keeps Tray Display controls on the existing Settings Save Settings path.
+- [Phase 06]: Plan 06-03 keeps tray ordering constrained to persisted sort choices: recent_activity, progress, and name.
+- [Phase 06]: Plan 06-03 treats tray_bar_max_projects as an upper bound and reduces rendered bars to preserve at least 2px width.
+- [Phase 06]: Plan 06-03 uses tiny-skia PNG rendering with black-only non-transparent pixels for macOS template safety.
+- [Phase 06]: Plan 06-04 keeps project tray rows as /project/:id navigation while copy_next actions remain non-navigation clipboard actions. — Matches D-06 and preserves the no-shell-execution boundary for Plan 06-05 clipboard wiring.
+- [Phase 06]: Plan 06-04 accepts only /, /settings, and /project/:id local routes from trayNavigate payloads. — Backend tray events control local routing, so frontend route handling is constrained to planned destinations.
+- [Phase 06]: Plan 06-04 keeps focused tray listener coverage in src/lib/appListeners.test.ts rather than expanding App tests. — Maintains the project preference to avoid adding Phase 06 coverage to oversized App-level tests.
+- [Phase 06]: Plan 06-05 wires setup_tray through a shared bootstrap helper so native tray startup happens after AppState is managed.
+- [Phase 06]: Tray refreshes are requested from settings, scan/rebuild, and project cache update paths, then rebuilt from SQLite/settings rather than trusting event payloads.
+- [Phase 06]: macOS tray template mode is applied during startup and after icon refresh to preserve light/dark menu bar adaptation.
+- [Phase 10]: Parser & Tool Telemetry Foundation was added as the v1.0 high-value slice for Codex parser hardening, GSD run attribution, and jCodemunch/jDocMunch usage metrics.
+- [Future Milestone v1.1]: Parser & Agent Telemetry Expansion is reserved for full replay/search, broader agent parser coverage, gsd-sdk parity checks, and deeper jSuite optimization analytics.
+- [Phase 07]: Plan 07-01 uses ignored Rust tests and Vitest it.todo cases as compile-green implementation gates for live updates.
+- [Phase 07]: Plan 07-02 keeps watcher status runtime-only on AppState and does not persist it in Settings.
+- [Phase 07]: Plan 07-02 starts watcher ownership during bootstrap while deferring native OS watch registration to later Phase 07 plans.
+- [Phase 07]: Plan 07-02 live update events carry only IDs or a no-payload invalidator.
+- [Phase 07]: Plan 07-03 uses a deterministic ProjectDebouncer seam for watcher coalescing tests instead of relying on OS notification timing.
+- [Phase 07]: Plan 07-03 keeps targeted refresh in scan_refresh/watcher::refresh and reuses existing parser plus persist_project_scan.
+- [Phase 07]: Plan 07-03 tracks tray refresh requests on AppState because this tree had no existing native tray service module.
+- [Phase 07]: Plan 07-04 splits single-file session indexing into sessions::file_indexer so sessions/indexer.rs stays below the 500-line project limit.
+- [Phase 07]: Plan 07-04 uses Tokio JoinSet bounded by SESSION_INDEX_WORKER_LIMIT = 2 for completion-order session file indexing.
+- [Phase 07]: Plan 07-04 emits session:new only after derived SQLite persistence and keeps the payload to session id plus optional project id.
+- [Phase 07]: Plan 07-05 keeps watcher fallback UX Settings-only and avoids portfolio/project badges, toasts, countdowns, retry buttons, or a new Live Updates page.
+- [Phase 07]: Plan 07-05 treats project/session/watcher events as tiny invalidation hints and refetches display data through TanStack Query.
+- [Phase 07]: Plan 07-05 keeps watcher status styles route-scoped in SettingsPage.css rather than expanding src/styles.css.
+
+### Roadmap Evolution
+
+- 2026-05-01: Added Phase 10, Parser & Tool Telemetry Foundation, to capture high-value parser and tool-efficiency work before broader session replay scope.
+- 2026-05-01: Added future v1.1 Parser & Agent Telemetry Expansion milestone for the remaining parser/session/MCP upgrades.
 
 ### Todos
 
@@ -161,6 +197,7 @@ Overall:   [████......] 44%
 - **Phase 6 (Tray):** macOS 26 Liquid Glass interactions (Tauri #14979); Linux Wayland+GNOME fallback UX spike
 - **Phase 7 (Watcher):** FSEvents coalescing + inotify fallback UX under git-checkout stress
 - **Phase 9 (Packaging):** macOS hardened runtime entitlements, notarization poll+staple, GH Actions signing passphrase handling
+- **Phase 10 (Parser & Tool Telemetry):** Codex/Claude session formats and MCP tool payload shapes are community-observed and unstable; keep parsers fixture-backed, metadata-first, and tolerant of unknown fields.
 
 ### Critical Risks (from research/PITFALLS.md)
 
@@ -170,9 +207,9 @@ Overall:   [████......] 44%
 
 ## Session Continuity
 
-**Last session:** 2026-04-27T15:40:50.917Z
+**Last session:** 2026-05-02T11:59:36.850Z
 
-**Next session should:** Continue Phase 05 execution from the next incomplete plan.
+**Next session should:** Run Phase 07 verification.
 
 ---
 *State initialized: 2026-04-23*

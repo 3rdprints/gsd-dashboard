@@ -13,6 +13,7 @@
     "allow-get-project-phase-panel",
     "allow-get-boot-status",
     "allow-get-settings",
+    "allow-get-watcher-status",
     "allow-clear-session-index",
     "allow-index-sessions",
     "allow-list-global-sessions",

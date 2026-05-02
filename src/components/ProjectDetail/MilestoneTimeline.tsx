@@ -2,6 +2,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 
 import type { ProjectMilestone } from "../../lib/types";
+import { Button } from "../ui/button";
 
 type MilestoneTimelineProps = {
   milestones: ProjectMilestone[];
@@ -53,12 +54,13 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
 
           return (
             <div key={`${milestoneName}-${index}`}>
-              <button
+              <Button
                 type="button"
                 className="timeline-milestone-row"
                 aria-expanded={isExpanded}
                 aria-controls={expandedId}
                 onClick={() => toggle(index)}
+                variant="ghost"
               >
                 <span>{milestoneName} - {progressPct}%</span>
                 <span className="timeline-track" aria-hidden="true">
@@ -75,7 +77,7 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
                 ) : (
                   <ChevronRight aria-hidden="true" size={16} strokeWidth={2} />
                 )}
-              </button>
+              </Button>
               {isExpanded ? (
                 <ul id={expandedId} className="timeline-phase-list">
                   {milestone.phases.map((phase) => (

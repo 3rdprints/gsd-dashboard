@@ -5,6 +5,8 @@ use crate::{
     error::AppError,
     events::AppEvent,
     settings::{self, AppSettings, SettingsInput},
+    tray::service::request_tray_refresh,
+    watcher::{self, WatcherStatus},
 };
 
 const SETTINGS_CHANGED_EVENT: &str = "settings-changed";
@@ -17,6 +19,11 @@ pub async fn get_boot_status(state: State<'_, AppState>) -> Result<BootStatus, A
 #[tauri::command]
 pub async fn get_settings(state: State<'_, AppState>) -> Result<AppSettings, AppError> {
     get_settings_from_state(&state).await
+}
+
+#[tauri::command]
+pub async fn get_watcher_status(state: State<'_, AppState>) -> Result<WatcherStatus, AppError> {
+    get_watcher_status_from_state(&state).await
 }
 
 #[tauri::command]
@@ -36,12 +43,27 @@ pub async fn get_settings_from_state(state: &AppState) -> Result<AppSettings, Ap
     settings::load_or_initialize(&state.pool, &state.home_dir).await
 }
 
+pub async fn get_watcher_status_from_state(state: &AppState) -> Result<WatcherStatus, AppError> {
+    Ok(state.watcher_runtime.status())
+}
+
 pub async fn save_settings_for_app<R: Runtime>(
     app: &AppHandle<R>,
     state: &AppState,
     input: SettingsInput,
 ) -> Result<AppSettings, AppError> {
     let saved_settings = settings::save(&state.pool, &state.home_dir, input).await?;
+    let watcher_changed = match watcher::start_watcher_service_for_app(app.clone(), state).await {
+        Ok(changed) => changed,
+        Err(error) => {
+            eprintln!("watcher restart failed after settings save: {error}");
+            false
+        }
+    };
     app.emit(SETTINGS_CHANGED_EVENT, AppEvent::SettingsChanged)?;
+    if watcher_changed {
+        app.emit("watcher:status-changed", AppEvent::WatcherStatusChanged)?;
+    }
+    request_tray_refresh(app);
     Ok(saved_settings)
 }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
+import { Button } from "./ui/button";
 import type { HiddenProject, UnmatchedSessions } from "../lib/types";
 
 type RightRailProps = {
@@ -62,11 +63,12 @@ function RailSection({
 
   return (
     <section className="rail-section">
-      <button
+      <Button
         className="rail-toggle"
         type="button"
         onClick={() => setOpen((current) => !current)}
         aria-expanded={open}
+        variant="ghost"
       >
         {open ? (
           <ChevronDown aria-hidden="true" size={16} strokeWidth={2} />
@@ -74,7 +76,7 @@ function RailSection({
           <ChevronRight aria-hidden="true" size={16} strokeWidth={2} />
         )}
         {title}
-      </button>
+      </Button>
       {open ? <div className="rail-section-body">{children}</div> : null}
     </section>
   );

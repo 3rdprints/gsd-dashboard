@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 
 import type { PortfolioProjectCard } from "../../lib/types";
 import { applyDateRange, type SessionFilters } from "../../lib/sessionFilters";
+import { Checkbox } from "../ui/checkbox";
+import { Input } from "../ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 type FilterBarProps = {
   filters: SessionFilters;
@@ -9,6 +12,8 @@ type FilterBarProps = {
   onChange: (filters: SessionFilters) => void;
   onDateRangePersist: (range: "7d" | "30d" | "90d" | "all") => void;
 };
+
+const ALL_VALUE = "__all__";
 
 export function FilterBar({ filters, projects, onChange, onDateRangePersist }: FilterBarProps) {
   const debounceRef = useRef<number | undefined>(undefined);
@@ -52,53 +57,68 @@ export function FilterBar({ filters, projects, onChange, onDateRangePersist }: F
     <section className="filter-bar" aria-label="Filter sessions">
       <label className="filter-control">
         <span className="field-label">Source</span>
-        <select value={filters.source ?? ""} onChange={(event) => update({ source: sourceValue(event.target.value) })}>
-          <option value="">All</option>
-          <option value="claude">Claude</option>
-          <option value="codex">Codex</option>
-        </select>
+        <Select value={filters.source ?? ALL_VALUE} onValueChange={(value) => update({ source: sourceValue(value) })}>
+          <SelectTrigger aria-label="Source">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_VALUE}>All</SelectItem>
+            <SelectItem value="claude">Claude</SelectItem>
+            <SelectItem value="codex">Codex</SelectItem>
+          </SelectContent>
+        </Select>
       </label>
       <label className="filter-control">
         <span className="field-label">Project</span>
-        <select
-          value={filters.projectId ?? ""}
+        <Select
+          value={filters.projectId ?? ALL_VALUE}
           disabled={filters.unmatchedOnly}
-          onChange={(event) => update({ projectId: event.target.value || undefined })}
+          onValueChange={(value) => update({ projectId: value === ALL_VALUE ? undefined : value })}
         >
-          <option value="">All</option>
-          {projects.map((project) => (
-            <option key={project.id} value={project.id}>
-              {project.name}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger aria-label="Project">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_VALUE}>All</SelectItem>
+            {projects.map((project) => (
+              <SelectItem key={project.id} value={project.id}>
+                {project.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </label>
       <label className="filter-control">
         <span className="field-label">Date range</span>
-        <select value={filters.dateRange} onChange={(event) => updateDateRange(event.target.value as SessionFilters["dateRange"])}>
-          <option value="today">Today</option>
-          <option value="7d">Last 7 days</option>
-          <option value="30d">Last 30 days</option>
-          <option value="90d">Last 90 days</option>
-          <option value="all">All</option>
-          <option value="custom">Custom</option>
-        </select>
+        <Select value={filters.dateRange} onValueChange={(value) => updateDateRange(value as SessionFilters["dateRange"])}>
+          <SelectTrigger aria-label="Date range">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="today">Today</SelectItem>
+            <SelectItem value="7d">Last 7 days</SelectItem>
+            <SelectItem value="30d">Last 30 days</SelectItem>
+            <SelectItem value="90d">Last 90 days</SelectItem>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="custom">Custom</SelectItem>
+          </SelectContent>
+        </Select>
       </label>
       {filters.dateRange === "custom" ? (
         <>
           <label className="filter-control compact">
             <span className="field-label">From</span>
-            <input type="date" value={filters.from ?? ""} onChange={(event) => update({ from: event.target.value || undefined })} />
+            <Input type="date" value={filters.from ?? ""} onChange={(event) => update({ from: event.target.value || undefined })} />
           </label>
           <label className="filter-control compact">
             <span className="field-label">To</span>
-            <input type="date" value={filters.to ?? ""} onChange={(event) => update({ to: event.target.value || undefined })} />
+            <Input type="date" value={filters.to ?? ""} onChange={(event) => update({ to: event.target.value || undefined })} />
           </label>
         </>
       ) : null}
       <label className="filter-control compact">
         <span className="field-label">Minimum duration</span>
-        <input
+        <Input
           type="number"
           min="0"
           value={durationMin}
@@ -110,7 +130,7 @@ export function FilterBar({ filters, projects, onChange, onDateRangePersist }: F
       </label>
       <label className="filter-control compact">
         <span className="field-label">Maximum duration</span>
-        <input
+        <Input
           type="number"
           min="0"
           value={durationMax}
@@ -122,7 +142,7 @@ export function FilterBar({ filters, projects, onChange, onDateRangePersist }: F
       </label>
       <label className="filter-control compact">
         <span className="field-label">Minimum tokens</span>
-        <input
+        <Input
           type="number"
           min="0"
           value={tokensMin}
@@ -134,7 +154,7 @@ export function FilterBar({ filters, projects, onChange, onDateRangePersist }: F
       </label>
       <label className="filter-control compact">
         <span className="field-label">Maximum tokens</span>
-        <input
+        <Input
           type="number"
           min="0"
           value={tokensMax}
@@ -145,10 +165,9 @@ export function FilterBar({ filters, projects, onChange, onDateRangePersist }: F
         />
       </label>
       <label className="unmatched-toggle">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={filters.unmatchedOnly}
-          onChange={(event) => update({ unmatchedOnly: event.target.checked, projectId: event.target.checked ? undefined : filters.projectId })}
+          onCheckedChange={(checked) => update({ unmatchedOnly: Boolean(checked), projectId: checked ? undefined : filters.projectId })}
         />
         Unmatched only
       </label>

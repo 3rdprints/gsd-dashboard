@@ -3,18 +3,23 @@ import { Database, Eye, Loader2, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { ScanRootsEditor } from "../components/ScanRootsEditor";
+import { WatcherStatusPanel } from "../components/WatcherStatusPanel";
+import { Button } from "../components/ui/button";
+import { Checkbox } from "../components/ui/checkbox";
 import {
   completeScanState,
   initialScanState,
   reduceScanEvent,
   ScanProgressPanel
 } from "../components/ScanProgressPanel";
-import { clearSessionIndex, getPortfolio, getSettings, rebuildCache } from "../lib/ipc";
+import { clearSessionIndex, getPortfolio, getSettings, getWatcherStatus, rebuildCache } from "../lib/ipc";
 import {
   createSaveSettingsMutationOptions,
   portfolioQueryKey,
-  settingsQueryKey
+  settingsQueryKey,
+  watcherStatusQueryKey
 } from "../lib/queryClient";
+import "./SettingsPage.css";
 
 const REBUILD_CONFIRMATION =
   "Rebuild cache: This clears the derived project cache and runs a full rescan. Source `.planning/` files will not be changed.";
@@ -25,6 +30,7 @@ export function SettingsPage() {
   const queryClient = useQueryClient();
   const settings = useQuery({ queryKey: settingsQueryKey, queryFn: getSettings });
   const portfolio = useQuery({ queryKey: portfolioQueryKey, queryFn: getPortfolio });
+  const watcherStatus = useQuery({ queryKey: watcherStatusQueryKey(), queryFn: getWatcherStatus });
   const saveSettings = useMutation(createSaveSettingsMutationOptions(queryClient));
   const [scanState, setScanState] = useState(initialScanState);
   const [confirmedRebuild, setConfirmedRebuild] = useState(false);
@@ -110,6 +116,12 @@ export function SettingsPage() {
 
       <ScanRootsEditor title="Scan roots" />
 
+      <WatcherStatusPanel
+        status={watcherStatus.data}
+        isLoading={watcherStatus.isLoading}
+        isError={watcherStatus.isError}
+      />
+
       <section className="settings-panel" aria-labelledby="hidden-projects-title">
         <div className="panel-heading">
           <Eye aria-hidden="true" size={20} strokeWidth={2} />
@@ -124,14 +136,14 @@ export function SettingsPage() {
             {portfolio.data.hiddenProjects.map((project) => (
               <li key={project.id}>
                 <span>{project.name}</span>
-                <button
-                  className="secondary-button"
+                <Button
+                  variant="outline"
                   type="button"
                   onClick={() => handleUnhide(project.id)}
                   disabled={saveSettings.isPending}
                 >
                   Unhide Project
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
@@ -150,21 +162,20 @@ export function SettingsPage() {
         </div>
         <p className="confirmation-copy">{REBUILD_CONFIRMATION}</p>
         <label className="checkbox-row">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={confirmedRebuild}
-            onChange={(event) => setConfirmedRebuild(event.target.checked)}
+            onCheckedChange={(checked) => setConfirmedRebuild(Boolean(checked))}
           />
           Confirm rebuild cache
         </label>
-        <button type="button" onClick={handleRebuild} disabled={!confirmedRebuild || isRebuilding}>
+        <Button type="button" onClick={handleRebuild} disabled={!confirmedRebuild || isRebuilding}>
           {isRebuilding ? (
             <Loader2 aria-hidden="true" size={16} strokeWidth={2} />
           ) : (
             <Database aria-hidden="true" size={16} strokeWidth={2} />
           )}
           Rebuild Cache
-        </button>
+        </Button>
       </section>
 
       <ScanProgressPanel state={scanState} />
@@ -173,14 +184,13 @@ export function SettingsPage() {
         <h2 id="indexing-title">Indexing</h2>
         <p className="confirmation-copy">{CLEAR_SESSION_INDEX_CONFIRMATION}</p>
         <label className="checkbox-row">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={confirmedClearSessionIndex}
-            onChange={(event) => setConfirmedClearSessionIndex(event.target.checked)}
+            onCheckedChange={(checked) => setConfirmedClearSessionIndex(Boolean(checked))}
           />
           Confirm clear session index
         </label>
-        <button
+        <Button
           type="button"
           onClick={handleClearSessionIndex}
           disabled={!confirmedClearSessionIndex || clearSessionIndexMutation.isPending}
@@ -191,18 +201,18 @@ export function SettingsPage() {
             <Trash2 aria-hidden="true" size={16} strokeWidth={2} />
           )}
           Clear Session Index
-        </button>
+        </Button>
         {clearSessionIndexError ? (
           <div className="parse-error-alert" role="alert">
             <p>{clearSessionIndexError}</p>
           </div>
         ) : null}
         <label className="checkbox-row disabled-row">
-          <input type="checkbox" disabled />
+          <Checkbox disabled />
           Index tool usage
         </label>
         <label className="checkbox-row disabled-row">
-          <input type="checkbox" disabled />
+          <Checkbox disabled />
           Index message content
         </label>
       </section>

@@ -1,13 +1,17 @@
 import { useEffect } from "react";
 import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
 
+import { ThemeToggle } from "./components/ThemeToggle";
 import { registerAppListeners } from "./lib/appListeners";
+import { useThemeMode } from "./lib/theme";
 import { PortfolioPage } from "./routes/PortfolioPage";
 import { GlobalSessionsPage } from "./routes/GlobalSessionsPage";
 import { ProjectDetailPage } from "./routes/ProjectDetailPage";
 import { SettingsPage } from "./routes/SettingsPage";
 
 export function App() {
+  const { setThemeMode, themeMode } = useThemeMode();
+
   useEffect(() => registerAppListeners(), []);
 
   return (
@@ -18,6 +22,7 @@ export function App() {
             <Link to="/">Portfolio</Link>
             <Link to="/sessions">Sessions</Link>
             <Link to="/settings">Settings</Link>
+            <ThemeToggle themeMode={themeMode} onThemeModeChange={setThemeMode} />
           </nav>
           <Routes>
             <Route path="/" element={<PortfolioPage />} />

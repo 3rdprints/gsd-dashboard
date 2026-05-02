@@ -106,7 +106,7 @@ pub(crate) struct ProjectScan {
     pub(crate) parse_issues: Vec<ParseIssue>,
 }
 
-async fn read_and_parse_candidate(
+pub(crate) async fn read_and_parse_candidate(
     candidate: PlanningProjectCandidate,
 ) -> Result<ProjectScan, AppError> {
     tokio::task::spawn_blocking(move || parse_candidate_files(&candidate))
@@ -436,7 +436,7 @@ fn summary_modified_at_ms(summary_path: &Path) -> Option<i64> {
         .map(|duration| duration.as_millis() as i64)
 }
 
-fn infer_project_identity(candidate: &PlanningProjectCandidate) -> ProjectIdentity {
+pub(crate) fn infer_project_identity(candidate: &PlanningProjectCandidate) -> ProjectIdentity {
     let fallback = "project";
     let raw_name = candidate
         .project_root

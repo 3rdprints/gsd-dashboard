@@ -18,6 +18,7 @@ fn input_from(settings: &AppSettings) -> SettingsInput {
     SettingsInput {
         scan_roots: settings.scan_roots.clone(),
         hidden_project_ids: settings.hidden_project_ids.clone(),
+        tray_hidden_project_ids: settings.tray_hidden_project_ids.clone(),
         autostart_enabled: settings.autostart_enabled,
         tray_bar_max_projects: settings.tray_bar_max_projects,
         tray_bar_sort: settings.tray_bar_sort,
@@ -37,6 +38,7 @@ async fn missing_settings_row_initializes_phase_one_defaults() {
 
     assert_eq!(settings.scan_roots, vec!["~/Documents"]);
     assert!(settings.hidden_project_ids.is_empty());
+    assert!(settings.tray_hidden_project_ids.is_empty());
     assert!(!settings.autostart_enabled);
     assert_eq!(settings.tray_bar_max_projects, 8);
     assert_eq!(settings.tray_bar_sort, TrayBarSort::RecentActivity);
@@ -50,6 +52,7 @@ fn default_settings_serialize_recent_activity_wire_value() {
 
     assert_eq!(serialized["trayBarSort"], "recent_activity");
     assert_eq!(serialized["globalSessionsDefaultRange"], "7d");
+    assert_eq!(serialized["trayHiddenProjectIds"], serde_json::json!([]));
 }
 
 #[tokio::test]
@@ -64,6 +67,7 @@ async fn settings_round_trip_survives_database_reopen() {
         SettingsInput {
             scan_roots: vec!["~/Documents".to_string(), "~/homegit".to_string()],
             hidden_project_ids: vec!["project-a".to_string()],
+            tray_hidden_project_ids: Vec::new(),
             autostart_enabled: true,
             tray_bar_max_projects: 4,
             tray_bar_sort: TrayBarSort::Name,
@@ -80,6 +84,41 @@ async fn settings_round_trip_survives_database_reopen() {
         .expect("settings should reload");
 
     assert_eq!(reopened, saved);
+}
+
+#[tokio::test]
+async fn tray_visibility_is_independent_from_portfolio_hidden_state() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let db_path = temp_dir.path().join("cache.db");
+    let pool = open_migrated_pool(&db_path).await;
+
+    let saved = settings::save(
+        &pool,
+        temp_dir.path(),
+        SettingsInput {
+            scan_roots: vec!["~/Documents".to_string()],
+            hidden_project_ids: vec!["portfolio-hidden".to_string()],
+            tray_hidden_project_ids: vec!["tray-hidden".to_string()],
+            autostart_enabled: false,
+            tray_bar_max_projects: 8,
+            tray_bar_sort: TrayBarSort::RecentActivity,
+            global_sessions_default_range: "7d".to_string(),
+        },
+    )
+    .await
+    .expect("settings should save");
+
+    assert_eq!(saved.hidden_project_ids, vec!["portfolio-hidden"]);
+    assert_eq!(saved.tray_hidden_project_ids, vec!["tray-hidden"]);
+    drop(pool);
+
+    let reopened_pool = open_migrated_pool(&db_path).await;
+    let reopened = settings::load_or_initialize(&reopened_pool, temp_dir.path())
+        .await
+        .expect("settings should reload");
+
+    assert_eq!(reopened.hidden_project_ids, vec!["portfolio-hidden"]);
+    assert_eq!(reopened.tray_hidden_project_ids, vec!["tray-hidden"]);
 }
 
 #[tokio::test]
@@ -123,6 +162,7 @@ async fn empty_scan_roots_coerce_to_default() {
         SettingsInput {
             scan_roots: vec![" ".to_string()],
             hidden_project_ids: Vec::new(),
+            tray_hidden_project_ids: Vec::new(),
             autostart_enabled: false,
             tray_bar_max_projects: 8,
             tray_bar_sort: TrayBarSort::RecentActivity,
@@ -232,6 +272,7 @@ async fn invalid_roots_do_not_persist() {
         SettingsInput {
             scan_roots: vec!["~/Documents".to_string()],
             hidden_project_ids: Vec::new(),
+            tray_hidden_project_ids: Vec::new(),
             autostart_enabled: false,
             tray_bar_max_projects: 8,
             tray_bar_sort: TrayBarSort::RecentActivity,
@@ -247,6 +288,7 @@ async fn invalid_roots_do_not_persist() {
         SettingsInput {
             scan_roots: vec!["/".to_string(), home.display().to_string()],
             hidden_project_ids: vec!["should-not-persist".to_string()],
+            tray_hidden_project_ids: vec!["should-not-persist".to_string()],
             autostart_enabled: true,
             tray_bar_max_projects: 2,
             tray_bar_sort: TrayBarSort::Progress,

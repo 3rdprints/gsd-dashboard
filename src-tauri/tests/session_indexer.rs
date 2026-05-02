@@ -10,10 +10,11 @@ use gsd_dashboard::{
     error::AppError,
     events::SessionIndexEvent,
     sessions::{
-        indexer::{stream_session_file, StreamFileStatus},
+        file_indexer::stream_session_file,
         matcher::match_project,
+        parallel::SESSION_INDEX_WORKER_LIMIT,
         repo::{load_index_state, persist_indexed_file_result},
-        IndexedSession, ProjectRoot, SessionIndexState, SessionSource,
+        IndexedSession, ProjectRoot, SessionIndexState, SessionSource, StreamFileStatus,
     },
     store::project_repo::{self, StoredProjectSnapshot},
 };
@@ -498,6 +499,11 @@ fn truncated_file_resets_incremental_offset_to_zero() {
     );
 }
 
+#[test]
+fn session_indexer_worker_limit_is_bounded_to_two_files() {
+    assert_eq!(SESSION_INDEX_WORKER_LIMIT, 2);
+}
+
 #[tokio::test]
 async fn index_sessions_for_app_persists_fixture_roots() {
     let (_temp_dir, state) = test_state().await;
@@ -620,7 +626,7 @@ async fn index_sessions_for_app_prunes_and_skips_unmatched_sessions() {
     assert_eq!(summary.sessions_persisted, 0);
     assert_eq!(summary.unmatched_count, 0);
     assert_eq!(unmatched_count, 0);
-    assert_eq!(unmatched_state_count, 0);
+    assert_eq!(unmatched_state_count, 1);
     assert_eq!(stale_state_count, 0);
 }
 

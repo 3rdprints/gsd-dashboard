@@ -54,6 +54,7 @@ async fn save_hidden_projects(state: &gsd_dashboard::app_state::AppState, hidden
         SettingsInput {
             scan_roots: vec!["~/Documents".to_string()],
             hidden_project_ids: hidden_ids.into_iter().map(str::to_string).collect(),
+            tray_hidden_project_ids: Vec::new(),
             autostart_enabled: false,
             tray_bar_max_projects: 8,
             tray_bar_sort: TrayBarSort::RecentActivity,

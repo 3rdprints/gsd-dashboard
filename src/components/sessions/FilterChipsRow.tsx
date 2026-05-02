@@ -1,5 +1,6 @@
 import type { PortfolioProjectCard } from "../../lib/types";
 import type { SessionFilters } from "../../lib/sessionFilters";
+import { Button } from "../ui/button";
 
 type FilterChipsRowProps = {
   filters: SessionFilters;
@@ -24,19 +25,19 @@ export function FilterChipsRow({ filters, projects, onChange, onClearAll }: Filt
         <span key={chip.key} className="filter-chip">
           {chip.label}
           {chip.key === "source" ? (
-            <button type="button" aria-label="Remove source filter" onClick={() => onChange(chip.remove())}>
+            <Button type="button" aria-label="Remove source filter" onClick={() => onChange(chip.remove())} size="xs" variant="ghost">
               x
-            </button>
+            </Button>
           ) : (
-            <button type="button" aria-label={`Remove ${chip.key} filter`} onClick={() => onChange(chip.remove())}>
+            <Button type="button" aria-label={`Remove ${chip.key} filter`} onClick={() => onChange(chip.remove())} size="xs" variant="ghost">
               x
-            </button>
+            </Button>
           )}
         </span>
       ))}
-      <button type="button" className="clear-all-btn" onClick={onClearAll}>
+      <Button type="button" className="clear-all-btn" onClick={onClearAll} size="sm" variant="outline">
         Clear all
-      </button>
+      </Button>
     </div>
   );
 }

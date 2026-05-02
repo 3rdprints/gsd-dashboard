@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { ClipboardCopy, ExternalLink, FolderOpen } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -6,6 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { OverviewTab } from "../components/ProjectDetail/OverviewTab";
 import { ProjectChartsTab } from "../components/ProjectDetail/ProjectChartsTab";
 import { ProjectSessionsTab } from "../components/ProjectDetail/ProjectSessionsTab";
+import { Button } from "../components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { copyNextCommand, openProjectInFinder, openProjectInVsCode } from "../lib/actions";
 import { getProject, getProjectMilestones, getProjectPhasePanel } from "../lib/ipc";
 import { projectMilestonesQueryKey, projectPhasePanelQueryKey, projectQueryKey } from "../lib/queryClient";
@@ -23,11 +25,6 @@ export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [actionError, setActionError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ProjectDetailTab>("overview");
-  const tabRefs = useRef<Record<ProjectDetailTab, HTMLButtonElement | null>>({
-    overview: null,
-    sessions: null,
-    charts: null
-  });
   const project = useQuery({
     queryKey: projectQueryKey(id ?? ""),
     queryFn: () => getProject(id ?? ""),
@@ -50,33 +47,6 @@ export function ProjectDetailPage() {
       await action();
     } catch {
       setActionError("Action failed. Check the configured project path and try again.");
-    }
-  }
-
-  function selectTabByOffset(offset: number) {
-    const currentIndex = detailTabs.findIndex((tab) => tab.id === activeTab);
-    const nextIndex = (currentIndex + offset + detailTabs.length) % detailTabs.length;
-    selectTab(detailTabs[nextIndex].id);
-  }
-
-  function selectTab(tab: ProjectDetailTab) {
-    setActiveTab(tab);
-    tabRefs.current[tab]?.focus();
-  }
-
-  function handleTabKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
-    if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      selectTabByOffset(-1);
-    } else if (event.key === "ArrowRight") {
-      event.preventDefault();
-      selectTabByOffset(1);
-    } else if (event.key === "Home") {
-      event.preventDefault();
-      selectTab(detailTabs[0].id);
-    } else if (event.key === "End") {
-      event.preventDefault();
-      selectTab(detailTabs[detailTabs.length - 1].id);
     }
   }
 
@@ -120,9 +90,9 @@ export function ProjectDetailPage() {
 
   return (
     <div className="page-stack">
-      <Link className="back-link" to="/">
-        Portfolio
-      </Link>
+      <Button asChild className="back-link" variant="outline">
+        <Link to="/">Portfolio</Link>
+      </Button>
       <section className="detail-panel">
         <div className="detail-header">
           <div>
@@ -130,27 +100,30 @@ export function ProjectDetailPage() {
             <p>{project.data.rootPath}</p>
           </div>
           <div className="detail-actions">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => runAction(() => openProjectInFinder(project.data.rootPath))}
             >
               <FolderOpen aria-hidden="true" size={16} strokeWidth={2} />
               Open in Finder
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
               onClick={() => runAction(() => openProjectInVsCode(project.data.rootPath))}
             >
               <ExternalLink aria-hidden="true" size={16} strokeWidth={2} />
               Open in VS Code
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
               onClick={() => runAction(() => copyNextCommand(project.data.nextCommand))}
             >
               <ClipboardCopy aria-hidden="true" size={16} strokeWidth={2} />
               Copy next command
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -183,40 +156,21 @@ export function ProjectDetailPage() {
           </div>
         </div>
 
-        <div className="tab-nav" role="tablist" aria-label="Project detail sections">
-          {detailTabs.map((tab) => {
-            const selected = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                id={`project-tab-${tab.id}-tab`}
-                ref={(element) => {
-                  tabRefs.current[tab.id] = element;
-                }}
-                className="tab-btn"
-                role="tab"
-                aria-selected={selected}
-                aria-controls={`project-tab-${tab.id}`}
-                tabIndex={selected ? 0 : -1}
-                onClick={() => selectTab(tab.id)}
-                onKeyDown={handleTabKeyDown}
-              >
+        <Tabs
+          aria-label="Project detail sections"
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as ProjectDetailTab)}
+        >
+          <TabsList aria-label="Project detail sections" variant="line">
+            {detailTabs.map((tab) => (
+              <TabsTrigger key={tab.id} value={tab.id}>
                 {tab.label}
-              </button>
-            );
-          })}
-        </div>
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-        {detailTabs.map((tab) => (
-          <section
-            key={tab.id}
-            id={`project-tab-${tab.id}`}
-            className="tab-panel"
-            role="tabpanel"
-            aria-labelledby={`project-tab-${tab.id}-tab`}
-            hidden={activeTab !== tab.id}
-          >
+          {detailTabs.map((tab) => (
+            <TabsContent key={tab.id} value={tab.id} className="tab-panel">
             {tab.id === "overview" ? (
               <OverviewTab
                 milestones={milestones.data ?? []}
@@ -227,8 +181,9 @@ export function ProjectDetailPage() {
             ) : null}
             {tab.id === "sessions" ? <ProjectSessionsTab projectId={id} /> : null}
             {tab.id === "charts" ? <ProjectChartsTab projectId={id} /> : null}
-          </section>
-        ))}
+            </TabsContent>
+          ))}
+        </Tabs>
       </section>
     </div>
   );

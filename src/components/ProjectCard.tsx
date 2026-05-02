@@ -4,8 +4,10 @@ import { ClipboardCopy, EyeOff } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
+import { Button } from "./ui/button";
 import { copyNextCommand } from "../lib/actions";
 import type { PortfolioProjectCard } from "../lib/types";
+import "./ProjectCard.css";
 
 type ProjectCardProps = {
   project: PortfolioProjectCard;
@@ -71,6 +73,15 @@ export function ProjectCard({ project, onHideProject, hideDisabled = false }: Pr
           <span>{progressPct}%</span>
         </div>
 
+        <div className="project-module-strip" aria-label={`${project.name} metrics`}>
+          <MetricModule label="Milestone %" value={progressPct.toString()} />
+          <MetricModule label="Sessions 7d" value={project.sessionsLast7d.toString()} />
+          <MetricModule
+            label="Activity"
+            value={formatRelativeActivity(project.lastActivityAt ?? project.lastScannedAt)}
+          />
+        </div>
+
         <SessionSparkline project={project} />
 
         <div className="project-card-meta">
@@ -79,20 +90,29 @@ export function ProjectCard({ project, onHideProject, hideDisabled = false }: Pr
         </div>
       </Link>
 
-      <button className="card-copy-action" type="button" onClick={handleCopy}>
+      <Button className="card-copy-action" type="button" onClick={handleCopy} variant="outline">
         <ClipboardCopy aria-hidden="true" size={16} strokeWidth={2} />
         {copied ? "Copied" : "Copy next command"}
-      </button>
-      <button type="button" onClick={handleHide} disabled={hideDisabled}>
+      </Button>
+      <Button type="button" onClick={handleHide} disabled={hideDisabled} variant="outline">
         <EyeOff aria-hidden="true" size={16} strokeWidth={2} />
         Hide Project
-      </button>
+      </Button>
       {hideError ? (
         <p className="project-card-error" role="alert">
           Could not hide project
         </p>
       ) : null}
     </article>
+  );
+}
+
+function MetricModule({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="project-module">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
   );
 }
 

@@ -2,6 +2,7 @@ import { CheckSquare, Square } from "lucide-react";
 
 import { openProjectInVsCode } from "../../lib/actions";
 import type { ProjectMilestone, ProjectPhasePanel } from "../../lib/types";
+import { Button } from "../ui/button";
 import { MilestoneTimeline } from "./MilestoneTimeline";
 import { StateExcerpt } from "./StateExcerpt";
 
@@ -65,13 +66,14 @@ export function OverviewTab({ milestones, phasePanel, loading, error }: Overview
             ))}
           </ul>
           {phasePanel.planPath ? (
-            <button
+            <Button
               type="button"
-              className="secondary-button overview-path-action"
+              className="overview-path-action"
+              variant="outline"
               onClick={() => void openProjectInVsCode(phasePanel.planPath ?? "")}
             >
               Open PLAN.md
-            </button>
+            </Button>
           ) : null}
         </section>
       </div>

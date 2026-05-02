@@ -7,11 +7,22 @@
 
 :root {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
-  color: #111827;
-  background: #F7F8FA;
+  color: var(--app-text);
+  background: var(--app-bg);
   font-size: 14px;
   font-weight: 400;
   line-height: 1.5;
+  --app-bg: #F7F8FA;
+  --app-surface: #FFFFFF;
+  --app-surface-muted: #F9FAFB;
+  --app-text: #111827;
+  --app-muted: #4B5563;
+  --app-subtle: #6B7280;
+  --app-border: #D1D5DB;
+  --app-border-soft: #E5E7EB;
+  --app-control: #2563EB;
+  --app-control-text: #FFFFFF;
+  --app-danger: #DC2626;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -46,11 +57,27 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+:root[data-color-scheme="dark"] {
+  color-scheme: dark;
+  --app-bg: #0E1116;
+  --app-surface: #171B22;
+  --app-surface-muted: #11151C;
+  --app-text: #F3F4F6;
+  --app-muted: #CBD5E1;
+  --app-subtle: #94A3B8;
+  --app-border: #334155;
+  --app-border-soft: #263241;
+  --app-control: #60A5FA;
+  --app-control-text: #07111F;
+  --app-danger: #F87171;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #F7F8FA;
+  color: var(--app-text);
+  background: var(--app-bg);
 }
 
 button,
@@ -79,8 +106,38 @@ input:focus-visible {
 
 .app-nav {
   display: flex;
+  align-items: center;
   gap: 8px;
   margin-bottom: 24px;
+}
+
+.theme-toggle {
+  min-height: 40px;
+  display: inline-flex;
+  margin-left: auto;
+  overflow: hidden;
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
+  background: var(--app-surface);
+}
+
+.theme-toggle button {
+  width: auto;
+  min-width: 40px;
+  height: 38px;
+  border-radius: 0;
+  padding: 0 10px;
+  color: var(--app-muted);
+  background: transparent;
+}
+
+.theme-toggle button + button {
+  border-left: 1px solid var(--app-border);
+}
+
+.theme-toggle .theme-toggle-active {
+  color: var(--app-control-text);
+  background: var(--app-control);
 }
 
 .project-card-link {
@@ -692,6 +749,217 @@ input:disabled {
 
   button {
     width: 100%;
+  }
+}
+
+:root[data-color-scheme="dark"] .app-nav a,
+:root[data-color-scheme="dark"] .back-link,
+:root[data-color-scheme="dark"] .status-panel,
+:root[data-color-scheme="dark"] .settings-panel,
+:root[data-color-scheme="dark"] .scan-status,
+:root[data-color-scheme="dark"] .empty-state,
+:root[data-color-scheme="dark"] .detail-panel,
+:root[data-color-scheme="dark"] .right-rail,
+:root[data-color-scheme="dark"] .stat-cell,
+:root[data-color-scheme="dark"] .project-card,
+:root[data-color-scheme="dark"] .rail-toggle,
+:root[data-color-scheme="dark"] input,
+:root[data-color-scheme="dark"] .secondary-button {
+  color: var(--app-text);
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+
+:root[data-color-scheme="dark"] .app-header h1,
+:root[data-color-scheme="dark"] .detail-header h1,
+:root[data-color-scheme="dark"] .project-card h2,
+:root[data-color-scheme="dark"] .panel-heading h2,
+:root[data-color-scheme="dark"] .settings-panel h2,
+:root[data-color-scheme="dark"] .empty-state h2,
+:root[data-color-scheme="dark"] .detail-summary h2,
+:root[data-color-scheme="dark"] .stat-cell dd {
+  color: var(--app-text);
+}
+
+:root[data-color-scheme="dark"] .app-header p,
+:root[data-color-scheme="dark"] .detail-header p,
+:root[data-color-scheme="dark"] .muted-copy,
+:root[data-color-scheme="dark"] .confirmation-copy,
+:root[data-color-scheme="dark"] .label-text,
+:root[data-color-scheme="dark"] .field-label,
+:root[data-color-scheme="dark"] .stat-cell dt,
+:root[data-color-scheme="dark"] .project-card p,
+:root[data-color-scheme="dark"] .project-card-meta,
+:root[data-color-scheme="dark"] .milestone-progress-row,
+:root[data-color-scheme="dark"] .session-sparkline-label,
+:root[data-color-scheme="dark"] .rail-section-body p,
+:root[data-color-scheme="dark"] .empty-state p {
+  color: var(--app-muted);
+}
+
+:root[data-color-scheme="dark"] button:not(.secondary-button):not(.rail-toggle):not(.theme-toggle button),
+:root[data-color-scheme="dark"] .scan-progress-fill {
+  color: var(--app-control-text);
+  background: var(--app-control);
+}
+
+:root[data-color-scheme="dark"] .theme-toggle button {
+  color: var(--app-muted);
+  background: transparent;
+}
+
+:root[data-color-scheme="dark"] .theme-toggle .theme-toggle-active {
+  color: var(--app-control-text);
+  background: var(--app-control);
+}
+
+:root[data-color-scheme="dark"] .chart-card {
+  color: var(--app-text) !important;
+  background: var(--app-surface) !important;
+  border-color: var(--app-border) !important;
+}
+
+:root[data-color-scheme="dark"] .filter-bar,
+:root[data-color-scheme="dark"] .range-btn,
+:root[data-color-scheme="dark"] .chart-tooltip,
+:root[data-color-scheme="dark"] .timeline-milestone-row,
+:root[data-color-scheme="dark"] .state-excerpt {
+  color: var(--app-text);
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+
+:root[data-color-scheme="dark"] .filter-control select,
+:root[data-color-scheme="dark"] .filter-control input,
+:root[data-color-scheme="dark"] .clear-all-btn {
+  color: var(--app-text);
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+
+:root[data-color-scheme="dark"] .chart-card-title {
+  color: var(--app-text) !important;
+}
+
+:root[data-color-scheme="dark"] .chart-card-subtitle,
+:root[data-color-scheme="dark"] .chart-empty-state,
+:root[data-color-scheme="dark"] .heatmap-container,
+:root[data-color-scheme="dark"] .unmatched-toggle,
+:root[data-color-scheme="dark"] .tab-btn,
+:root[data-color-scheme="dark"] .range-btn,
+:root[data-color-scheme="dark"] .timeline-phase-list,
+:root[data-color-scheme="dark"] .chart-tooltip-label,
+:root[data-color-scheme="dark"] .sessions-table th,
+:root[data-color-scheme="dark"] .pagination-row,
+:root[data-color-scheme="dark"] .empty-table-cell {
+  color: var(--app-muted) !important;
+}
+
+:root[data-color-scheme="dark"] .filter-chip,
+:root[data-color-scheme="dark"] .chart-legend-chip,
+:root[data-color-scheme="dark"] .plan-count-badge,
+:root[data-color-scheme="dark"] .source-badge {
+  color: var(--app-muted);
+  background: var(--app-surface-muted);
+  border-color: var(--app-border);
+}
+
+:root[data-color-scheme="dark"] .filter-chip button {
+  color: var(--app-muted);
+  background: transparent;
+}
+
+:root[data-color-scheme="dark"] .filter-chip button:hover,
+:root[data-color-scheme="dark"] .tab-btn[aria-selected="true"],
+:root[data-color-scheme="dark"] .range-btn[aria-pressed="true"],
+:root[data-color-scheme="dark"] .timeline-milestone-row,
+:root[data-color-scheme="dark"] .plan-item,
+:root[data-color-scheme="dark"] .state-excerpt,
+:root[data-color-scheme="dark"] .state-excerpt :is(h1, h2, h3, h4, h5, h6),
+:root[data-color-scheme="dark"] .sessions-table,
+:root[data-color-scheme="dark"] .sessions-table td,
+:root[data-color-scheme="dark"] .empty-state h3,
+:root[data-color-scheme="dark"] .chart-tooltip {
+  color: var(--app-text);
+}
+
+:root[data-color-scheme="dark"] .range-selector,
+:root[data-color-scheme="dark"] .range-btn + .range-btn,
+:root[data-color-scheme="dark"] .tab-nav,
+:root[data-color-scheme="dark"] .sessions-table th,
+:root[data-color-scheme="dark"] .sessions-table td {
+  border-color: var(--app-border);
+}
+
+:root[data-color-scheme="dark"] .range-btn[aria-pressed="true"],
+:root[data-color-scheme="dark"] .sessions-table tr:hover td {
+  background: var(--app-surface-muted);
+}
+
+:root[data-color-scheme="dark"] .state-excerpt-overflow {
+  background: linear-gradient(rgba(23, 27, 34, 0), var(--app-surface) 40px);
+}
+
+:root[data-color-scheme="dark"] .source-badge.claude {
+  color: #93C5FD;
+  background: #10223D;
+  border-color: #1D4ED8;
+}
+
+:root[data-color-scheme="dark"] .source-badge.codex {
+  color: #C4B5FD;
+  background: #241A3A;
+  border-color: #6D28D9;
+}
+
+:root[data-color-scheme="dark"] .heatmap-container .react-calendar-heatmap text,
+:root[data-color-scheme="dark"] .heatmap-container .react-calendar-heatmap-weekday-label {
+  fill: var(--app-muted);
+}
+
+:root[data-color-scheme="dark"] .heatmap-container .react-calendar-heatmap rect {
+  stroke: var(--app-surface);
+}
+
+:root[data-color-scheme="dark"] .heatmap-cell-1 {
+  fill: #1D4ED8;
+}
+
+:root[data-color-scheme="dark"] .heatmap-cell-2 {
+  fill: #2563EB;
+}
+
+:root[data-color-scheme="dark"] .heatmap-cell-3 {
+  fill: #3B82F6;
+}
+
+:root[data-color-scheme="dark"] .heatmap-cell-4 {
+  fill: #60A5FA;
+}
+
+:root[data-color-scheme="dark"] .heatmap-cell-5 {
+  fill: #93C5FD;
+}
+
+:root[data-color-scheme="dark"] .scan-progress-track,
+:root[data-color-scheme="dark"] .project-card-skeleton,
+:root[data-color-scheme="dark"] .heatmap-cell-0,
+:root[data-color-scheme="dark"] .chart-skeleton,
+:root[data-color-scheme="dark"] .timeline-track,
+:root[data-color-scheme="dark"] .timeline-segment,
+:root[data-color-scheme="dark"] .table-skeleton {
+  background: var(--app-border-soft);
+  fill: var(--app-border-soft);
+}
+
+@media (max-width: 640px) {
+  .theme-toggle {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .theme-toggle button {
+    width: 33.333%;
   }
 }
 

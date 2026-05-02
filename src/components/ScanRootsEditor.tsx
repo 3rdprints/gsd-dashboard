@@ -1,13 +1,18 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { CheckCircle2, FolderOpen, Plus, Save, X } from "lucide-react";
+import { CheckCircle2, FolderOpen, PanelTop, Plus, Save, X } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { getSettings } from "../lib/ipc";
+import { getPortfolio, getSettings } from "../lib/ipc";
 import {
   createSaveSettingsMutationOptions,
+  portfolioQueryKey,
   settingsQueryKey
 } from "../lib/queryClient";
-import type { AppError, SettingsInput } from "../lib/types";
+import type { AppError, SettingsInput, TrayBarSort } from "../lib/types";
+import { Button } from "./ui/button";
+import { Checkbox } from "./ui/checkbox";
+import { Input } from "./ui/input";
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
 const INVALID_SCAN_ROOT_MESSAGE =
   "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace.";
@@ -15,6 +20,7 @@ const DEFAULT_SCAN_ROOT = "~/Documents";
 const DEFAULT_SETTINGS_INPUT: SettingsInput = {
   scanRoots: [DEFAULT_SCAN_ROOT],
   hiddenProjectIds: [],
+  trayHiddenProjectIds: [],
   autostartEnabled: false,
   trayBarMaxProjects: 8,
   trayBarSort: "recent_activity",
@@ -31,10 +37,22 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
     queryKey: settingsQueryKey,
     queryFn: getSettings
   });
+  const portfolio = useQuery({
+    queryKey: portfolioQueryKey,
+    queryFn: getPortfolio
+  });
   const saveSettings = useMutation(createSaveSettingsMutationOptions(queryClient));
   const [scanRootDrafts, setScanRootDrafts] = useState<string[]>([DEFAULT_SCAN_ROOT]);
+  const [trayBarMaxProjects, setTrayBarMaxProjects] = useState(
+    DEFAULT_SETTINGS_INPUT.trayBarMaxProjects
+  );
+  const [trayBarSort, setTrayBarSort] = useState<TrayBarSort>(DEFAULT_SETTINGS_INPUT.trayBarSort);
+  const [trayHiddenProjectIds, setTrayHiddenProjectIds] = useState<string[]>(
+    DEFAULT_SETTINGS_INPUT.trayHiddenProjectIds
+  );
   const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
   const hasEditedDrafts = useRef(false);
+  const hasEditedTraySettings = useRef(false);
   const [hasSavedSettings, setHasSavedSettings] = useState(false);
   const rejectedScanRoot = parseRejectedScanRoot(saveSettings.error);
   const saveErrorMessage = getSaveErrorMessage(saveSettings.error);
@@ -42,10 +60,17 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
   const canSaveSettings = Boolean(settings.data) || settings.isError;
 
   useEffect(() => {
-    if (settings.data && !hasLoadedSettings && !hasEditedDrafts.current) {
-      setScanRootDrafts(
-        settings.data.scanRoots.length > 0 ? settings.data.scanRoots : [DEFAULT_SCAN_ROOT]
-      );
+    if (settings.data && !hasLoadedSettings) {
+      if (!hasEditedDrafts.current) {
+        setScanRootDrafts(
+          settings.data.scanRoots.length > 0 ? settings.data.scanRoots : [DEFAULT_SCAN_ROOT]
+        );
+      }
+      if (!hasEditedTraySettings.current) {
+        setTrayBarMaxProjects(settings.data.trayBarMaxProjects);
+        setTrayBarSort(settings.data.trayBarSort);
+        setTrayHiddenProjectIds(settings.data.trayHiddenProjectIds);
+      }
       setHasLoadedSettings(true);
     }
   }, [hasLoadedSettings, settings.data]);
@@ -56,7 +81,10 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
     saveSettings.mutate(
       {
         ...settingsInput,
-        scanRoots: normalizeScanRootDrafts(scanRootDrafts)
+        scanRoots: normalizeScanRootDrafts(scanRootDrafts),
+        trayBarMaxProjects: clampTrayBarMaxProjects(trayBarMaxProjects),
+        trayBarSort,
+        trayHiddenProjectIds
       },
       {
         onSuccess: () => setHasSavedSettings(true),
@@ -85,7 +113,7 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
                   {index === 0 ? "Default scan root" : `Scan root ${index + 1}`}
                 </label>
                 <div className="control-row">
-                  <input
+                  <Input
                     id={inputId}
                     aria-label={index === 0 ? "Scan root 1" : `Scan root ${index + 1}`}
                     value={scanRootDraft}
@@ -99,8 +127,8 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
                       setHasSavedSettings(false);
                     }}
                   />
-                  <button
-                    className="secondary-button"
+                  <Button
+                    variant="outline"
                     type="button"
                     onClick={() => {
                       setScanRootDrafts((current) =>
@@ -114,16 +142,95 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
                   >
                     <X aria-hidden="true" size={16} strokeWidth={2} />
                     Remove Root
-                  </button>
+                  </Button>
                 </div>
               </div>
             );
           })}
         </div>
 
+        <section className="scan-root-row" aria-labelledby="tray-display-title">
+          <div className="panel-heading">
+            <PanelTop aria-hidden="true" size={20} strokeWidth={2} />
+            <div>
+              <p className="label-text">Menu bar</p>
+              <h2 id="tray-display-title">Tray Display</h2>
+            </div>
+          </div>
+
+          <div className="scan-root-list">
+            <div className="scan-root-row">
+              <label className="field-label" htmlFor="tray-bar-max-projects">
+                Max tray bars
+              </label>
+              <div className="control-row">
+                <Input
+                  id="tray-bar-max-projects"
+                  aria-label="Max tray bars"
+                  type="number"
+                  min={1}
+                  max={16}
+                  value={trayBarMaxProjects}
+                  onChange={(event) => {
+                    setTrayBarMaxProjects(Number(event.target.value));
+                    hasEditedTraySettings.current = true;
+                    setHasSavedSettings(false);
+                  }}
+                />
+              </div>
+            </div>
+
+            <fieldset className="scan-root-row">
+              <legend className="field-label">Sort order</legend>
+              <RadioGroup
+                className="control-row"
+                value={trayBarSort}
+                onValueChange={(value) => {
+                  setTrayBarSort(value as TrayBarSort);
+                  hasEditedTraySettings.current = true;
+                  setHasSavedSettings(false);
+                }}
+              >
+                {TRAY_SORT_OPTIONS.map((option) => (
+                  <label className="field-label" htmlFor={`tray-bar-sort-${option.value}`} key={option.value}>
+                    <RadioGroupItem
+                      id={`tray-bar-sort-${option.value}`}
+                      value={option.value}
+                    />
+                    {option.label}
+                  </label>
+                ))}
+              </RadioGroup>
+            </fieldset>
+
+            <div className="scan-root-row">
+              <div className="field-label">Projects shown in tray</div>
+              <div className="scan-root-list">
+                {(portfolio.data?.projects ?? []).map((project) => (
+                  <label className="field-label" key={project.id}>
+                    <Checkbox
+                      checked={!trayHiddenProjectIds.includes(project.id)}
+                      onCheckedChange={(checked) => {
+                        setTrayHiddenProjectIds((current) =>
+                          checked
+                            ? current.filter((projectId) => projectId !== project.id)
+                            : [...new Set([...current, project.id])]
+                        );
+                        hasEditedTraySettings.current = true;
+                        setHasSavedSettings(false);
+                      }}
+                    />
+                    {project.name}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
         <div className="settings-actions">
-          <button
-            className="secondary-button"
+          <Button
+            variant="outline"
             type="button"
             onClick={() => {
               setScanRootDrafts((current) => [...normalizeScanRootDrafts(current), ""]);
@@ -133,11 +240,11 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
           >
             <Plus aria-hidden="true" size={16} strokeWidth={2} />
             Add Root
-          </button>
-          <button type="submit" disabled={!canSaveSettings || saveSettings.isPending}>
+          </Button>
+          <Button type="submit" disabled={!canSaveSettings || saveSettings.isPending}>
             <Save aria-hidden="true" size={16} strokeWidth={2} />
             Save Settings
-          </button>
+          </Button>
         </div>
       </form>
 
@@ -189,6 +296,20 @@ function normalizeScanRootDrafts(scanRootDrafts: string[]) {
   const roots = scanRootDrafts.map((root) => root.trim()).filter(Boolean);
 
   return roots.length > 0 ? roots : [DEFAULT_SCAN_ROOT];
+}
+
+const TRAY_SORT_OPTIONS: { label: string; value: TrayBarSort }[] = [
+  { label: "Recent activity", value: "recent_activity" },
+  { label: "Progress", value: "progress" },
+  { label: "Name", value: "name" }
+];
+
+function clampTrayBarMaxProjects(value: number) {
+  if (!Number.isFinite(value)) {
+    return DEFAULT_SETTINGS_INPUT.trayBarMaxProjects;
+  }
+
+  return Math.min(16, Math.max(1, Math.trunc(value)));
 }
 
 function parseRejectedScanRoot(error: unknown): AppError | null {

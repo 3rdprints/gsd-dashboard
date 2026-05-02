@@ -100,6 +100,7 @@ describe("GlobalSessionsPage", () => {
         return Promise.resolve({
           scanRoots: [],
           hiddenProjectIds: [],
+          trayHiddenProjectIds: [],
           autostartEnabled: false,
           trayBarMaxProjects: 6,
           trayBarSort: "name",
@@ -138,6 +139,7 @@ describe("GlobalSessionsPage", () => {
         return Promise.resolve({
           scanRoots: [],
           hiddenProjectIds: [],
+          trayHiddenProjectIds: [],
           autostartEnabled: false,
           trayBarMaxProjects: 6,
           trayBarSort: "name",
@@ -163,7 +165,8 @@ describe("GlobalSessionsPage", () => {
       </QueryClientProvider>
     );
 
-    fireEvent.change(await screen.findByLabelText("Source"), { target: { value: "claude" } });
+    fireEvent.click(await screen.findByLabelText("Source"));
+    fireEvent.click(await screen.findByRole("option", { name: "Claude" }));
     expect(await screen.findByText("Source: Claude")).toBeInTheDocument();
     expect(window.location.search).toContain("source=claude");
 

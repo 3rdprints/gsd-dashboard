@@ -69,6 +69,7 @@ async fn test_app_state(home_dir: PathBuf, scan_root: &Path) -> AppState {
         SettingsInput {
             scan_roots: vec![scan_root.display().to_string()],
             hidden_project_ids: vec!["hidden-project".to_string()],
+            tray_hidden_project_ids: Vec::new(),
             autostart_enabled: true,
             tray_bar_max_projects: 5,
             tray_bar_sort: TrayBarSort::Name,
@@ -193,6 +194,7 @@ async fn clear_project_cache_removes_only_derived_rows() {
         SettingsInput {
             scan_roots: vec![scan_root.display().to_string()],
             hidden_project_ids: vec!["hidden-project".to_string()],
+            tray_hidden_project_ids: Vec::new(),
             autostart_enabled: true,
             tray_bar_max_projects: 5,
             tray_bar_sort: TrayBarSort::Name,

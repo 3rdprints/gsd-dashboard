@@ -13,6 +13,7 @@ import type {
 
 export const bootStatusQueryKey = ["bootStatus"] as const;
 export const settingsQueryKey = ["settings"] as const;
+export const watcherStatusQueryKey = () => ["watcherStatus"] as const;
 export const portfolioQueryKey = ["portfolio"] as const;
 export const portfolioHeatmapQueryKey = (days: number) => ["portfolioHeatmap", days] as const;
 export const projectQueryKey = (id: string) => ["project", id] as const;

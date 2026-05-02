@@ -2,6 +2,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import type { ProjectSessionRow, ProjectSessionSortKey, SortDirection } from "../../lib/types";
+import { Button } from "../ui/button";
 
 type Column = {
   key: ProjectSessionSortKey;
@@ -73,14 +74,15 @@ export function SessionsTable({
                         <SortIcon aria-hidden="true" size={14} strokeWidth={2} />
                       </span>
                     ) : (
-                      <button
+                      <Button
                         type="button"
                         className="sortable"
+                        variant="ghost"
                         onClick={() => onSortChange(column.key, nextDirection(column.key))}
                       >
                         {column.label}
                         <SortIcon aria-hidden="true" size={14} strokeWidth={2} />
-                      </button>
+                      </Button>
                     )}
                   </th>
                 );
@@ -124,20 +126,21 @@ export function SessionsTable({
         </table>
       </div>
       <div className="pagination-row">
-        <button
+        <Button
           type="button"
           disabled={!canGoPrevious}
           aria-label="Previous page"
+          variant="outline"
           onClick={() => onPageChange(page - 1)}
         >
           Previous
-        </button>
+        </Button>
         <span>
           Page {page} of {pageCount}
         </span>
-        <button type="button" disabled={!canGoNext} aria-label="Next page" onClick={() => onPageChange(page + 1)}>
+        <Button type="button" disabled={!canGoNext} aria-label="Next page" onClick={() => onPageChange(page + 1)} variant="outline">
           Next
-        </button>
+        </Button>
       </div>
     </>
   );

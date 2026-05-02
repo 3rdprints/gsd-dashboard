@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use serde::Serialize;
-use tauri::State;
+use tauri::{AppHandle, Runtime, State};
 
 use crate::{
     app_state::AppState,
@@ -19,6 +19,10 @@ use crate::{
         project_repo::{self, StoredProjectSnapshot},
     },
 };
+
+pub fn request_project_cache_tray_refresh<R: Runtime>(app: &AppHandle<R>) {
+    crate::tray::service::request_tray_refresh(app);
+}
 
 const DAY_MS: i64 = 86_400_000;
 

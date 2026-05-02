@@ -38,6 +38,7 @@ async fn test_app_state(home_dir: PathBuf, scan_root: &Path) -> AppState {
         gsd_dashboard::settings::SettingsInput {
             scan_roots: vec![scan_root.display().to_string()],
             hidden_project_ids: Vec::new(),
+            tray_hidden_project_ids: Vec::new(),
             autostart_enabled: false,
             tray_bar_max_projects: 8,
             tray_bar_sort: gsd_dashboard::settings::TrayBarSort::RecentActivity,
@@ -963,6 +964,7 @@ async fn scan_command_expands_tilde_scan_roots() {
         gsd_dashboard::settings::SettingsInput {
             scan_roots: vec!["~/homegit".to_string()],
             hidden_project_ids: Vec::new(),
+            tray_hidden_project_ids: Vec::new(),
             autostart_enabled: false,
             tray_bar_max_projects: 8,
             tray_bar_sort: gsd_dashboard::settings::TrayBarSort::RecentActivity,

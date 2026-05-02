@@ -6,6 +6,7 @@ import { PortfolioHeaderStats } from "../components/PortfolioHeaderStats";
 import { ProjectCard } from "../components/ProjectCard";
 import { RightRail } from "../components/RightRail";
 import { ActivityHeatmap } from "../components/charts/ActivityHeatmap";
+import { Button } from "../components/ui/button";
 import {
   completeScanState,
   initialScanState,
@@ -132,15 +133,15 @@ export function PortfolioPage() {
           <p>{portfolio.data ? `${portfolio.data.projects.length} visible projects` : "Loading projects"}</p>
         </header>
         <div className="header-actions">
-          <button className="scan-cta" type="button" onClick={runScan} disabled={isScanning}>
+          <Button className="scan-cta" type="button" onClick={runScan} disabled={isScanning}>
             {isScanning ? (
               <Loader2 aria-hidden="true" size={16} strokeWidth={2} />
             ) : (
               <Search aria-hidden="true" size={16} strokeWidth={2} />
             )}
             Scan Projects
-          </button>
-          <button
+          </Button>
+          <Button
             className="scan-cta"
             type="button"
             onClick={runSessionIndex}
@@ -152,7 +153,7 @@ export function PortfolioPage() {
               <Search aria-hidden="true" size={16} strokeWidth={2} />
             )}
             Index Sessions
-          </button>
+          </Button>
         </div>
       </div>
 

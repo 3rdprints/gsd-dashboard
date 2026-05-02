@@ -47,6 +47,70 @@ fn daily_activity_updated_serializes() {
     assert!(value.get("data").is_none());
 }
 
+#[test]
+fn live_update_events_serialize_tiny_payloads() {
+    let project_value = serde_json::to_value(AppEvent::ProjectUpdated {
+        id: "project-1".to_string(),
+    })
+    .expect("event should serialize");
+    assert_eq!(project_value["event"], "project:updated");
+    assert_eq!(project_value["data"]["id"], "project-1");
+    assert_eq!(
+        project_value["data"]
+            .as_object()
+            .expect("payload should be an object")
+            .len(),
+        1
+    );
+
+    let session_value = serde_json::to_value(AppEvent::SessionNew {
+        id: "session-1".to_string(),
+        project_id: Some("project-1".to_string()),
+    })
+    .expect("event should serialize");
+    assert_eq!(session_value["event"], "session:new");
+    assert_eq!(session_value["data"]["id"], "session-1");
+    assert_eq!(session_value["data"]["project_id"], "project-1");
+    assert_eq!(
+        session_value["data"]
+            .as_object()
+            .expect("payload should be an object")
+            .len(),
+        2
+    );
+
+    let watcher_value =
+        serde_json::to_value(AppEvent::WatcherStatusChanged).expect("event should serialize");
+    assert_eq!(watcher_value["event"], "watcher:status-changed");
+    assert!(watcher_value.get("data").is_none());
+}
+
+#[test]
+fn tray_navigate_serializes_route_payload() {
+    let value = serde_json::to_value(AppEvent::TrayNavigate {
+        route: "/project/alpha".to_string(),
+    })
+    .expect("event should serialize");
+
+    assert_eq!(value["event"], "trayNavigate");
+    assert_eq!(value["data"]["route"], "/project/alpha");
+}
+
+#[tokio::test]
+async fn bootstrap_initializes_owned_watcher_runtime_status() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let state = bootstrap::bootstrap_from_paths(
+        temp_dir.path().join("app-data"),
+        temp_dir.path().join("home"),
+    )
+    .await
+    .expect("bootstrap should succeed");
+
+    let status = state.watcher_runtime.status();
+
+    assert!(status.roots.is_empty());
+}
+
 #[tokio::test]
 async fn bootstrap_paths_create_cache_and_ready_boot_status() {
     let temp_dir = tempfile::tempdir().expect("temp dir should be created");
@@ -73,6 +137,47 @@ async fn bootstrap_paths_create_cache_and_ready_boot_status() {
             settings_initialized: true,
         }
     );
+}
+
+#[tokio::test]
+async fn bootstrap_rebuilds_derived_cache_when_schema_is_newer_than_branch() {
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+    let app_data_dir = temp_dir.path().join("app-data");
+    let home_dir = temp_dir.path().join("home");
+    std::fs::create_dir_all(&app_data_dir).expect("app data dir should be created");
+    std::fs::create_dir_all(&home_dir).expect("home dir should be created");
+    let cache_path = app_data_dir.join("cache.db");
+    {
+        let connection = rusqlite::Connection::open(&cache_path).expect("cache should open");
+        connection
+            .pragma_update(None, "user_version", EXPECTED_MIGRATIONS_APPLIED + 1)
+            .expect("user_version should update");
+        connection
+            .execute(
+                "CREATE TABLE stale_future_table (id INTEGER PRIMARY KEY)",
+                [],
+            )
+            .expect("future table should be created");
+    }
+
+    let state = bootstrap::bootstrap_from_paths(app_data_dir.clone(), home_dir)
+        .await
+        .expect("bootstrap should rebuild stale derived cache");
+
+    assert_eq!(state.cache_path, cache_path);
+    assert_eq!(
+        state.boot_status.migrations_applied,
+        EXPECTED_MIGRATIONS_APPLIED
+    );
+    let connection = rusqlite::Connection::open(state.cache_path).expect("cache should reopen");
+    let stale_table_count: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'stale_future_table'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("stale table lookup should run");
+    assert_eq!(stale_table_count, 0);
 }
 
 #[test]

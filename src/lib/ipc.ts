@@ -21,7 +21,8 @@ import type {
   SessionIndexClearSummary,
   SessionIndexSummary,
   SettingsInput,
-  SortDirection
+  SortDirection,
+  WatcherStatus
 } from "./types";
 
 export function getBootStatus(): Promise<BootStatus> {
@@ -30,6 +31,10 @@ export function getBootStatus(): Promise<BootStatus> {
 
 export function getSettings(): Promise<AppSettings> {
   return invoke<AppSettings>("get_settings");
+}
+
+export function getWatcherStatus(): Promise<WatcherStatus> {
+  return invoke<WatcherStatus>("get_watcher_status");
 }
 
 export function saveSettings(input: SettingsInput): Promise<AppSettings> {

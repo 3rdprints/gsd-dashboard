@@ -138,7 +138,13 @@ Plans:
   3. When a filesystem watcher fails (inotify exhaustion on Linux, permission denied, FSEvents limits on macOS), the system transparently falls back to 60-second polling for the affected root and keeps the dashboard current.
   4. When any watcher is in fallback polling mode, Settings surfaces a visible banner identifying the degraded root and reason.
   5. The frontend refetches fresh data via commands on tiny `project:updated` / `session:new` events that carry only IDs (DB-as-truth, events-as-invalidation).
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [x] 07-01-PLAN.md — Create Wave 0 live update validation scaffolds
+- [x] 07-02-PLAN.md — Add watcher contracts, narrow roots, events, and status command
+- [x] 07-03-PLAN.md — Implement project watcher refresh, debounce, polling fallback, and tray refresh
+- [x] 07-04-PLAN.md — Split session indexer and add bounded parallel live session refresh
+- [x] 07-05-PLAN.md — Render Settings fallback status and wire frontend invalidation listeners
 **UI hint**: yes
 
 ### Phase 8: Autostart & OS Polish
