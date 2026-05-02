@@ -1,6 +1,7 @@
 import type { PortfolioProjectCard } from "../../lib/types";
 import type { SessionFilters } from "../../lib/sessionFilters";
 import { Button } from "../ui/button";
+import { X } from "lucide-react";
 
 type FilterChipsRowProps = {
   filters: SessionFilters;
@@ -25,17 +26,31 @@ export function FilterChipsRow({ filters, projects, onChange, onClearAll }: Filt
         <span key={chip.key} className="filter-chip">
           {chip.label}
           {chip.key === "source" ? (
-            <Button type="button" aria-label="Remove source filter" onClick={() => onChange(chip.remove())} size="xs" variant="ghost">
-              x
+            <Button
+              type="button"
+              className="size-5 rounded-md text-muted-foreground hover:text-foreground"
+              aria-label="Remove source filter"
+              onClick={() => onChange(chip.remove())}
+              size="icon-xs"
+              variant="ghost"
+            >
+              <X aria-hidden="true" size={12} strokeWidth={2} />
             </Button>
           ) : (
-            <Button type="button" aria-label={`Remove ${chip.key} filter`} onClick={() => onChange(chip.remove())} size="xs" variant="ghost">
-              x
+            <Button
+              type="button"
+              className="size-5 rounded-md text-muted-foreground hover:text-foreground"
+              aria-label={`Remove ${chip.key} filter`}
+              onClick={() => onChange(chip.remove())}
+              size="icon-xs"
+              variant="ghost"
+            >
+              <X aria-hidden="true" size={12} strokeWidth={2} />
             </Button>
           )}
         </span>
       ))}
-      <Button type="button" className="clear-all-btn" onClick={onClearAll} size="sm" variant="outline">
+      <Button type="button" onClick={onClearAll} size="sm" variant="destructive">
         Clear all
       </Button>
     </div>

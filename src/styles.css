@@ -87,9 +87,9 @@ select {
   font: inherit;
 }
 
-button:focus-visible,
+button:not([data-slot]):focus-visible,
 a:focus-visible,
-input:focus-visible {
+input:not([data-slot]):focus-visible {
   outline: 2px solid #2563EB;
   outline-offset: 1px;
 }
@@ -624,7 +624,7 @@ input:focus-visible {
   line-height: 1.4;
 }
 
-input {
+input:not([data-slot]) {
   width: 100%;
   height: 40px;
   box-sizing: border-box;
@@ -635,7 +635,7 @@ input {
   background: #FFFFFF;
 }
 
-input[type="checkbox"] {
+input:not([data-slot])[type="checkbox"] {
   width: 18px;
   height: 18px;
   padding: 0;
@@ -848,7 +848,6 @@ input:disabled {
 }
 
 :root[data-color-scheme="dark"] .filter-bar,
-:root[data-color-scheme="dark"] .range-btn,
 :root[data-color-scheme="dark"] .chart-tooltip,
 :root[data-color-scheme="dark"] .timeline-milestone-row,
 :root[data-color-scheme="dark"] .state-excerpt {
@@ -858,8 +857,7 @@ input:disabled {
 }
 
 :root[data-color-scheme="dark"] .filter-control select,
-:root[data-color-scheme="dark"] .filter-control input,
-:root[data-color-scheme="dark"] .clear-all-btn {
+:root[data-color-scheme="dark"] .filter-control input:not([data-slot]) {
   color: var(--app-text);
   background: var(--app-surface);
   border-color: var(--app-border);
@@ -873,8 +871,6 @@ input:disabled {
 :root[data-color-scheme="dark"] .chart-empty-state,
 :root[data-color-scheme="dark"] .heatmap-container,
 :root[data-color-scheme="dark"] .unmatched-toggle,
-:root[data-color-scheme="dark"] .tab-btn,
-:root[data-color-scheme="dark"] .range-btn,
 :root[data-color-scheme="dark"] .timeline-phase-list,
 :root[data-color-scheme="dark"] .chart-tooltip-label,
 :root[data-color-scheme="dark"] .sessions-table th,
@@ -892,14 +888,12 @@ input:disabled {
   border-color: var(--app-border);
 }
 
-:root[data-color-scheme="dark"] .filter-chip button {
+:root[data-color-scheme="dark"] .filter-chip [data-slot="button"] {
   color: var(--app-muted);
   background: transparent;
 }
 
-:root[data-color-scheme="dark"] .filter-chip button:hover,
-:root[data-color-scheme="dark"] .tab-btn[aria-selected="true"],
-:root[data-color-scheme="dark"] .range-btn[aria-pressed="true"],
+:root[data-color-scheme="dark"] .filter-chip [data-slot="button"]:hover,
 :root[data-color-scheme="dark"] .timeline-milestone-row,
 :root[data-color-scheme="dark"] .plan-item,
 :root[data-color-scheme="dark"] .state-excerpt,
@@ -912,14 +906,11 @@ input:disabled {
 }
 
 :root[data-color-scheme="dark"] .range-selector,
-:root[data-color-scheme="dark"] .range-btn + .range-btn,
-:root[data-color-scheme="dark"] .tab-nav,
 :root[data-color-scheme="dark"] .sessions-table th,
 :root[data-color-scheme="dark"] .sessions-table td {
   border-color: var(--app-border);
 }
 
-:root[data-color-scheme="dark"] .range-btn[aria-pressed="true"],
 :root[data-color-scheme="dark"] .sessions-table tr:hover td {
   background: var(--app-surface-muted);
 }

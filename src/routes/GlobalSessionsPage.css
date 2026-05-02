@@ -25,7 +25,7 @@
 }
 
 .filter-control select,
-.filter-control input {
+.filter-control input:not([data-slot]) {
   min-height: 36px;
   box-sizing: border-box;
   border: 1px solid #D1D5DB;
@@ -65,50 +65,6 @@
   background: #F3F4F6;
   font-size: 12px;
   font-weight: 600;
-}
-
-.filter-chip button {
-  width: 20px;
-  height: 20px;
-  border: 0;
-  padding: 0;
-  color: #4B5563;
-  background: transparent;
-  cursor: pointer;
-}
-
-.filter-chip button:hover {
-  color: #111827;
-}
-
-.filter-chip button:focus,
-.filter-chip button:focus-visible {
-  outline: 2px solid #2563EB;
-  outline-offset: 2px;
-}
-
-.clear-all-btn {
-  width: auto;
-  height: 28px;
-  border: 1px solid #D1D5DB;
-  border-radius: 8px;
-  padding: 0 12px;
-  color: #DC2626;
-  background: #FFFFFF;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.clear-all-btn:hover {
-  border-color: #FCA5A5;
-  background: #FEE2E2;
-}
-
-.clear-all-btn:focus,
-.clear-all-btn:focus-visible {
-  outline: 2px solid #DC2626;
-  outline-offset: 2px;
 }
 
 .chart-card {

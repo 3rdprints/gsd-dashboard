@@ -57,11 +57,11 @@ export function ProjectChartsTab({ projectId }: ProjectChartsTabProps) {
           <Button
             key={option.value}
             type="button"
-            className="range-btn"
+            className="rounded-none border-0 border-l first:border-l-0 aria-pressed:bg-muted aria-pressed:text-foreground focus-visible:z-10"
             aria-pressed={range === option.value}
             onClick={() => setRange(option.value)}
             size="sm"
-            variant={range === option.value ? "default" : "outline"}
+            variant="outline"
           >
             {option.label}
           </Button>
