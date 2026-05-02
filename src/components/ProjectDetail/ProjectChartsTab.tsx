@@ -14,6 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { ChartCard } from "../charts/ChartCard";
 import { ChartTooltip } from "../charts/ChartTooltip";
+import { Button } from "../ui/button";
 import { getProjectChartData } from "../../lib/ipc";
 import { projectChartsQueryKey } from "../../lib/queryClient";
 import type { ProjectChartRange, ProjectDailyAverageDuration } from "../../lib/types";
@@ -53,15 +54,17 @@ export function ProjectChartsTab({ projectId }: ProjectChartsTabProps) {
     <div className="charts-tab">
       <div className="range-selector" aria-label="Chart range">
         {ranges.map((option) => (
-          <button
+          <Button
             key={option.value}
             type="button"
             className="range-btn"
             aria-pressed={range === option.value}
             onClick={() => setRange(option.value)}
+            size="sm"
+            variant={range === option.value ? "default" : "outline"}
           >
             {option.label}
-          </button>
+          </Button>
         ))}
       </div>
 

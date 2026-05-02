@@ -1,6 +1,7 @@
 import { Monitor, Moon, Sun } from "lucide-react";
 
 import type { ThemeMode } from "../lib/theme";
+import { Button } from "./ui/button";
 
 type ThemeToggleProps = {
   themeMode: ThemeMode;
@@ -19,17 +20,19 @@ export function ThemeToggle({ onThemeModeChange, themeMode }: ThemeToggleProps) 
       {THEME_OPTIONS.map((option) => {
         const Icon = option.icon;
         return (
-          <button
+          <Button
             aria-pressed={themeMode === option.value}
             className={themeMode === option.value ? "theme-toggle-active" : undefined}
             key={option.value}
             onClick={() => onThemeModeChange(option.value)}
+            size="sm"
             title={option.label}
             type="button"
+            variant="ghost"
           >
             <Icon aria-hidden="true" size={15} strokeWidth={2} />
             <span>{option.label}</span>
-          </button>
+          </Button>
         );
       })}
     </div>

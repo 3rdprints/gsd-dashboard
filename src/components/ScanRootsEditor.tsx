@@ -9,6 +9,10 @@ import {
   settingsQueryKey
 } from "../lib/queryClient";
 import type { AppError, SettingsInput, TrayBarSort } from "../lib/types";
+import { Button } from "./ui/button";
+import { Checkbox } from "./ui/checkbox";
+import { Input } from "./ui/input";
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
 const INVALID_SCAN_ROOT_MESSAGE =
   "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace.";
@@ -109,7 +113,7 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
                   {index === 0 ? "Default scan root" : `Scan root ${index + 1}`}
                 </label>
                 <div className="control-row">
-                  <input
+                  <Input
                     id={inputId}
                     aria-label={index === 0 ? "Scan root 1" : `Scan root ${index + 1}`}
                     value={scanRootDraft}
@@ -123,8 +127,8 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
                       setHasSavedSettings(false);
                     }}
                   />
-                  <button
-                    className="secondary-button"
+                  <Button
+                    variant="outline"
                     type="button"
                     onClick={() => {
                       setScanRootDrafts((current) =>
@@ -138,7 +142,7 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
                   >
                     <X aria-hidden="true" size={16} strokeWidth={2} />
                     Remove Root
-                  </button>
+                  </Button>
                 </div>
               </div>
             );
@@ -160,7 +164,7 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
                 Max tray bars
               </label>
               <div className="control-row">
-                <input
+                <Input
                   id="tray-bar-max-projects"
                   aria-label="Max tray bars"
                   type="number"
@@ -178,24 +182,25 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
 
             <fieldset className="scan-root-row">
               <legend className="field-label">Sort order</legend>
-              <div className="control-row">
+              <RadioGroup
+                className="control-row"
+                value={trayBarSort}
+                onValueChange={(value) => {
+                  setTrayBarSort(value as TrayBarSort);
+                  hasEditedTraySettings.current = true;
+                  setHasSavedSettings(false);
+                }}
+              >
                 {TRAY_SORT_OPTIONS.map((option) => (
-                  <label className="field-label" key={option.value}>
-                    <input
-                      type="radio"
-                      name="tray-bar-sort"
+                  <label className="field-label" htmlFor={`tray-bar-sort-${option.value}`} key={option.value}>
+                    <RadioGroupItem
+                      id={`tray-bar-sort-${option.value}`}
                       value={option.value}
-                      checked={trayBarSort === option.value}
-                      onChange={() => {
-                        setTrayBarSort(option.value);
-                        hasEditedTraySettings.current = true;
-                        setHasSavedSettings(false);
-                      }}
                     />
                     {option.label}
                   </label>
                 ))}
-              </div>
+              </RadioGroup>
             </fieldset>
 
             <div className="scan-root-row">
@@ -203,12 +208,11 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
               <div className="scan-root-list">
                 {(portfolio.data?.projects ?? []).map((project) => (
                   <label className="field-label" key={project.id}>
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={!trayHiddenProjectIds.includes(project.id)}
-                      onChange={(event) => {
+                      onCheckedChange={(checked) => {
                         setTrayHiddenProjectIds((current) =>
-                          event.target.checked
+                          checked
                             ? current.filter((projectId) => projectId !== project.id)
                             : [...new Set([...current, project.id])]
                         );
@@ -225,8 +229,8 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
         </section>
 
         <div className="settings-actions">
-          <button
-            className="secondary-button"
+          <Button
+            variant="outline"
             type="button"
             onClick={() => {
               setScanRootDrafts((current) => [...normalizeScanRootDrafts(current), ""]);
@@ -236,11 +240,11 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
           >
             <Plus aria-hidden="true" size={16} strokeWidth={2} />
             Add Root
-          </button>
-          <button type="submit" disabled={!canSaveSettings || saveSettings.isPending}>
+          </Button>
+          <Button type="submit" disabled={!canSaveSettings || saveSettings.isPending}>
             <Save aria-hidden="true" size={16} strokeWidth={2} />
             Save Settings
-          </button>
+          </Button>
         </div>
       </form>
 

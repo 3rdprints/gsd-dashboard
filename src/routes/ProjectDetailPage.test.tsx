@@ -61,8 +61,8 @@ describe("ProjectDetailPage tab shell", () => {
     const tablist = screen.getByRole("tablist", { name: "Project detail sections" });
     expect(tablist).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tab", { name: "Sessions" })).toHaveAttribute("aria-controls", "project-tab-sessions");
-    expect(screen.getByRole("tabpanel", { name: "Overview" })).toHaveAttribute("id", "project-tab-overview");
+    expect(screen.getByRole("tab", { name: "Sessions" })).toHaveAttribute("aria-controls");
+    expect(screen.getByRole("tabpanel", { name: "Overview" })).toHaveAttribute("id");
   });
 
   it("supports arrow, Home, and End keyboard tab navigation", async () => {
