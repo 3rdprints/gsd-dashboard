@@ -15,6 +15,9 @@ At a glance, the user knows what every GSD project is doing right now — which 
 - [x] Phase 04: Session indexer (metadata only for v1): Claude Code `.jsonl` and Codex session files — start/end, duration, message count, tokens, model, byte-offset incremental parsing, live partial tolerance, and project attribution.
 - [x] Phase 04: Project ↔ session attribution: reverse Claude directory-name encoding; parse Codex `cwd` when present; unmatched sessions remain visible in the portfolio right rail.
 - [x] Phase 04: Portfolio landing session sparkline data is backed by indexed session rows.
+- [x] Phase 06: Menu bar / tray icon with dynamically rendered milestone-progress bars, configured sort order, independent tray visibility, macOS template behavior, and native tray refresh on scan/settings changes.
+- [x] Phase 06: Tray right-click menu with Show Dashboard, Preferences, visible project rows, per-project Copy Next Command submenu, and Quit.
+- [x] Phase 06: Settings Tray Display controls for max bars, sort order, and per-project tray visibility independent from Portfolio hidden state.
 
 ### Active
 
@@ -25,8 +28,6 @@ At a glance, the user knows what every GSD project is doing right now — which 
 - [ ] Project Detail view: milestone timeline, current-phase panel with plan checklist, sessions tab, per-project charts
 - [ ] Sessions global view: filterable table across all Claude + Codex sessions plus aggregate charts
 - [ ] 90-day activity heatmap on portfolio landing (GitHub-style)
-- [ ] Menu bar / tray icon with dynamically-rendered bar graph (one bar per active non-hidden project, height = current milestone % complete); openusage-inspired
-- [ ] Tray right-click menu: per-project shortcuts, copy-next-command, show/hide, preferences, quit
 - [ ] Strictly read-only against `.planning/` directories (never mutate)
 - [ ] Click action on a project copies the recommended next GSD command to the OS clipboard for paste into Claude Code / Codex
 - [ ] Session indexer (metadata only for v1): Claude Code `.jsonl` and Codex session files — start/end, duration, message count, tokens, model, project attribution
@@ -37,16 +38,20 @@ At a glance, the user knows what every GSD project is doing right now — which 
 - [ ] Distributable artifacts: macOS `.dmg` + `.app` (universal), Windows `.msi` + `.exe`, Linux `.deb` + `.AppImage` + `.rpm`, plus source bundle `.tar.gz`
 - [ ] GitHub Pages hosting: landing page, `install.sh` one-liner, and `updates/latest.json` manifest for `tauri-plugin-updater`
 - [ ] Auto-updater wired to the GitHub Pages manifest with signed releases
-- [ ] Settings UI: scan roots, hidden projects, autostart toggle, tray display (max bars, sort order), rebuild cache, phase 2/3 toggles
+- [ ] Settings UI: scan roots, hidden projects, autostart toggle, rebuild cache, phase 2/3 toggles
 - [ ] Per-file parse resilience: malformed ROADMAP/STATE/JSONL never crashes the scan; errors surfaced as per-project badges and logged to `scan_log`
 - [ ] `cargo install gsd-dashboard` as a tertiary install channel for Rust developers (frontend bundled into published crate; documented caveats)
+- [ ] Codex parser hardening: discover `CODEX_HOME`, `~/.codex/sessions/`, and `~/.codex/archived_sessions/`; parse surface, subagent, model/provider, and reasoning metadata where present
+- [ ] GSD run attribution: detect `$gsd-*` and `/gsd-*` calls from session activity and attach them to project, phase, command, and source session where possible
+- [ ] jCodemunch/jDocMunch usage metrics: capture derived MCP telemetry such as tool name, timing, result counts, confidence/errors, and token-efficiency metadata per GSD call
+- [ ] Tool Efficiency dashboard: show per-GSD-call jSuite usage, high-value queries, expensive/failed queries, and token-saved trends without storing raw MCP result bodies by default
 
 ### Out of Scope
 
 - Writing to `.planning/` directories — single-source-of-truth stays with the CLI skills; two writers invite conflicts
 - In-app execution of GSD commands — we copy to clipboard so the user pastes into their existing Claude Code / Codex CLI
-- Full transcript indexing and message-content search — deferred to Phase 3 behind a toggle
-- Tool-call and MCP-call indexing — deferred to Phase 2 behind a toggle
+- Full raw transcript indexing and message-content search by default — deferred to a future opt-in milestone; Phase 10 only stores derived metadata and redacted attribution by default
+- Raw tool-call and MCP-call payload storage by default — deferred to a future opt-in milestone; Phase 10 stores jSuite usage metrics and attribution, not raw result bodies
 - Remote / cloud dashboard — this is a local-first desktop app
 - End-to-end pixel snapshot tests of the tray icon — impractical; tray PNG generation is unit-tested directly instead
 - Apple code signing + notarization cert procurement workflow — release pipeline degrades gracefully when the secret is absent
@@ -88,6 +93,20 @@ At a glance, the user knows what every GSD project is doing right now — which 
 | `cargo install` as tertiary channel with documented caveats | Serves Rust-native install habits; first-class installers remain `.dmg`/`.msi`/`.rpm`/`.deb`/`.AppImage` | — Pending |
 | Launch on login default off | Respect user autonomy; obvious opt-in via Settings | — Pending |
 | Tauri `notify` watchers with 60s polling fallback | Handles FSEvents quirks and permission-denied roots without losing liveness | — Pending |
+| Phase 10 parser/tool telemetry before broader replay | The high-value slice is GSD run attribution plus jCodemunch/jDocMunch efficiency metrics; raw replay/search stays opt-in later | — Pending |
+
+## Future Milestone: v1.1 Parser & Agent Telemetry Expansion
+
+Goal: broaden the dashboard from v1.0's focused GSD and jSuite observability into a fuller local agent-session analytics layer, after installers and the high-value Phase 10 slice are stable.
+
+Candidate upgrades:
+
+- Full session replay and transcript hydration with explicit opt-in, redaction, and searchable local indexes.
+- Wider agent-session parser coverage inspired by cc-lens and agent-sessions, including additional Codex surfaces and other agent CLIs where local logs are available.
+- gsd-sdk parity checks or an optional SDK-backed adapter for `.planning/` parsing drift detection.
+- Deeper jSuite optimization analytics: repeated query detection, budget-warning trends, low-confidence query analysis, and suggested query rewrites.
+- Cross-project and cross-milestone efficiency reports for token use, tool mix, and GSD command outcomes.
+- Exportable anonymized performance summaries for retrospectives without exposing raw prompts, transcripts, or tool outputs.
 
 ## Evolution
 
@@ -107,4 +126,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-26 after Phase 04 session indexer completion*
+*Last updated: 2026-05-01 after adding Phase 10 parser/tool telemetry and the v1.1 telemetry expansion milestone*
