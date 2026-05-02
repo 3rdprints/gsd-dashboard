@@ -78,28 +78,30 @@ fn settings_input(settings: &AppSettings, autostart_enabled: bool) -> SettingsIn
 }
 
 async fn app_and_state() -> (
+    tempfile::TempDir,
     tauri::App<tauri::test::MockRuntime>,
     gsd_dashboard::app_state::AppState,
 ) {
-    let temp_dir = tempfile::tempdir()
-        .expect("temp dir should be created")
-        .into_path();
+    let temp_dir = tempfile::tempdir().expect("temp dir should be created");
     let mut app = tauri::test::mock_builder()
         .build(tauri::test::mock_context(tauri::test::noop_assets()))
         .expect("app should build");
     #[allow(deprecated)]
     app.run_iteration(|_, _| {});
 
-    let state = bootstrap::bootstrap_from_paths(temp_dir.join("app-data"), temp_dir.join("home"))
-        .await
-        .expect("bootstrap should succeed");
+    let state = bootstrap::bootstrap_from_paths(
+        temp_dir.path().join("app-data"),
+        temp_dir.path().join("home"),
+    )
+    .await
+    .expect("bootstrap should succeed");
 
-    (app, state)
+    (temp_dir, app, state)
 }
 
 #[tokio::test]
-async fn save_settings_applies_autostart_before_persisting_enabled_intent() {
-    let (app, state) = app_and_state().await;
+async fn autostart_settings_save_settings_applies_autostart_before_persisting_enabled_intent() {
+    let (_temp_dir, app, state) = app_and_state().await;
     let current = settings::load_or_initialize(&state.pool, &state.home_dir)
         .await
         .expect("settings should load");
@@ -126,8 +128,8 @@ async fn save_settings_applies_autostart_before_persisting_enabled_intent() {
 }
 
 #[tokio::test]
-async fn save_settings_applies_autostart_before_persisting_disabled_intent() {
-    let (app, state) = app_and_state().await;
+async fn autostart_settings_save_settings_applies_autostart_before_persisting_disabled_intent() {
+    let (_temp_dir, app, state) = app_and_state().await;
     let enabled = settings::save(
         &state.pool,
         &state.home_dir,
@@ -165,8 +167,8 @@ async fn save_settings_applies_autostart_before_persisting_disabled_intent() {
 }
 
 #[tokio::test]
-async fn save_settings_does_not_persist_or_emit_when_autostart_backend_fails() {
-    let (app, state) = app_and_state().await;
+async fn autostart_settings_save_does_not_persist_or_emit_when_backend_fails() {
+    let (_temp_dir, app, state) = app_and_state().await;
     let current = settings::load_or_initialize(&state.pool, &state.home_dir)
         .await
         .expect("settings should load");

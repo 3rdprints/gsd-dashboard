@@ -2,6 +2,7 @@ use tauri::{AppHandle, Emitter, Runtime, State};
 
 use crate::{
     app_state::{AppState, BootStatus},
+    autostart,
     error::AppError,
     events::AppEvent,
     settings::{self, AppSettings, SettingsInput},
@@ -52,6 +53,25 @@ pub async fn save_settings_for_app<R: Runtime>(
     state: &AppState,
     input: SettingsInput,
 ) -> Result<AppSettings, AppError> {
+    let backend = autostart::TauriAutostartBackend::new(app);
+    save_settings_with_autostart_backend(app, state, input, &backend).await
+}
+
+pub async fn save_settings_with_autostart_backend<R: Runtime, B: autostart::AutostartBackend>(
+    app: &AppHandle<R>,
+    state: &AppState,
+    input: SettingsInput,
+    backend: &B,
+) -> Result<AppSettings, AppError> {
+    let current_settings = settings::load_or_initialize(&state.pool, &state.home_dir).await?;
+    if current_settings.autostart_enabled != input.autostart_enabled {
+        if input.autostart_enabled {
+            backend.enable()?;
+        } else {
+            backend.disable()?;
+        }
+    }
+
     let saved_settings = settings::save(&state.pool, &state.home_dir, input).await?;
     let watcher_changed = match watcher::start_watcher_service_for_app(app.clone(), state).await {
         Ok(changed) => changed,
