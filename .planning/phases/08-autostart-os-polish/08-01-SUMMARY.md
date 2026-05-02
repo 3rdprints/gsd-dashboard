@@ -17,7 +17,7 @@ affects: [phase-08-autostart-os-polish, settings, native-startup]
 
 tech-stack:
   added: [tauri-plugin-autostart 2.5.1]
-  patterns: [backend-owned OS integration, injectable native backend for tests, plugin-before-persist settings save]
+  patterns: [backend-owned OS integration, injectable native backend for tests, validated persist then plugin mutation with rollback]
 
 key-files:
   created:
@@ -32,12 +32,12 @@ key-files:
 
 key-decisions:
   - "Use tauri-plugin-autostart 2.5.1 with MacosLauncher::LaunchAgent and exact --autostart launch argument."
-  - "Apply OS autostart enable/disable before persisting changed settings intent so plugin failures cannot create false success."
+  - "Accepted override after code review: validate and persist Settings first, then apply OS autostart enable/disable, and roll back persisted intent or return the rollback error if plugin mutation fails."
   - "Keep autostart mutation backend-owned; no frontend plugin calls or capability expansion were added."
 
 patterns-established:
   - "AutostartBackend trait: native plugin calls are injectable for tests and isolated from settings command orchestration."
-  - "Settings save ordering: load current settings, mutate OS autostart only when intent changes, persist settings, then emit events and refresh tray."
+  - "Settings save ordering: load current settings, persist validated settings, mutate OS autostart only when intent changes, roll back persisted settings on plugin failure, then emit events and refresh tray only after success."
 
 requirements-completed: [AUTO-01]
 
@@ -48,6 +48,18 @@ completed: 2026-05-02T19:16:41Z
 # Phase 08 Plan 01: Backend Autostart Contract Summary
 
 **Launch-on-login is wired through the official Tauri autostart plugin with backend-owned Settings coordination that prevents SQLite/plugin intent drift.**
+
+## Accepted Contract Override
+
+Code review rejected the original plugin-before-persist ordering because it mutated OS autostart state before SQLite validation/persistence could fail. The accepted AUTO-01 contract is now:
+
+1. Load current settings.
+2. Validate and persist the requested Settings input.
+3. If `autostart_enabled` changed, call the OS autostart backend.
+4. If the backend fails, restore the previous persisted settings; if rollback persistence fails, return that persistence error instead of silently claiming the setting was unchanged.
+5. Emit `settings-changed`, watcher status, and tray refresh only after both persistence and OS mutation succeed.
+
+This preserves the no-drift user contract while avoiding OS login-item mutation for invalid Settings input.
 
 ## Performance
 
@@ -61,8 +73,8 @@ completed: 2026-05-02T19:16:41Z
 
 - Added `src-tauri/src/autostart.rs` with the exact `--autostart` launch flag helper, plugin registration helper, `AutostartBackend`, and `TauriAutostartBackend`.
 - Registered `tauri-plugin-autostart` in the real Tauri builder with `MacosLauncher::LaunchAgent` and `--autostart`.
-- Updated `save_settings_for_app` to use an injectable autostart backend and only persist changed autostart intent after plugin enable/disable succeeds.
-- Added integration coverage for exact launch argument matching, enable success, disable success, and backend failure preserving persisted settings and suppressing `settings-changed`.
+- Updated `save_settings_for_app` to use an injectable autostart backend with validated persistence before OS mutation and rollback on plugin failure.
+- Added integration coverage for exact launch argument matching, validation failure before backend mutation, enable success, disable success, and backend failure preserving persisted settings and suppressing `settings-changed`.
 
 ## Task Commits
 
@@ -79,8 +91,8 @@ completed: 2026-05-02T19:16:41Z
 - `src-tauri/Cargo.lock` - Locked `tauri-plugin-autostart` and transitive dependencies.
 - `src-tauri/src/autostart.rs` - New autostart service contract, exact launch flag helper, plugin registration helper, and Tauri backend wrapper.
 - `src-tauri/src/lib.rs` - Exposes the autostart module.
-- `src-tauri/src/main.rs` - Registers the official autostart plugin in the Tauri builder.
-- `src-tauri/src/commands/settings.rs` - Delegates settings saves through the autostart backend before persistence when intent changes.
+- `src-tauri/src/main.rs` - Registers the official autostart plugin in the Tauri builder through the shared helper.
+- `src-tauri/src/commands/settings.rs` - Persists validated settings, delegates changed autostart intent through the backend, and rolls back persistence on backend failure.
 - `src-tauri/tests/autostart_settings.rs` - Covers exact flag matching and fake-backend settings save behavior.
 
 ## Decisions Made
@@ -91,7 +103,7 @@ completed: 2026-05-02T19:16:41Z
 
 ## Deviations from Plan
 
-None - plan executed exactly as written.
+- Code review changed the autostart consistency contract from plugin-before-persist to persist-then-plugin-with-rollback. This is intentional: invalid Settings input must not mutate OS login-item state, plugin failure must not emit `settings-changed`, and rollback persistence failure must surface instead of being swallowed.
 
 ## Issues Encountered
 
@@ -101,7 +113,7 @@ None - plan executed exactly as written.
 ## Verification
 
 - `cd src-tauri && cargo test autostart_launch_arg -- --nocapture` - passed.
-- `cd src-tauri && cargo test autostart_settings -- --nocapture` - passed; 3 settings tests ran.
+- `cd src-tauri && cargo test autostart_settings -- --nocapture` - passed; 5 settings tests ran after review fixes.
 - `cd src-tauri && cargo test settings_guardrails -- --nocapture` - passed command as planned, but filtered zero tests by name.
 - `cd src-tauri && cargo test --test settings_guardrails -- --nocapture` - passed; 9 guardrail tests ran.
 - `cd src-tauri && grep -R "tauri_plugin_autostart::init" src` - passed.
