@@ -260,7 +260,7 @@ fn dispatch_menu_action<R: Runtime>(app: &AppHandle<R>, id: &str) {
             | TrayMenuAction::Preferences
             | TrayMenuAction::OpenProject { .. } => {
                 if let Some(route) = action.navigation_route() {
-                    show_dashboard_window(&app, Some(route.clone()));
+                    show_dashboard_window(&app, Some(route.as_str()));
                     if app.get_webview_window(MAIN_WINDOW_LABEL).is_some() {
                         let _ = app.emit_to(
                             MAIN_WINDOW_LABEL,
@@ -362,7 +362,7 @@ fn toggle_dashboard_window<R: Runtime>(app: &AppHandle<R>) {
     }
 }
 
-fn show_dashboard_window<R: Runtime>(app: &AppHandle<R>, route: Option<String>) {
+pub fn show_dashboard_window<R: Runtime>(app: &AppHandle<R>, route: Option<&str>) {
     if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
         let _ = window.unminimize();
         let _ = window.show();
@@ -371,7 +371,6 @@ fn show_dashboard_window<R: Runtime>(app: &AppHandle<R>, route: Option<String>) 
     }
 
     let url = route
-        .as_deref()
         .map(|route| WebviewUrl::App(route.trim_start_matches('/').into()))
         .unwrap_or_else(WebviewUrl::default);
     let _ = WebviewWindowBuilder::new(app, MAIN_WINDOW_LABEL, url)
