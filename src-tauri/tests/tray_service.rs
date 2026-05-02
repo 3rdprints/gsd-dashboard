@@ -6,8 +6,8 @@ use gsd_dashboard::{
         menu::TrayMenuAction,
         service::{
             build_tray_state_for_app, build_tray_state_from_parts, native_tray_update,
-            request_tray_refresh, resolve_menu_action, startup_tray_update,
-            SHOW_DASHBOARD_LABEL, TRAY_REFRESH_DEBOUNCE_MS,
+            request_tray_refresh, resolve_menu_action, startup_tray_update, SHOW_DASHBOARD_LABEL,
+            TRAY_REFRESH_DEBOUNCE_MS,
         },
     },
 };
@@ -134,17 +134,13 @@ fn menu_action_resolution_accepts_fixed_ids_and_visible_project_scoped_ids_only(
 }
 
 #[test]
-fn hidden_startup_recovery_menu_keeps_show_dashboard_action() {
-    let tray_state =
-        build_tray_state_from_parts(Vec::new(), &[], &[], TrayBarSort::Name, 8)
-            .expect("empty tray state should build");
+fn tray_service_hidden_startup_recovery_menu_keeps_show_dashboard_action() {
+    let tray_state = build_tray_state_from_parts(Vec::new(), &[], &[], TrayBarSort::Name, 8)
+        .expect("empty tray state should build");
 
     assert_eq!(SHOW_DASHBOARD_LABEL, "Show Dashboard");
     assert_eq!(
-        resolve_menu_action(
-            gsd_dashboard::tray::menu::SHOW_DASHBOARD_ID,
-            &tray_state
-        ),
+        resolve_menu_action(gsd_dashboard::tray::menu::SHOW_DASHBOARD_ID, &tray_state),
         Some(TrayMenuAction::ShowDashboard)
     );
 }

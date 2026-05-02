@@ -31,6 +31,7 @@ use crate::{
 };
 
 pub const TRAY_ID: &str = "main-tray";
+pub const SHOW_DASHBOARD_LABEL: &str = "Show Dashboard";
 const MAIN_WINDOW_LABEL: &str = "main";
 pub const TRAY_REFRESH_DEBOUNCE_MS: u64 = 250;
 static TRAY_REFRESH_PENDING: AtomicBool = AtomicBool::new(false);
@@ -295,8 +296,13 @@ fn build_native_menu<R: Runtime>(
     app: &AppHandle<R>,
     tray_state: Option<&TrayServiceState>,
 ) -> Result<Menu<R>, AppError> {
-    let show_dashboard =
-        MenuItem::with_id(app, SHOW_DASHBOARD_ID, "Show Dashboard", true, None::<&str>)?;
+    let show_dashboard = MenuItem::with_id(
+        app,
+        SHOW_DASHBOARD_ID,
+        SHOW_DASHBOARD_LABEL,
+        true,
+        None::<&str>,
+    )?;
     let preferences = MenuItem::with_id(app, PREFERENCES_ID, "Preferences", true, None::<&str>)?;
     let overview = MenuItem::with_id(
         app,
