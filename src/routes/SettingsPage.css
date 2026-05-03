@@ -74,9 +74,57 @@
   padding: 0 16px;
 }
 
+.update-panel {
+  gap: 16px;
+}
+
+.update-status {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.update-status p {
+  margin: 0;
+}
+
+.update-status.neutral {
+  background: #ffffff;
+  color: #374151;
+}
+
+.update-status.available {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.update-status.warning {
+  background: #fffbeb;
+  border-color: #f59e0b;
+  color: #92400e;
+}
+
+.update-status.danger {
+  background: #fef2f2;
+  border-color: #ef4444;
+  color: #991b1b;
+}
+
+.update-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 @media (max-width: 640px) {
   .watcher-root-meta {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .update-actions {
+    align-items: stretch;
     flex-direction: column;
   }
 }
