@@ -23,6 +23,8 @@
     "allow-save-settings",
     "clipboard-manager:allow-write-text",
     "opener:allow-reveal-item-in-dir",
+    "updater:default",
+    "process:allow-restart",
     {
       "identifier": "opener:allow-open-url",
       "allow": [{ "url": "vscode://file/*" }]
