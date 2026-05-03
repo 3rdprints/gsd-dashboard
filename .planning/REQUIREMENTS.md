@@ -108,20 +108,20 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Packaging & Distribution
 
-- [ ] **PKG-01**: CI matrix (macOS, Windows, Ubuntu) builds on tag push and attaches artifacts to a GitHub Release
-- [ ] **PKG-02**: macOS artifact is a universal (arm64 + x86_64) `.dmg` containing a signed `.app` bundle when an Apple Developer cert is provided; unsigned build still succeeds
-- [ ] **PKG-03**: Windows artifacts include both `.msi` (WiX) and `.exe` (NSIS) installers
-- [ ] **PKG-04**: Linux artifacts include `.deb`, `.AppImage`, and `.rpm`, all produced by Tauri 2's native bundler
-- [ ] **PKG-05**: Release workflow also publishes a source bundle tarball (`cargo vendor` + pinned node deps + `BUILD.md`)
-- [ ] **PKG-06**: `cargo install gsd-dashboard` installs a working binary with the frontend bundled in; documented caveats (no app bundle, no auto-update, Gatekeeper warning on macOS)
+- [x] **PKG-01**: CI matrix (macOS, Windows, Ubuntu) builds on tag push and attaches artifacts to a GitHub Release
+- [x] **PKG-02**: macOS artifact is a universal (arm64 + x86_64) `.dmg` containing a signed `.app` bundle when an Apple Developer cert is provided; unsigned build still succeeds
+- [x] **PKG-03**: Windows artifacts include both `.msi` (WiX) and `.exe` (NSIS) installers
+- [x] **PKG-04**: Linux artifacts include `.deb`, `.AppImage`, and `.rpm`, all produced by Tauri 2's native bundler
+- [x] **PKG-05**: Release workflow also publishes a source bundle tarball (`cargo vendor` + pinned node deps + `BUILD.md`)
+- [x] **PKG-06**: `cargo install gsd-dashboard` installs a working binary with the frontend bundled in; documented caveats (no app bundle, no auto-update, Gatekeeper warning on macOS)
 
 ### Auto-Update & Install Site
 
-- [ ] **UPD-01**: `tauri-plugin-updater` fetches `updates/latest.json` from the project's GitHub Pages site and verifies artifact signatures with a baked-in public key
-- [ ] **UPD-02**: Release workflow regenerates and publishes the updater manifest on every tagged release
-- [ ] **UPD-03**: Updater private key is never stored in plaintext in the repo; stored as a GH Actions secret and backed up offline
-- [ ] **UPD-04**: GitHub Pages site hosts `install.sh` (`curl -fsSL … | sh`) that detects OS/arch and installs the matching latest artifact
-- [ ] **UPD-05**: GitHub Pages site hosts an `index.html` landing page with screenshots, one-liner install, and per-platform download buttons
+- [x] **UPD-01**: `tauri-plugin-updater` fetches `updates/latest.json` from the project's GitHub Pages site and verifies artifact signatures with a baked-in public key
+- [x] **UPD-02**: Release workflow regenerates and publishes the updater manifest on every tagged release
+- [x] **UPD-03**: Updater private key is never stored in plaintext in the repo; stored as a GH Actions secret and backed up offline
+- [x] **UPD-04**: GitHub Pages site hosts `install.sh` (`curl -fsSL … | sh`) that detects OS/arch and installs the matching latest artifact
+- [x] **UPD-05**: GitHub Pages site hosts an `index.html` landing page with screenshots, one-liner install, and per-platform download buttons
 
 ## v2 Requirements
 
@@ -239,17 +239,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SET-03 | Phase 6 | Pending |
 | SET-04 | Phase 3 | Complete |
 | SET-05 | Phase 3 | Complete |
-| PKG-01 | Phase 9 | Pending |
-| PKG-02 | Phase 9 | Pending |
-| PKG-03 | Phase 9 | Pending |
-| PKG-04 | Phase 9 | Pending |
-| PKG-05 | Phase 9 | Pending |
-| PKG-06 | Phase 9 | Pending |
-| UPD-01 | Phase 9 | Pending |
-| UPD-02 | Phase 9 | Pending |
-| UPD-03 | Phase 9 | Pending |
-| UPD-04 | Phase 9 | Pending |
-| UPD-05 | Phase 9 | Pending |
+| PKG-01 | Phase 9 | Complete |
+| PKG-02 | Phase 9 | Complete |
+| PKG-03 | Phase 9 | Complete |
+| PKG-04 | Phase 9 | Complete |
+| PKG-05 | Phase 9 | Complete |
+| PKG-06 | Phase 9 | Complete |
+| UPD-01 | Phase 9 | Complete |
+| UPD-02 | Phase 9 | Complete |
+| UPD-03 | Phase 9 | Complete |
+| UPD-04 | Phase 9 | Complete |
+| UPD-05 | Phase 9 | Complete |
 
 **Coverage:**
 - v1 requirements: 72 total (mapped across all v1 categories)
