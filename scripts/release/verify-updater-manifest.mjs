@@ -30,11 +30,23 @@ function isHttpsUrl(value) {
   }
 }
 
+function isUrl(value) {
+  if (typeof value !== "string") {
+    return false;
+  }
+  try {
+    new URL(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function isInlineSignature(value) {
   if (typeof value !== "string" || value.trim() === "") {
     return false;
   }
-  if (isHttpsUrl(value)) {
+  if (isUrl(value)) {
     return false;
   }
   return !/\.sig(?:[?#].*)?$/i.test(value.trim());
@@ -110,7 +122,8 @@ function validManifestFixture() {
 
 function invalidManifestFixture() {
   const manifest = validManifestFixture();
-  manifest.platforms["windows-x86_64"].signature = "https://smacdonald.github.io/gsd-dashboard/downloads/GSD-Dashboard.sig";
+  manifest.platforms["darwin-universal"].signature = "http://smacdonald.github.io/gsd-dashboard/downloads/GSD-Dashboard.sig";
+  manifest.platforms["windows-x86_64"].signature = "data:text/plain,windows-signature";
   manifest.platforms["linux-x86_64"].signature = "downloads/linux.sig";
   return manifest;
 }
