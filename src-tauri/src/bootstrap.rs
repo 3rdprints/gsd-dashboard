@@ -4,9 +4,29 @@ use tauri::{Manager, Runtime};
 
 use crate::{
     app_state::{AppState, BootStatus},
+    autostart::is_autostart_launch,
     error::AppError,
-    settings, store, watcher,
+    settings, store,
+    tray::service::{setup_tray, show_dashboard_window},
+    watcher,
 };
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StartupVisibilityAction {
+    ShowDashboard,
+    KeepHidden,
+}
+
+pub fn startup_visibility_action(
+    is_autostart_launch: bool,
+    tray_setup_succeeded: bool,
+) -> StartupVisibilityAction {
+    if is_autostart_launch && tray_setup_succeeded {
+        StartupVisibilityAction::KeepHidden
+    } else {
+        StartupVisibilityAction::ShowDashboard
+    }
+}
 
 pub async fn bootstrap_app<R: tauri::Runtime>(app: &tauri::App<R>) -> Result<AppState, AppError> {
     let app_data_dir = app.handle().path().app_data_dir()?;
@@ -22,7 +42,21 @@ pub fn manage_app_state_and_tray<R: Runtime>(
     state: AppState,
 ) -> Result<(), AppError> {
     app.manage(state);
-    crate::tray::service::setup_tray(app.handle())
+    let is_autostart_launch = is_autostart_launch(std::env::args());
+    let tray_setup_succeeded = match setup_tray(app.handle()) {
+        Ok(()) => true,
+        Err(error) => {
+            eprintln!("tray setup failed: {error}");
+            false
+        }
+    };
+
+    match startup_visibility_action(is_autostart_launch, tray_setup_succeeded) {
+        StartupVisibilityAction::ShowDashboard => show_dashboard_window(app.handle(), None)?,
+        StartupVisibilityAction::KeepHidden => {}
+    }
+
+    Ok(())
 }
 
 pub async fn bootstrap_from_paths(

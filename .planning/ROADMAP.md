@@ -154,7 +154,11 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. A Settings toggle enables launch-on-login via the OS-appropriate mechanism (macOS LaunchAgent, Windows Run key, Linux `.desktop` autostart), defaults to off, and can be toggled on/off without restarting the app.
   2. When the user enables autostart and then reboots, the app starts with only the tray icon visible — no main window — and the tray right-click menu still offers a path to show the dashboard.
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [x] 08-01-PLAN.md — Backend autostart plugin registration and Settings save coordination
+- [x] 08-02-PLAN.md — Hidden autostart window behavior and tray recovery fallback
+- [x] 08-03-PLAN.md — Settings Launch on login toggle and frontend coverage
 
 ### Phase 9: Packaging, Updater & Distribution
 **Goal**: Anyone on macOS, Windows, or Linux can install the dashboard from a signed artifact and receive automatic updates thereafter.

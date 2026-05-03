@@ -169,9 +169,8 @@ export function ProjectDetailPage() {
             ))}
           </TabsList>
 
-          {detailTabs.map((tab) => (
-            <TabsContent key={tab.id} value={tab.id} className="tab-panel">
-            {tab.id === "overview" ? (
+          <TabsContent value="overview" className="tab-panel">
+            {activeTab === "overview" ? (
               <OverviewTab
                 milestones={milestones.data ?? []}
                 phasePanel={phasePanel.data ?? null}
@@ -179,10 +178,13 @@ export function ProjectDetailPage() {
                 error={milestones.isError || phasePanel.isError}
               />
             ) : null}
-            {tab.id === "sessions" ? <ProjectSessionsTab projectId={id} /> : null}
-            {tab.id === "charts" ? <ProjectChartsTab projectId={id} /> : null}
-            </TabsContent>
-          ))}
+          </TabsContent>
+          <TabsContent value="sessions" className="tab-panel">
+            {activeTab === "sessions" ? <ProjectSessionsTab projectId={id} /> : null}
+          </TabsContent>
+          <TabsContent value="charts" className="tab-panel">
+            {activeTab === "charts" ? <ProjectChartsTab projectId={id} /> : null}
+          </TabsContent>
         </Tabs>
       </section>
     </div>

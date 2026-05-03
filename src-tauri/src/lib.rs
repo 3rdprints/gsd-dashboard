@@ -1,4 +1,5 @@
 pub mod app_state;
+pub mod autostart;
 pub mod bootstrap;
 pub mod commands;
 pub mod error;

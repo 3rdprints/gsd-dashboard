@@ -32,6 +32,10 @@ type TrayNavigatePayload =
     };
 
 export function registerAppListeners() {
+  if (!appListenerInternals.hasTauriInternals()) {
+    return () => {};
+  }
+
   const unlistenSettingsChanged = listen("settings-changed", async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: settingsQueryKey }),
@@ -98,6 +102,14 @@ export function registerAppListeners() {
     void unlistenTrayNavigate.then((unlisten) => unlisten());
   };
 }
+
+export function hasTauriInternals() {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+}
+
+export const appListenerInternals = {
+  hasTauriInternals
+};
 
 function getTrayNavigateRoute(payload: TrayNavigatePayload): string | null {
   if ("data" in payload) {

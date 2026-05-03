@@ -28,10 +28,10 @@ All planning lives in `.planning/` (gitignored — local-only):
 - **Markdown:** `pulldown-cmark` 0.13 + `gray_matter` (transitive `serde_yaml` is deprecated — watch)
 - **Tray rendering:** `tiny-skia` 0.12 (pure Rust, ~200KiB, PNG encoder built in)
 - **Tauri plugins:** `updater`, `autostart`, `clipboard-manager` (prefer over direct `arboard`), `fs`, `dialog`, `opener`, `os`, `single-instance`, `log`
-- **Frontend:** React 19 + TypeScript 5.6+ + Vite 6
+- **Frontend:** React 19 + TypeScript 6.0+ + Vite 8
 - **Styling:** Tailwind v4 via `@tailwindcss/vite` (not PostCSS)
 - **State:** Zustand 5 (UI state) + TanStack Query 5 (IPC/server cache) — don't reinvent refetch/dedup in Zustand
-- **Charts:** Recharts 2.15
+- **Charts:** Recharts 3.8
 - **Router:** React Router 7
 
 ## Architecture

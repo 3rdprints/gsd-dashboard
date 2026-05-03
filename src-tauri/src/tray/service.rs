@@ -31,6 +31,7 @@ use crate::{
 };
 
 pub const TRAY_ID: &str = "main-tray";
+pub const SHOW_DASHBOARD_LABEL: &str = "Show Dashboard";
 const MAIN_WINDOW_LABEL: &str = "main";
 pub const TRAY_REFRESH_DEBOUNCE_MS: u64 = 250;
 static TRAY_REFRESH_PENDING: AtomicBool = AtomicBool::new(false);
@@ -260,16 +261,20 @@ fn dispatch_menu_action<R: Runtime>(app: &AppHandle<R>, id: &str) {
             | TrayMenuAction::Preferences
             | TrayMenuAction::OpenProject { .. } => {
                 if let Some(route) = action.navigation_route() {
-                    show_dashboard_window(&app, Some(route.clone()));
-                    if app.get_webview_window(MAIN_WINDOW_LABEL).is_some() {
-                        let _ = app.emit_to(
-                            MAIN_WINDOW_LABEL,
-                            "trayNavigate",
-                            AppEvent::TrayNavigate { route },
-                        );
+                    match show_dashboard_window(&app, Some(route.as_str())) {
+                        Ok(()) => {
+                            let _ = app.emit_to(
+                                MAIN_WINDOW_LABEL,
+                                "trayNavigate",
+                                AppEvent::TrayNavigate { route },
+                            );
+                        }
+                        Err(error) => {
+                            eprintln!("failed to show dashboard from tray route: {error}");
+                        }
                     }
-                } else {
-                    show_dashboard_window(&app, None);
+                } else if let Err(error) = show_dashboard_window(&app, None) {
+                    eprintln!("failed to show dashboard from tray action: {error}");
                 }
             }
             TrayMenuAction::CopyNextCommand { project_id } => {
@@ -295,8 +300,13 @@ fn build_native_menu<R: Runtime>(
     app: &AppHandle<R>,
     tray_state: Option<&TrayServiceState>,
 ) -> Result<Menu<R>, AppError> {
-    let show_dashboard =
-        MenuItem::with_id(app, SHOW_DASHBOARD_ID, "Show Dashboard", true, None::<&str>)?;
+    let show_dashboard = MenuItem::with_id(
+        app,
+        SHOW_DASHBOARD_ID,
+        SHOW_DASHBOARD_LABEL,
+        true,
+        None::<&str>,
+    )?;
     let preferences = MenuItem::with_id(app, PREFERENCES_ID, "Preferences", true, None::<&str>)?;
     let overview = MenuItem::with_id(
         app,
@@ -358,25 +368,30 @@ fn toggle_dashboard_window<R: Runtime>(app: &AppHandle<R>) {
             let _ = window.set_focus();
         }
     } else {
-        show_dashboard_window(app, None);
+        if let Err(error) = show_dashboard_window(app, None) {
+            eprintln!("failed to show dashboard from tray toggle: {error}");
+        }
     }
 }
 
-fn show_dashboard_window<R: Runtime>(app: &AppHandle<R>, route: Option<String>) {
+pub fn show_dashboard_window<R: Runtime>(
+    app: &AppHandle<R>,
+    route: Option<&str>,
+) -> Result<(), AppError> {
     if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
         let _ = window.unminimize();
         let _ = window.show();
         let _ = window.set_focus();
-        return;
+        return Ok(());
     }
 
     let url = route
-        .as_deref()
         .map(|route| WebviewUrl::App(route.trim_start_matches('/').into()))
         .unwrap_or_else(WebviewUrl::default);
-    let _ = WebviewWindowBuilder::new(app, MAIN_WINDOW_LABEL, url)
+    WebviewWindowBuilder::new(app, MAIN_WINDOW_LABEL, url)
         .title("GSD Dashboard")
-        .build();
+        .build()?;
+    Ok(())
 }
 
 impl From<StoredProjectSnapshot> for TrayProject {

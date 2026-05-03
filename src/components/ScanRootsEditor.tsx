@@ -16,6 +16,12 @@ import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
 const INVALID_SCAN_ROOT_MESSAGE =
   "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace.";
+const AUTOSTART_ERROR_MESSAGE =
+  "Launch on login could not be updated. The setting was not changed; try again from the desktop app.";
+const AUTOSTART_UNCHECKED_HELPER =
+  "Off by default. Enable this to keep the tray dashboard available after sign-in.";
+const AUTOSTART_CHECKED_HELPER =
+  "On. At next sign-in, GSD Dashboard starts in the tray without opening the window.";
 const DEFAULT_SCAN_ROOT = "~/Documents";
 const DEFAULT_SETTINGS_INPUT: SettingsInput = {
   scanRoots: [DEFAULT_SCAN_ROOT],
@@ -50,6 +56,9 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
   const [trayHiddenProjectIds, setTrayHiddenProjectIds] = useState<string[]>(
     DEFAULT_SETTINGS_INPUT.trayHiddenProjectIds
   );
+  const [autostartEnabled, setAutostartEnabled] = useState(
+    DEFAULT_SETTINGS_INPUT.autostartEnabled
+  );
   const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
   const hasEditedDrafts = useRef(false);
   const hasEditedTraySettings = useRef(false);
@@ -70,6 +79,7 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
         setTrayBarMaxProjects(settings.data.trayBarMaxProjects);
         setTrayBarSort(settings.data.trayBarSort);
         setTrayHiddenProjectIds(settings.data.trayHiddenProjectIds);
+        setAutostartEnabled(settings.data.autostartEnabled);
       }
       setHasLoadedSettings(true);
     }
@@ -84,7 +94,8 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
         scanRoots: normalizeScanRootDrafts(scanRootDrafts),
         trayBarMaxProjects: clampTrayBarMaxProjects(trayBarMaxProjects),
         trayBarSort,
-        trayHiddenProjectIds
+        trayHiddenProjectIds,
+        autostartEnabled
       },
       {
         onSuccess: () => setHasSavedSettings(true),
@@ -149,6 +160,23 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
           })}
         </div>
 
+        <div className="scan-root-row">
+          <label className="choice-row">
+            <Checkbox
+              checked={autostartEnabled}
+              onCheckedChange={(checked) => {
+                setAutostartEnabled(checked === true);
+                hasEditedTraySettings.current = true;
+                setHasSavedSettings(false);
+              }}
+            />
+            Launch on login
+          </label>
+          <p className="label-text">
+            {autostartEnabled ? AUTOSTART_CHECKED_HELPER : AUTOSTART_UNCHECKED_HELPER}
+          </p>
+        </div>
+
         <section className="scan-root-row" aria-labelledby="tray-display-title">
           <div className="panel-heading">
             <PanelTop aria-hidden="true" size={20} strokeWidth={2} />
@@ -183,7 +211,7 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
             <fieldset className="scan-root-row">
               <legend className="field-label">Sort order</legend>
               <RadioGroup
-                className="control-row"
+                className="option-list"
                 value={trayBarSort}
                 onValueChange={(value) => {
                   setTrayBarSort(value as TrayBarSort);
@@ -192,7 +220,7 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
                 }}
               >
                 {TRAY_SORT_OPTIONS.map((option) => (
-                  <label className="field-label" htmlFor={`tray-bar-sort-${option.value}`} key={option.value}>
+                  <label className="choice-row" htmlFor={`tray-bar-sort-${option.value}`} key={option.value}>
                     <RadioGroupItem
                       id={`tray-bar-sort-${option.value}`}
                       value={option.value}
@@ -205,9 +233,9 @@ export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
 
             <div className="scan-root-row">
               <div className="field-label">Projects shown in tray</div>
-              <div className="scan-root-list">
+              <div className="option-list">
                 {(portfolio.data?.projects ?? []).map((project) => (
-                  <label className="field-label" key={project.id}>
+                  <label className="choice-row" key={project.id}>
                     <Checkbox
                       checked={!trayHiddenProjectIds.includes(project.id)}
                       onCheckedChange={(checked) => {
@@ -279,6 +307,10 @@ function getSaveErrorMessage(error: unknown) {
         return "Settings can only be saved from the Tauri desktop app. The browser preview can edit the form, but it cannot persist settings.";
       }
 
+      if (isAutostartErrorMessage(message)) {
+        return AUTOSTART_ERROR_MESSAGE;
+      }
+
       return message;
     }
   }
@@ -290,6 +322,10 @@ function isMissingTauriBridgeMessage(message: string) {
   const lowerMessage = message.toLowerCase();
 
   return lowerMessage.includes("invoke") || lowerMessage.includes("__tauri");
+}
+
+function isAutostartErrorMessage(message: string) {
+  return message.toLowerCase().includes("autostart");
 }
 
 function normalizeScanRootDrafts(scanRootDrafts: string[]) {

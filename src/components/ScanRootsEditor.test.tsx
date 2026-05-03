@@ -24,6 +24,7 @@ vi.mock("../lib/ipc", async (importOriginal) => {
 
 describe("ScanRootsEditor tray display settings", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     getSettingsMock.mockResolvedValue(baseSettings());
     saveSettingsMock.mockImplementation((input) => Promise.resolve(input));
     getPortfolioMock.mockResolvedValue(basePortfolio());
@@ -38,6 +39,76 @@ describe("ScanRootsEditor tray display settings", () => {
     expect(screen.getByLabelText("Recent activity")).toBeChecked();
     expect(screen.getByLabelText("Progress")).toBeInTheDocument();
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
+  });
+
+  it("renders_launch_on_login_default_off", async () => {
+    renderScanRootsEditor();
+
+    const launchOnLoginToggle = await screen.findByLabelText("Launch on login");
+
+    expect(launchOnLoginToggle).not.toBeChecked();
+    expect(screen.getAllByText("Launch on login")).toHaveLength(1);
+    expect(
+      screen.getByText(
+        "Off by default. Enable this to keep the tray dashboard available after sign-in."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("saves_autostart_enabled_when_toggle_is_checked", async () => {
+    renderScanRootsEditor();
+
+    const launchOnLoginToggle = await screen.findByLabelText("Launch on login");
+    const saveButton = screen.getByRole("button", { name: "Save Settings" });
+    await waitFor(() => expect(saveButton).toBeEnabled());
+
+    fireEvent.click(launchOnLoginToggle);
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(saveSettingsMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          autostartEnabled: true
+        })
+      );
+    });
+  });
+
+  it("saves_autostart_disabled_when_toggle_is_not_checked", async () => {
+    renderScanRootsEditor();
+
+    await screen.findByLabelText("Launch on login");
+    const saveButton = screen.getByRole("button", { name: "Save Settings" });
+    await waitFor(() => expect(saveButton).toBeEnabled());
+
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(saveSettingsMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          autostartEnabled: false
+        })
+      );
+    });
+  });
+
+  it("shows_autostart_error_copy_when_save_fails", async () => {
+    saveSettingsMock.mockRejectedValueOnce({
+      kind: "settings",
+      message: "failed to update autostart"
+    });
+    renderScanRootsEditor();
+
+    const launchOnLoginToggle = await screen.findByLabelText("Launch on login");
+    const saveButton = screen.getByRole("button", { name: "Save Settings" });
+    await waitFor(() => expect(saveButton).toBeEnabled());
+
+    fireEvent.click(launchOnLoginToggle);
+    fireEvent.click(saveButton);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Launch on login could not be updated. The setting was not changed; try again from the desktop app."
+    );
   });
 
   it("saves max tray bars through the form-level Save Settings action", async () => {
