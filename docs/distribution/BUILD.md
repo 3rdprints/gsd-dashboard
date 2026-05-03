@@ -51,7 +51,7 @@ Keep this checklist unchecked until the staging release has been completed with 
 
 - [x] GitHub Actions secret `TAURI_SIGNING_PRIVATE_KEY` exists for this repository.
 - [x] GitHub Actions secret `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` exists only if the generated updater key uses a password. This key was generated without a password, so no password secret is required.
-- [ ] The updater private key has an offline backup outside the repository.
+- [x] The updater private key has an offline backup outside the repository. Stored in 1Password.
 - [ ] Private prerelease update was installed from real signed artifacts and verified after restart.
 
 Evidence to record before v1.0:
