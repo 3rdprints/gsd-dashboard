@@ -26,6 +26,14 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
 
+      - name: Validate release tag
+        shell: bash
+        run: |
+          if [[ ! "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release workflow requires a semantic version tag like v1.2.3; got ${GITHUB_REF_NAME}." >&2
+            exit 1
+          fi
+
       - name: Install Node
         uses: actions/setup-node@v6
         with:
@@ -51,6 +59,9 @@ jobs:
 
       - name: Install Node dependencies
         run: npm ci
+
+      - name: Check doc-comment coverage
+        run: npm run docs:check
 
       - name: Build frontend
         run: npm run build
@@ -114,7 +125,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p release-artifacts
-          find src-tauri/target/release/bundle -type f \( -name '*.deb' -o -name '*.AppImage' -o -name '*.rpm' -o -name '*.sig' \) -exec cp {} release-artifacts/ \;
+          find src-tauri/target/release/bundle -type f \( -name '*.deb' -o -name '*.AppImage' -o -name '*.AppImage.tar.gz' -o -name '*.rpm' -o -name '*.sig' \) -exec cp {} release-artifacts/ \;
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
@@ -131,6 +142,14 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+
+      - name: Validate release tag
+        shell: bash
+        run: |
+          if [[ ! "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release workflow requires a semantic version tag like v1.2.3; got ${GITHUB_REF_NAME}." >&2
+            exit 1
+          fi
 
       - name: Install Node
         uses: actions/setup-node@v6
@@ -151,15 +170,29 @@ jobs:
           rm -rf site-dist && mkdir -p site-dist/updates site-dist/downloads
           cp -R docs/public/. site-dist/
           cp downloaded-artifacts/* site-dist/downloads/
+          (
+            cd site-dist/downloads
+            for artifact in *; do
+              if [ -f "${artifact}" ] && [[ "${artifact}" != *.sha256 ]]; then
+                shasum -a 256 "${artifact}" > "${artifact}.sha256"
+              fi
+            done
+          )
 
       - name: Prepare release notes
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         shell: bash
         run: |
-          cat > release-notes.md <<'NOTES'
-          GSD Dashboard release artifacts for macOS, Windows, and Linux.
-
-          Unsigned artifact: signing credentials were not available.
-          NOTES
+          {
+            echo "GSD Dashboard release artifacts for macOS, Windows, and Linux."
+            echo
+            if [ -n "${TAURI_SIGNING_PRIVATE_KEY}" ]; then
+              echo "Signed artifacts: signing credentials were available."
+            else
+              echo "Unsigned artifact: signing credentials were not available."
+            fi
+          } > release-notes.md
 
       - name: Gate updater signing secrets
         env:
@@ -185,7 +218,7 @@ jobs:
         run: node scripts/release/verify-pages-site.mjs site-dist/index.html site-dist/install.sh
 
       - name: Build source bundle
-        run: scripts/release/build-source-bundle.sh --check
+        run: scripts/release/build-source-bundle.sh
 
       - name: Upload release assets
         env:
@@ -194,7 +227,7 @@ jobs:
         run: |
           tag="${GITHUB_REF_NAME}"
           gh release view "${tag}" >/dev/null 2>&1 || gh release create "${tag}" --title "${tag}" --notes-file release-notes.md
-          gh release upload "${tag}" downloaded-artifacts/* site-dist/updates/latest.json dist-release/gsd-dashboard-source-*.tar.gz --clobber
+          gh release upload "${tag}" downloaded-artifacts/* site-dist/downloads/*.sha256 site-dist/updates/latest.json dist-release/gsd-dashboard-source-*.tar.gz --clobber
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

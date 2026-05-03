@@ -23,28 +23,17 @@ cleanup() {
 }
 trap cleanup EXIT
 
-mkdir -p "${BUNDLE_ROOT}" "${OUTPUT_DIR}"
+mkdir -p "${BUNDLE_ROOT}"
 
 npm ci
 npm run build
 
 (cd src-tauri && cargo vendor "${TEMP_DIR}/vendor")
 
-mkdir -p \
-  "${BUNDLE_ROOT}/docs/distribution" \
-  "${BUNDLE_ROOT}/src-tauri" \
-  "${BUNDLE_ROOT}/vendor"
-
-if [ -f Cargo.lock ]; then
-  cp Cargo.lock "${BUNDLE_ROOT}/Cargo.lock"
-else
-  cp src-tauri/Cargo.lock "${BUNDLE_ROOT}/Cargo.lock"
-fi
-cp package-lock.json "${BUNDLE_ROOT}/package-lock.json"
-cp package.json "${BUNDLE_ROOT}/package.json"
-cp src-tauri/Cargo.toml "${BUNDLE_ROOT}/src-tauri/Cargo.toml"
-cp src-tauri/Cargo.lock "${BUNDLE_ROOT}/src-tauri/Cargo.lock"
-cp docs/distribution/BUILD.md "${BUNDLE_ROOT}/docs/distribution/BUILD.md"
+git archive HEAD | tar -x -C "${BUNDLE_ROOT}"
+rm -rf "${BUNDLE_ROOT}/src-tauri/dist"
+cp -R src-tauri/dist "${BUNDLE_ROOT}/src-tauri/dist"
+mkdir -p "${BUNDLE_ROOT}/vendor"
 cp -R "${TEMP_DIR}/vendor/." "${BUNDLE_ROOT}/vendor/"
 
 if [ "${check_mode}" = true ]; then
@@ -52,12 +41,10 @@ if [ "${check_mode}" = true ]; then
   test -f "${BUNDLE_ROOT}/package-lock.json"
   test -f "${BUNDLE_ROOT}/src-tauri/Cargo.lock"
   test -d "${BUNDLE_ROOT}/vendor"
-fi
-
-tar -C "${TEMP_DIR}" -czf "${OUTPUT_PATH}" "gsd-dashboard-source-${VERSION}"
-
-if [ "${check_mode}" = true ]; then
   echo "source bundle check passed"
 else
+  mkdir -p "${OUTPUT_DIR}"
+  tar -C "${TEMP_DIR}" -czf "${OUTPUT_PATH}" "gsd-dashboard-source-${VERSION}"
+  cp "${OUTPUT_PATH}" "${OUTPUT_DIR}/gsd-dashboard-source-latest.tar.gz"
   echo "source bundle written to ${OUTPUT_PATH}"
 fi

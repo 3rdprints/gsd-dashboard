@@ -2,6 +2,8 @@ import type { Update } from "@tauri-apps/plugin-updater";
 
 export const UPDATE_CHECK_FAILED_MESSAGE =
   "Update check failed. The dashboard will keep running on this version; check your network or try again later.";
+export const UPDATE_INSTALL_FAILED_MESSAGE =
+  "Update install failed. The dashboard will keep running on this version; try again later.";
 export const UPDATE_SIGNATURE_FAILED_MESSAGE =
   "Update could not be verified. The dashboard will stay on the current version.";
 
@@ -9,9 +11,12 @@ export type UpdateCheckState =
   | { state: "unsupported" }
   | { state: "up_to_date" }
   | { state: "available"; update: Update; version: string; body?: string }
-  | { state: "error"; message: typeof UPDATE_CHECK_FAILED_MESSAGE }
-  | { state: "signature_error"; message: typeof UPDATE_SIGNATURE_FAILED_MESSAGE };
+  | { state: "error"; message: string }
+  | { state: "signature_error"; message: string };
 
+/**
+ * Checks the Tauri updater for an available release and normalizes the UI state.
+ */
 export async function checkForUpdate(): Promise<UpdateCheckState> {
   if (!hasTauriInternals()) {
     return { state: "unsupported" };
@@ -46,6 +51,9 @@ export async function checkForUpdate(): Promise<UpdateCheckState> {
   }
 }
 
+/**
+ * Installs a downloaded update and restarts the desktop app through Tauri.
+ */
 export async function installAndRestart(update: Pick<Update, "downloadAndInstall"> | null) {
   if (!update) {
     return;

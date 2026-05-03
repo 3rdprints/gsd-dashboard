@@ -13,6 +13,9 @@ export type ProjectSessionsTabProps = {
   projectId: string;
 };
 
+/**
+ * Renders the project sessions project detail tab.
+ */
 export function ProjectSessionsTab({ projectId }: ProjectSessionsTabProps) {
   const [sort, setSort] = useState<ProjectSessionSortKey>("startedAt");
   const [direction, setDirection] = useState<SortDirection>("desc");

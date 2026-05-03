@@ -286,7 +286,7 @@
 
       <section class="section warning" aria-labelledby="caveats-title">
         <h2 id="caveats-title">Installer caveats</h2>
-        <p>This build is unsigned because release signing credentials were not available. Prefer signed artifacts for daily use.</p>
+        <p>Prefer signed release artifacts for daily use. The installer verifies SHA-256 checksums before opening or installing downloads; use the release assets to inspect signatures and checksums manually.</p>
       </section>
 
       <section class="section" aria-labelledby="developer-fallback-title">
@@ -298,11 +298,11 @@
       <section class="section" aria-labelledby="release-debug-title">
         <h2 id="release-debug-title">Release and debug</h2>
         <p>
-          <a href="https://github.com/smacdonald/gsd-dashboard/releases/latest/download/gsd-dashboard-src.tar.gz">Source bundle</a>
+          <a href="https://github.com/smacdonald/gsd-dashboard/releases/latest/download/gsd-dashboard-source-latest.tar.gz">Source bundle</a>
           keeps release source and pinned dependency metadata together for source builds.
         </p>
         <p>
-          <a href="/updates/latest.json">Updater manifest</a>
+          <a href="updates/latest.json">Updater manifest</a>
           is the stable path used by the desktop updater.
         </p>
       </section>

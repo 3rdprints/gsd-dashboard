@@ -22,6 +22,9 @@ const dateRangeValues = new Set(["today", "7d", "30d", "90d", "all", "custom"]);
 const sortValues = new Set(["startedAt", "source", "durationMs", "messageCount", "tokensIn", "tokensOut", "tokenTotal"]);
 const directionValues = new Set(["asc", "desc"]);
 
+/**
+ * Provides the exported default filters function.
+ */
 export function DEFAULT_FILTERS(settings?: Pick<AppSettings, "globalSessionsDefaultRange">): SessionFilters {
   const dateRange = settings?.globalSessionsDefaultRange ?? "7d";
   const dates = datesForRange(dateRange);
@@ -36,6 +39,9 @@ export function DEFAULT_FILTERS(settings?: Pick<AppSettings, "globalSessionsDefa
   };
 }
 
+/**
+ * Parses filters from url from URL state.
+ */
 export function parseFiltersFromUrl(
   params: URLSearchParams,
   defaults: SessionFilters = DEFAULT_FILTERS()
@@ -66,6 +72,9 @@ export function parseFiltersFromUrl(
   };
 }
 
+/**
+ * Serializes filters to url into URL state.
+ */
 export function serializeFiltersToUrl(filters: SessionFilters): URLSearchParams {
   const params = new URLSearchParams();
   params.set("range", filters.dateRange);
@@ -84,6 +93,9 @@ export function serializeFiltersToUrl(filters: SessionFilters): URLSearchParams 
   return params;
 }
 
+/**
+ * Converts session filters into backend global session filters.
+ */
 export function filtersToGlobalSessionFilters(filters: SessionFilters): GlobalSessionFilters {
   return {
     source: filters.source,
@@ -98,6 +110,9 @@ export function filtersToGlobalSessionFilters(filters: SessionFilters): GlobalSe
   };
 }
 
+/**
+ * Applies date range to session filters.
+ */
 export function applyDateRange(filters: SessionFilters, dateRange: SessionFilters["dateRange"]): SessionFilters {
   const dates = datesForRange(dateRange);
   return {

@@ -12,7 +12,7 @@ const REQUIRED_HTML_FRAGMENTS = [
   "GSD Dashboard",
   "Download for macOS",
   "cargo install gsd-dashboard",
-  "/updates/latest.json",
+  "updates/latest.json",
   "Updater manifest",
   ".dmg",
   ".msi",
@@ -26,7 +26,8 @@ const REQUIRED_INSTALL_FRAGMENTS = [
   "uname -s",
   "uname -m",
   "Install `${artifact}` for `${os}/${arch}`?",
-  "curl -fsSL",
+  "--retry",
+  "CHECKSUM_URL",
   "GSD_DASHBOARD_BASE_URL"
 ];
 
@@ -49,6 +50,9 @@ function requireFragments(source, fragments, label) {
   }
 }
 
+/**
+ * Validates the static Pages install surface and installer script.
+ */
 export function validatePagesSite(html, installScript) {
   requireFragments(html, REQUIRED_HTML_FRAGMENTS, "Pages HTML");
   requireFragments(installScript, REQUIRED_INSTALL_FRAGMENTS, "install.sh");
@@ -74,7 +78,7 @@ function validHtmlFixture() {
     <a href="./downloads/gsd-dashboard.rpm">Linux .rpm</a>
     <a href="./downloads/gsd-dashboard.AppImage">Linux .AppImage</a>
     <code>cargo install gsd-dashboard</code>
-    <a href="/updates/latest.json">Updater manifest</a>
+    <a href="updates/latest.json">Updater manifest</a>
   </body>
 </html>
 `;
@@ -97,7 +101,8 @@ artifact="GSD-Dashboard.dmg"
 base_url="\${GSD_DASHBOARD_BASE_URL:-https://smacdonald.github.io/gsd-dashboard}"
 printf 'Install \`%s\` for \`%s/%s\`? ' "$artifact" "$os" "$arch"
 prompt="Install \`\${artifact}\` for \`\${os}/\${arch}\`?"
-curl -fsSL "$base_url/downloads/$artifact" -o "$artifact"
+checksum_url="\${CHECKSUM_URL:-\${base_url}/downloads/\${artifact}.sha256}"
+curl -fsSL --retry 3 "$base_url/downloads/$artifact" -o "$artifact"
 `;
 }
 
@@ -109,6 +114,9 @@ function invalidInstallFixture() {
   return "#!/bin/sh\ncurl http://example.test\n";
 }
 
+/**
+ * Runs fixture-based validation for this release helper.
+ */
 export async function runSelfTest() {
   const tempDir = mkdtempSync(join(tmpdir(), "gsd-pages-site-"));
   try {

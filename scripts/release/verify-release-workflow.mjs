@@ -26,6 +26,9 @@ function requireRegex(source, pattern, description) {
   }
 }
 
+/**
+ * Validates release workflow permissions, matrix, and publishing gates.
+ */
 export function validateReleaseWorkflow(source) {
   requireRegex(source, /push:\s*(?:\n[\s\S]*?)tags:\s*(?:\n[\s\S]*?-\s*["']?v\*\.\*\.\*["']?|\[[^\]]*["']?v\*\.\*\.\*["']?[^\]]*\])/m, `push.tags ${REQUIRED_TAG_PATTERN}`);
 
@@ -108,6 +111,9 @@ jobs: {}
 `;
 }
 
+/**
+ * Runs fixture-based validation for this release helper.
+ */
 export async function runSelfTest() {
   const tempDir = mkdtempSync(join(tmpdir(), "gsd-release-workflow-"));
   try {

@@ -10,6 +10,9 @@ export type StackedSourcesChartProps = {
   data: GlobalSessionsBySourceDay[];
 };
 
+/**
+ * Renders the stacked sources chart.
+ */
 export function StackedSourcesChart({ data }: StackedSourcesChartProps) {
   return (
     <>

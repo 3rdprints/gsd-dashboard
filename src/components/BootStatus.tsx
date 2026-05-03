@@ -4,6 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { getBootStatus } from "../lib/ipc";
 import { bootStatusQueryKey } from "../lib/queryClient";
 
+/**
+ * Provides the exported boot status function.
+ */
 export function BootStatus() {
   const bootStatus = useQuery({
     queryKey: bootStatusQueryKey,

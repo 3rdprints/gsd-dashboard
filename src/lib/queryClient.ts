@@ -13,13 +13,34 @@ import type {
 
 export const bootStatusQueryKey = ["bootStatus"] as const;
 export const settingsQueryKey = ["settings"] as const;
+/**
+ * Builds the watcher status query key for TanStack Query cache entries.
+ */
 export const watcherStatusQueryKey = () => ["watcherStatus"] as const;
 export const portfolioQueryKey = ["portfolio"] as const;
+/**
+ * Builds the portfolio heatmap query key for TanStack Query cache entries.
+ */
 export const portfolioHeatmapQueryKey = (days: number) => ["portfolioHeatmap", days] as const;
+/**
+ * Builds the project query key for TanStack Query cache entries.
+ */
 export const projectQueryKey = (id: string) => ["project", id] as const;
+/**
+ * Builds the project milestones query key for TanStack Query cache entries.
+ */
 export const projectMilestonesQueryKey = (id: string) => ["project", id, "milestones"] as const;
+/**
+ * Builds the project phase panel query key for TanStack Query cache entries.
+ */
 export const projectPhasePanelQueryKey = (id: string) => ["project", id, "phasePanel"] as const;
+/**
+ * Builds the project sessions query key for TanStack Query cache entries.
+ */
 export const projectSessionsQueryKey = (id: string, sort: ProjectSessionSortKey, direction: SortDirection, page: number, pageSize: number) => ["project", id, "sessions", sort, direction, page, pageSize] as const;
+/**
+ * Builds the project charts query key for TanStack Query cache entries.
+ */
 export const projectChartsQueryKey = (id: string, range: ProjectChartRange) => ["project", id, "charts", range] as const;
 export const globalSessionsQueryKey = (
   filters: GlobalSessionFilters,
@@ -28,10 +49,16 @@ export const globalSessionsQueryKey = (
   page: number,
   pageSize: number
 ) => ["globalSessions", filters, sort, direction, page, pageSize] as const;
+/**
+ * Builds the global charts query key for TanStack Query cache entries.
+ */
 export const globalChartsQueryKey = (filters: GlobalSessionFilters) => ["globalCharts", filters] as const;
 
 export const queryClient = new TanStackQueryClient();
 
+/**
+ * Provides the exported create save settings mutation options function.
+ */
 export function createSaveSettingsMutationOptions(client: QueryClient) {
   return {
     mutationFn: (input: SettingsInput) => saveSettings(input),

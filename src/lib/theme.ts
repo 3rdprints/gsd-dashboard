@@ -6,6 +6,9 @@ type ResolvedTheme = "light" | "dark";
 const THEME_STORAGE_KEY = "gsd-dashboard-theme";
 const THEME_MEDIA_QUERY = "(prefers-color-scheme: dark)";
 
+/**
+ * Provides the exported use theme mode function.
+ */
 export function useThemeMode() {
   const [themeMode, setThemeModeState] = useState<ThemeMode>(() => storedThemeMode());
   const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(() => currentSystemTheme());

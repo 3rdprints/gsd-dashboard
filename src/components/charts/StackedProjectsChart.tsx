@@ -17,6 +17,9 @@ export type StackedProjectsChartProps = {
   data: GlobalTokensByProjectDay[];
 };
 
+/**
+ * Renders the stacked projects chart.
+ */
 export function StackedProjectsChart({ data }: StackedProjectsChartProps) {
   const { chartData, series } = toStackedProjectData(data);
 

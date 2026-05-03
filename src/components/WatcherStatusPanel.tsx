@@ -8,6 +8,9 @@ type WatcherStatusPanelProps = {
   isError: boolean;
 };
 
+/**
+ * Renders the watcher status panel.
+ */
 export function WatcherStatusPanel({ status, isLoading, isError }: WatcherStatusPanelProps) {
   const degradedRoots = status?.roots.filter((root) => root.mode === "polling") ?? [];
 

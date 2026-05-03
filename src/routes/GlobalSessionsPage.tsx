@@ -30,6 +30,9 @@ import "./GlobalSessionsPage.css";
 
 const pageSize = 100;
 
+/**
+ * Renders the global sessions route.
+ */
 export function GlobalSessionsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();

@@ -18,9 +18,9 @@ async function withFixture(testFn) {
     await mkdir(artifactDir);
 
     const artifacts = [
-      ["GSD Dashboard.app.tar.gz", "darwin-signature"],
+      ["GSD Dashboard_0.1.1_universal.dmg", "darwin-signature"],
       ["GSD Dashboard_0.1.1_x64_en-US.msi", "windows-signature"],
-      ["GSD Dashboard_0.1.1_amd64.AppImage", "linux-signature"]
+      ["gsd-dashboard_0.1.1_amd64.AppImage.tar.gz", "linux-signature"]
     ];
     for (const [filename, signature] of artifacts) {
       await writeFile(join(artifactDir, filename), "fixture artifact");
@@ -46,9 +46,9 @@ describe("generate-updater-manifest.mjs", () => {
       assert.equal(manifest.platforms["darwin-universal"].signature, "darwin-signature");
       assert.equal(manifest.platforms["windows-x86_64"].signature, "windows-signature");
       assert.equal(manifest.platforms["linux-x86_64"].signature, "linux-signature");
-      assert.match(manifest.platforms["darwin-universal"].url, /\.app\.tar\.gz$/);
+      assert.match(manifest.platforms["darwin-universal"].url, /\.dmg$/);
       assert.match(manifest.platforms["windows-x86_64"].url, /\.msi$/);
-      assert.match(manifest.platforms["linux-x86_64"].url, /\.AppImage$/);
+      assert.match(manifest.platforms["linux-x86_64"].url, /\.AppImage\.tar\.gz$/);
     });
   });
 

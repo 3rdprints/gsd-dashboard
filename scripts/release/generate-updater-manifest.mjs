@@ -4,9 +4,9 @@ import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PLATFORM_ARTIFACTS = {
-  "darwin-universal": /\.app\.tar\.gz$/i,
+  "darwin-universal": /\.dmg$/i,
   "windows-x86_64": /\.msi$/i,
-  "linux-x86_64": /\.AppImage$/i
+  "linux-x86_64": /\.AppImage\.tar\.gz$/i
 };
 
 function fail(message) {
@@ -74,6 +74,9 @@ async function findArtifactEntries(artifactDir) {
   return entries;
 }
 
+/**
+ * Builds a Tauri updater manifest from release artifacts and signatures.
+ */
 export async function generateUpdaterManifest({
   version,
   releaseUrlBase,

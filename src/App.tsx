@@ -9,6 +9,9 @@ import { GlobalSessionsPage } from "./routes/GlobalSessionsPage";
 import { ProjectDetailPage } from "./routes/ProjectDetailPage";
 import { SettingsPage } from "./routes/SettingsPage";
 
+/**
+ * Renders the application shell with routing and shared query state.
+ */
 export function App() {
   const { setThemeMode, themeMode } = useThemeMode();
 

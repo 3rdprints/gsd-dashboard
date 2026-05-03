@@ -40,13 +40,16 @@ function isInlineSignature(value) {
   return !/\.sig(?:[?#].*)?$/i.test(value.trim());
 }
 
+/**
+ * Validates a generated updater manifest before release publication.
+ */
 export function validateUpdaterManifest(manifest) {
   if (typeof manifest?.version !== "string" || manifest.version.trim() === "") {
     fail("updater manifest requires a nonempty version");
   }
 
-  if (!manifest.pub_date) {
-    fail("updater manifest requires pub_date");
+  if (typeof manifest.pub_date !== "string" || manifest.pub_date.trim() === "") {
+    fail("updater manifest requires pub_date to be a non-empty string");
   }
 
   const platforms = manifest.platforms;
@@ -101,16 +104,28 @@ function invalidManifestFixture() {
   return manifest;
 }
 
+function invalidPubDateFixture() {
+  const manifest = validManifestFixture();
+  manifest.pub_date = 12345;
+  return manifest;
+}
+
+/**
+ * Runs fixture-based validation for this release helper.
+ */
 export async function runSelfTest() {
   const tempDir = mkdtempSync(join(tmpdir(), "gsd-updater-manifest-"));
   try {
     const validPath = join(tempDir, "latest-valid.json");
     const invalidPath = join(tempDir, "latest-invalid.json");
+    const invalidPubDatePath = join(tempDir, "latest-invalid-pub-date.json");
     writeFileSync(validPath, `${JSON.stringify(validManifestFixture(), null, 2)}\n`);
     writeFileSync(invalidPath, `${JSON.stringify(invalidManifestFixture(), null, 2)}\n`);
+    writeFileSync(invalidPubDatePath, `${JSON.stringify(invalidPubDateFixture(), null, 2)}\n`);
 
     await validatePath(validPath);
     await assert.rejects(() => validatePath(invalidPath), /signature/);
+    await assert.rejects(() => validatePath(invalidPubDatePath), /pub_date to be a non-empty string/);
   } finally {
     rmSync(tempDir, { force: true, recursive: true });
   }

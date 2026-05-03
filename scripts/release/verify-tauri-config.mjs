@@ -32,6 +32,9 @@ function hasRequiredTargets(targets) {
   return REQUIRED_TARGETS.every((target) => normalizedTargets.has(target));
 }
 
+/**
+ * Validates Tauri bundle and updater configuration invariants.
+ */
 export function validateTauriConfig(config) {
   if (config?.bundle?.active !== true) {
     fail("tauri config requires bundle.active true");
@@ -114,6 +117,9 @@ function invalidConfigFixture() {
   };
 }
 
+/**
+ * Runs fixture-based validation for this release helper.
+ */
 export async function runSelfTest() {
   const tempDir = mkdtempSync(join(tmpdir(), "gsd-tauri-config-"));
   try {

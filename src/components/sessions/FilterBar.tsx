@@ -15,6 +15,9 @@ type FilterBarProps = {
 
 const ALL_VALUE = "__all__";
 
+/**
+ * Provides the exported filter bar function.
+ */
 export function FilterBar({ filters, projects, onChange, onDateRangePersist }: FilterBarProps) {
   const debounceRef = useRef<number | undefined>(undefined);
   const [durationMin, setDurationMin] = useState(toInputValue(filters.durationMinMinutes));

@@ -27,6 +27,9 @@ const REBUILD_CONFIRMATION =
 const CLEAR_SESSION_INDEX_CONFIRMATION =
   "Clear session index: This removes derived Claude/Codex session rows and index offsets. Source session files will not be changed.";
 
+/**
+ * Renders the settings route.
+ */
 export function SettingsPage() {
   const queryClient = useQueryClient();
   const settings = useQuery({ queryKey: settingsQueryKey, queryFn: getSettings });

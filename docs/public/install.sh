@@ -15,6 +15,7 @@ for arg in "$@"; do
     --help|-h)
       printf '%s\n' "Usage: install.sh [--yes]"
       printf '%s\n' "Downloads the native GSD Dashboard installer for this OS and architecture."
+      printf '%s\n' "Verification: downloads CHECKSUM_URL when set, otherwise <artifact URL>.sha256."
       exit 0
       ;;
     *)
@@ -114,11 +115,13 @@ case "$os/$arch" in
 esac
 
 download_url="${base_url}downloads/${artifact}"
+checksum_url="${CHECKSUM_URL:-${download_url}.sha256}"
 prompt='Install `${artifact}` for `${os}/${arch}`?'
 
 printf '%s\n' "Detected OS/arch: $os/$arch"
 printf '%s\n' "Selected artifact: $artifact"
 printf '%s\n' "Download URL: $download_url"
+printf '%s\n' "Checksum URL: $checksum_url"
 
 if [ "$yes_flag" != "true" ]; then
   if [ ! -r /dev/tty ]; then
@@ -141,7 +144,28 @@ fi
 download_dir="${GSD_DASHBOARD_DOWNLOAD_DIR:-${HOME}/Downloads}"
 mkdir -p "$download_dir"
 download_path="${download_dir}/${artifact}"
-curl -fsSL "$download_url" -o "$download_path"
+checksum_path="${download_path}.sha256"
+curl -fsSL --retry 3 --retry-connrefused --retry-delay 2 --retry-max-time 60 --connect-timeout 10 --max-time 300 "$download_url" -o "$download_path"
+curl -fsSL --retry 3 --retry-connrefused --retry-delay 2 --retry-max-time 60 --connect-timeout 10 --max-time 60 "$checksum_url" -o "$checksum_path"
+
+verify_checksum() {
+  checksum_value="$(awk '{ print $1; exit }' "$checksum_path")"
+  if ! printf '%s' "$checksum_value" | grep -Eq '^[0-9a-fA-F]{64}$'; then
+    printf '%s\n' "Checksum file did not contain a SHA-256 digest: $checksum_url" >&2
+    exit 1
+  fi
+
+  if command -v sha256sum >/dev/null 2>&1; then
+    printf '%s  %s\n' "$checksum_value" "$download_path" | sha256sum -c -
+  elif command -v shasum >/dev/null 2>&1; then
+    printf '%s  %s\n' "$checksum_value" "$download_path" | shasum -a 256 -c -
+  else
+    printf '%s\n' "Neither sha256sum nor shasum is available; cannot verify $artifact." >&2
+    exit 1
+  fi
+}
+
+verify_checksum
 
 case "$artifact" in
   *.dmg)

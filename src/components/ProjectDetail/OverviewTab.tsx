@@ -13,6 +13,9 @@ type OverviewTabProps = {
   error: boolean;
 };
 
+/**
+ * Renders the overview project detail tab.
+ */
 export function OverviewTab({ milestones, phasePanel, loading, error }: OverviewTabProps) {
   if (loading) {
     return (

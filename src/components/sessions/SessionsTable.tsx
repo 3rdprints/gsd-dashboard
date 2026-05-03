@@ -32,6 +32,9 @@ export type SessionsTableProps = {
   onPageChange: (page: number) => void;
 };
 
+/**
+ * Renders the sessions table.
+ */
 export function SessionsTable({
   rows,
   total,

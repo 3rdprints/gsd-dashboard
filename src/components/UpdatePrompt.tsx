@@ -5,6 +5,8 @@ import { Button } from "./ui/button";
 import {
   checkForUpdate,
   installAndRestart,
+  UPDATE_CHECK_FAILED_MESSAGE,
+  UPDATE_INSTALL_FAILED_MESSAGE,
   type UpdateCheckState
 } from "../lib/update";
 
@@ -15,20 +17,38 @@ type UpdatePanelState =
   | { state: "restart_ready"; update: AvailableUpdateState["update"] }
   | UpdateCheckState;
 
+/**
+ * Renders the Settings update panel and coordinates manual update actions.
+ */
 export function UpdatePrompt() {
   const [panelState, setPanelState] = useState<UpdatePanelState>({ state: "up_to_date" });
 
   async function handleCheckForUpdates() {
     setPanelState({ state: "checking" });
-    const updateState = await checkForUpdate();
-
-    setPanelState(updateState.state === "unsupported" ? { state: "up_to_date" } : updateState);
+    try {
+      const updateState = await checkForUpdate();
+      setPanelState(updateState.state === "unsupported" ? { state: "up_to_date" } : updateState);
+    } catch (error) {
+      console.error("Update check failed", error);
+      setPanelState({
+        state: "error",
+        message: UPDATE_CHECK_FAILED_MESSAGE
+      });
+    }
   }
 
   async function handleInstall(update: AvailableUpdateState["update"]) {
     setPanelState({ state: "installing", update });
-    await installAndRestart(update);
-    setPanelState({ state: "restart_ready", update });
+    try {
+      await installAndRestart(update);
+      setPanelState({ state: "restart_ready", update });
+    } catch (error) {
+      console.error("Update install failed", error);
+      setPanelState({
+        state: "error",
+        message: UPDATE_INSTALL_FAILED_MESSAGE
+      });
+    }
   }
 
   function handleLater() {

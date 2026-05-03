@@ -28,6 +28,9 @@ import {
   settingsQueryKey
 } from "../lib/queryClient";
 
+/**
+ * Renders the portfolio route.
+ */
 export function PortfolioPage() {
   const queryClient = useQueryClient();
   const [scanState, setScanState] = useState(initialScanState);
