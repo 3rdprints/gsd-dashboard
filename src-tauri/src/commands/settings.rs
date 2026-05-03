@@ -54,23 +54,31 @@ pub async fn save_settings_for_app<R: Runtime>(
     input: SettingsInput,
 ) -> Result<AppSettings, AppError> {
     let backend = autostart::TauriAutostartBackend::new(app);
-    save_settings_with_autostart_backend(app, state, input, &backend).await
+    save_settings_with_autostart_backend(app, state, input, backend).await
 }
 
-pub async fn save_settings_with_autostart_backend<R: Runtime, B: autostart::AutostartBackend>(
+pub async fn save_settings_with_autostart_backend<
+    R: Runtime,
+    B: autostart::AutostartBackend + Send + 'static,
+>(
     app: &AppHandle<R>,
     state: &AppState,
     input: SettingsInput,
-    backend: &B,
+    backend: B,
 ) -> Result<AppSettings, AppError> {
     let current_settings = settings::load_or_initialize(&state.pool, &state.home_dir).await?;
     let saved_settings = settings::save(&state.pool, &state.home_dir, input).await?;
     if current_settings.autostart_enabled != saved_settings.autostart_enabled {
-        let backend_result = if saved_settings.autostart_enabled {
-            backend.enable()
-        } else {
-            backend.disable()
-        };
+        let autostart_enabled = saved_settings.autostart_enabled;
+        let backend_result = tokio::task::spawn_blocking(move || {
+            if autostart_enabled {
+                backend.enable()
+            } else {
+                backend.disable()
+            }
+        })
+        .await
+        .map_err(|error| AppError::settings(format!("autostart task failed: {error}")))?;
 
         if let Err(error) = backend_result {
             settings::save(&state.pool, &state.home_dir, current_settings.into()).await?;

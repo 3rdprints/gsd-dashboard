@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { listen } from "@tauri-apps/api/event";
 
 import { registerAppListeners } from "./appListeners";
 import { queryClient } from "./queryClient";
@@ -19,7 +20,12 @@ describe("app listeners", () => {
   beforeEach(() => {
     listeners.clear();
     unlisten.mockClear();
+    vi.mocked(listen).mockClear();
     window.history.replaceState(null, "", "/");
+    Object.defineProperty(window, "__TAURI_INTERNALS__", {
+      configurable: true,
+      value: {}
+    });
     vi.restoreAllMocks();
   });
 
@@ -34,6 +40,17 @@ describe("app listeners", () => {
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["project", "project-1", "milestones"] });
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["project", "project-1", "phasePanel"] });
     expect(invalidateQueries).toHaveBeenCalledWith({ predicate: expect.any(Function) });
+  });
+
+  it("returns a no-op cleanup without registering listeners outside Tauri internals", () => {
+    delete (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
+
+    const cleanup = registerAppListeners();
+
+    expect(cleanup).toEqual(expect.any(Function));
+    cleanup();
+    expect(listen).not.toHaveBeenCalled();
+    expect(listeners.size).toBe(0);
   });
 
   it("invalidates global and project session queries from session:new tiny payload", async () => {

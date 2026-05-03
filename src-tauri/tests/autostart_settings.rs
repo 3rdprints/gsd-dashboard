@@ -107,12 +107,12 @@ async fn autostart_settings_save_settings_applies_autostart_after_persisting_ena
         .expect("settings should load");
     assert!(!current.autostart_enabled);
 
-    let backend = FakeAutostartBackend::default();
+    let backend = Arc::new(FakeAutostartBackend::default());
     let saved = save_settings_with_autostart_backend(
         app.handle(),
         &state,
         settings_input(&current, true),
-        &backend,
+        backend.clone(),
     )
     .await
     .expect("settings should save");
@@ -146,12 +146,12 @@ async fn autostart_settings_save_settings_applies_autostart_after_persisting_dis
     .await
     .expect("enabled settings should save");
 
-    let backend = FakeAutostartBackend::default();
+    let backend = Arc::new(FakeAutostartBackend::default());
     let saved = save_settings_with_autostart_backend(
         app.handle(),
         &state,
         settings_input(&enabled, false),
-        &backend,
+        backend.clone(),
     )
     .await
     .expect("settings should save");
@@ -174,11 +174,11 @@ async fn autostart_settings_save_does_not_mutate_backend_when_validation_fails()
         .expect("settings should load");
     assert!(!current.autostart_enabled);
 
-    let backend = FakeAutostartBackend::default();
+    let backend = Arc::new(FakeAutostartBackend::default());
     let mut input = settings_input(&current, true);
     input.scan_roots = vec!["/".to_string()];
 
-    let error = save_settings_with_autostart_backend(app.handle(), &state, input, &backend)
+    let error = save_settings_with_autostart_backend(app.handle(), &state, input, backend.clone())
         .await
         .expect_err("invalid settings should reject before autostart mutation");
 
@@ -206,12 +206,12 @@ async fn autostart_settings_save_does_not_persist_or_emit_when_backend_fails() {
         event_seen_clone.store(true, Ordering::SeqCst);
     });
 
-    let backend = FakeAutostartBackend::fail();
+    let backend = Arc::new(FakeAutostartBackend::fail());
     let error = save_settings_with_autostart_backend(
         app.handle(),
         &state,
         settings_input(&current, true),
-        &backend,
+        backend.clone(),
     )
     .await
     .expect_err("backend failure should reject settings save");

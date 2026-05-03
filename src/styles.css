@@ -790,7 +790,7 @@ input:disabled {
 :root[data-color-scheme="dark"] .stat-cell,
 :root[data-color-scheme="dark"] .project-card,
 :root[data-color-scheme="dark"] .rail-toggle,
-:root[data-color-scheme="dark"] input,
+:root[data-color-scheme="dark"] input:not([data-slot]),
 :root[data-color-scheme="dark"] .secondary-button {
   color: var(--app-text);
   background: var(--app-surface);

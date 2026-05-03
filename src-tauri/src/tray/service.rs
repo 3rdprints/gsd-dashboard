@@ -261,16 +261,20 @@ fn dispatch_menu_action<R: Runtime>(app: &AppHandle<R>, id: &str) {
             | TrayMenuAction::Preferences
             | TrayMenuAction::OpenProject { .. } => {
                 if let Some(route) = action.navigation_route() {
-                    let _ = show_dashboard_window(&app, Some(route.as_str()));
-                    if app.get_webview_window(MAIN_WINDOW_LABEL).is_some() {
-                        let _ = app.emit_to(
-                            MAIN_WINDOW_LABEL,
-                            "trayNavigate",
-                            AppEvent::TrayNavigate { route },
-                        );
+                    match show_dashboard_window(&app, Some(route.as_str())) {
+                        Ok(()) => {
+                            let _ = app.emit_to(
+                                MAIN_WINDOW_LABEL,
+                                "trayNavigate",
+                                AppEvent::TrayNavigate { route },
+                            );
+                        }
+                        Err(error) => {
+                            eprintln!("failed to show dashboard from tray route: {error}");
+                        }
                     }
-                } else {
-                    let _ = show_dashboard_window(&app, None);
+                } else if let Err(error) = show_dashboard_window(&app, None) {
+                    eprintln!("failed to show dashboard from tray action: {error}");
                 }
             }
             TrayMenuAction::CopyNextCommand { project_id } => {
@@ -364,7 +368,9 @@ fn toggle_dashboard_window<R: Runtime>(app: &AppHandle<R>) {
             let _ = window.set_focus();
         }
     } else {
-        let _ = show_dashboard_window(app, None);
+        if let Err(error) = show_dashboard_window(app, None) {
+            eprintln!("failed to show dashboard from tray toggle: {error}");
+        }
     }
 }
 

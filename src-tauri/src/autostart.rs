@@ -29,17 +29,27 @@ pub trait AutostartBackend {
     fn disable(&self) -> Result<(), AppError>;
 }
 
-pub struct TauriAutostartBackend<'a, R: tauri::Runtime> {
-    app: &'a AppHandle<R>,
-}
+impl<T: AutostartBackend + ?Sized> AutostartBackend for std::sync::Arc<T> {
+    fn enable(&self) -> Result<(), AppError> {
+        (**self).enable()
+    }
 
-impl<'a, R: tauri::Runtime> TauriAutostartBackend<'a, R> {
-    pub fn new(app: &'a AppHandle<R>) -> Self {
-        Self { app }
+    fn disable(&self) -> Result<(), AppError> {
+        (**self).disable()
     }
 }
 
-impl<R: tauri::Runtime> AutostartBackend for TauriAutostartBackend<'_, R> {
+pub struct TauriAutostartBackend<R: tauri::Runtime> {
+    app: AppHandle<R>,
+}
+
+impl<R: tauri::Runtime> TauriAutostartBackend<R> {
+    pub fn new(app: &AppHandle<R>) -> Self {
+        Self { app: app.clone() }
+    }
+}
+
+impl<R: tauri::Runtime> AutostartBackend for TauriAutostartBackend<R> {
     fn enable(&self) -> Result<(), AppError> {
         self.app.autolaunch().enable().map_err(AppError::settings)
     }

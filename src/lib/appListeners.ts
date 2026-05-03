@@ -32,7 +32,7 @@ type TrayNavigatePayload =
     };
 
 export function registerAppListeners() {
-  if (!hasTauriInternals()) {
+  if (!appListenerInternals.hasTauriInternals()) {
     return () => {};
   }
 
@@ -103,9 +103,13 @@ export function registerAppListeners() {
   };
 }
 
-function hasTauriInternals() {
-  return import.meta.env.MODE === "test" || (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window);
+export function hasTauriInternals() {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
+
+export const appListenerInternals = {
+  hasTauriInternals
+};
 
 function getTrayNavigateRoute(payload: TrayNavigatePayload): string | null {
   if ("data" in payload) {
