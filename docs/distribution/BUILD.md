@@ -47,7 +47,7 @@ Before v1.0, confirm the updater private key has an offline backup outside the r
 
 ## Private prerelease updater proof
 
-Keep this checklist unchecked until the staging release has been completed with real private GitHub prerelease artifacts.
+Deferred to Phase 9.1 because the proof requires the Phase 9 release workflow to be merged before the proof tags are pushed. Keep the final update checkbox unchecked until the staging release has been completed with real private GitHub prerelease artifacts.
 
 - [x] GitHub Actions secret `TAURI_SIGNING_PRIVATE_KEY` exists for this repository.
 - [x] GitHub Actions secret `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` exists only if the generated updater key uses a password. This key was generated without a password, so no password secret is required.
