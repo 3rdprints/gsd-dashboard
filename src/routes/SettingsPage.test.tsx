@@ -67,12 +67,16 @@ describe("SettingsPage live update watcher status", () => {
     expect(screen.getByText("/Users/smacdonald/projects/example/.planning")).toBeInTheDocument();
     expect(screen.getByText("System watch limit reached")).toBeInTheDocument();
     expect(screen.getByText("Polling every 60s")).toBeInTheDocument();
+    expect(screen.getByText("GSD Dashboard is up to date")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Check for Updates" })).toBeInTheDocument();
     expect(screen.queryByText(/Auto-retry/)).not.toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("Live updates are using polling");
 
     const sectionHeadings = screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent);
     expect(sectionHeadings.indexOf("Watcher Status")).toBeGreaterThan(sectionHeadings.indexOf("Scan roots"));
     expect(sectionHeadings.indexOf("Watcher Status")).toBeLessThan(sectionHeadings.indexOf("Hidden projects"));
+    expect(sectionHeadings.indexOf("GSD Dashboard is up to date")).toBeGreaterThan(sectionHeadings.indexOf("Rebuild Cache"));
+    expect(sectionHeadings.indexOf("GSD Dashboard is up to date")).toBeLessThan(sectionHeadings.indexOf("Indexing"));
   });
 });
 
