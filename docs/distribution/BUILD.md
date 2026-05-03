@@ -44,3 +44,23 @@ Optional secret:
 - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` only when the generated updater private key uses a password.
 
 Before v1.0, confirm the updater private key has an offline backup outside the repository. Losing the updater private key permanently prevents existing installs from accepting future updates.
+
+## Private prerelease updater proof
+
+Keep this checklist unchecked until the staging release has been completed with real private GitHub prerelease artifacts.
+
+- [ ] GitHub Actions secret `TAURI_SIGNING_PRIVATE_KEY` exists for this repository.
+- [ ] GitHub Actions secret `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` exists only if the generated updater key uses a password.
+- [ ] The updater private key has an offline backup outside the repository.
+- [ ] Private prerelease update was installed from real signed artifacts and verified after restart.
+
+Evidence to record before v1.0:
+
+- `old_tag`:
+- `new_tag`:
+- `artifact_url`:
+- `manifest_url`:
+- `old_version`:
+- `new_version`:
+- `verified_at`:
+- `result`:
