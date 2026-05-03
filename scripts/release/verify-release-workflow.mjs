@@ -26,18 +26,55 @@ function requireRegex(source, pattern, description) {
   }
 }
 
+function topLevelBlock(source, blockName) {
+  const lines = source.split("\n");
+  const start = lines.findIndex((line) => line === `${blockName}:`);
+  if (start === -1) {
+    return "";
+  }
+
+  const block = [lines[start]];
+  for (const line of lines.slice(start + 1)) {
+    if (/^\S/.test(line)) {
+      break;
+    }
+    block.push(line);
+  }
+  return block.join("\n");
+}
+
+function firstIndentedBlock(source, blockName) {
+  const lines = source.split("\n");
+  const start = lines.findIndex((line) => line.trim() === `${blockName}:`);
+  if (start === -1) {
+    return "";
+  }
+
+  const indent = lines[start].match(/^\s*/)?.[0].length ?? 0;
+  const block = [lines[start]];
+  for (const line of lines.slice(start + 1)) {
+    if (line.trim() !== "" && (line.match(/^\s*/)?.[0].length ?? 0) <= indent) {
+      break;
+    }
+    block.push(line);
+  }
+  return block.join("\n");
+}
+
 /**
  * Validates release workflow permissions, matrix, and publishing gates.
  */
 export function validateReleaseWorkflow(source) {
   requireRegex(source, /push:\s*(?:\n[\s\S]*?)tags:\s*(?:\n[\s\S]*?-\s*["']?v\*\.\*\.\*["']?|\[[^\]]*["']?v\*\.\*\.\*["']?[^\]]*\])/m, `push.tags ${REQUIRED_TAG_PATTERN}`);
 
+  const permissionsBlock = topLevelBlock(source, "permissions");
   for (const permission of REQUIRED_PERMISSIONS) {
-    requireIncludes(source, permission, `least-privilege permission ${permission}`);
+    requireIncludes(permissionsBlock, permission, `least-privilege permission ${permission}`);
   }
 
+  const matrixBlock = firstIndentedBlock(source, "matrix");
   for (const osValue of REQUIRED_OS_VALUES) {
-    requireIncludes(source, osValue, `matrix OS ${osValue}`);
+    requireIncludes(matrixBlock, osValue, `matrix OS ${osValue}`);
   }
 
   requireIncludes(source, "rustup target add aarch64-apple-darwin x86_64-apple-darwin", "macOS universal Rust targets");
@@ -131,6 +168,12 @@ export async function runSelfTest() {
 
 async function main() {
   const args = process.argv.slice(2);
+  const knownFlags = new Set(["--self-test", "--matrix"]);
+  const unknownFlags = args.filter((arg) => arg.startsWith("--") && !knownFlags.has(arg));
+  if (unknownFlags.length > 0) {
+    fail(`unknown option(s): ${unknownFlags.join(", ")}`);
+  }
+
   if (args.includes("--self-test")) {
     await runSelfTest();
     return;

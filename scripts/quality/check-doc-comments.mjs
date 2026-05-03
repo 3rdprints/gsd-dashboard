@@ -51,14 +51,26 @@ function isDocumented(lines, lineIndex) {
   while (previous >= 0 && lines[previous].trim() === "") {
     previous -= 1;
   }
-  return previous >= 0 &&
-    lines[previous].includes("*/") &&
-    lines.slice(Math.max(0, previous - 10), previous + 1).some((line) => line.includes("/**"));
+  if (previous < 0 || !lines[previous].includes("*/")) {
+    return false;
+  }
+
+  for (let cursor = previous; cursor >= 0; cursor -= 1) {
+    const text = lines[cursor].trim();
+    if (text.includes("/**")) {
+      return true;
+    }
+    if (cursor !== previous && text !== "" && !text.startsWith("*") && !text.startsWith("/*")) {
+      return false;
+    }
+  }
+
+  return false;
 }
 
 function publicFunctionName(line) {
   return line.match(/^export\s+(?:async\s+)?function\s+(\w+)/)?.[1] ||
-    line.match(/^export\s+const\s+(\w+)\s*=\s*(?:\([^)]*\)|[^=]+=>)/)?.[1] ||
+    line.match(/^export\s+const\s+(\w+)\s*=\s*(?:async\s*)?(?:<[^>]+>\s*)?(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>/)?.[1] ||
     null;
 }
 

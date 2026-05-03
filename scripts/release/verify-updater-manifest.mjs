@@ -40,6 +40,17 @@ function isInlineSignature(value) {
   return !/\.sig(?:[?#].*)?$/i.test(value.trim());
 }
 
+function isIsoUtcTimestamp(value) {
+  if (typeof value !== "string") {
+    return false;
+  }
+  const trimmed = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(trimmed)) {
+    return false;
+  }
+  return !Number.isNaN(Date.parse(trimmed));
+}
+
 /**
  * Validates a generated updater manifest before release publication.
  */
@@ -48,8 +59,8 @@ export function validateUpdaterManifest(manifest) {
     fail("updater manifest requires a nonempty version");
   }
 
-  if (typeof manifest.pub_date !== "string" || manifest.pub_date.trim() === "") {
-    fail("updater manifest requires pub_date to be a non-empty string");
+  if (!isIsoUtcTimestamp(manifest.pub_date)) {
+    fail("updater manifest requires pub_date to be a valid UTC ISO-8601 timestamp");
   }
 
   const platforms = manifest.platforms;
@@ -106,7 +117,7 @@ function invalidManifestFixture() {
 
 function invalidPubDateFixture() {
   const manifest = validManifestFixture();
-  manifest.pub_date = 12345;
+  manifest.pub_date = "not-a-date";
   return manifest;
 }
 
@@ -125,7 +136,7 @@ export async function runSelfTest() {
 
     await validatePath(validPath);
     await assert.rejects(() => validatePath(invalidPath), /signature/);
-    await assert.rejects(() => validatePath(invalidPubDatePath), /pub_date to be a non-empty string/);
+    await assert.rejects(() => validatePath(invalidPubDatePath), /pub_date to be a valid UTC ISO-8601 timestamp/);
   } finally {
     rmSync(tempDir, { force: true, recursive: true });
   }

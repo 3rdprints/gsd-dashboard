@@ -38,7 +38,9 @@ cp -R "${TEMP_DIR}/vendor/." "${BUNDLE_ROOT}/vendor/"
 
 if [ "${check_mode}" = true ]; then
   test -f "${BUNDLE_ROOT}/docs/distribution/BUILD.md"
+  test -f "${BUNDLE_ROOT}/package.json"
   test -f "${BUNDLE_ROOT}/package-lock.json"
+  test -f "${BUNDLE_ROOT}/src-tauri/Cargo.toml"
   test -f "${BUNDLE_ROOT}/src-tauri/Cargo.lock"
   test -d "${BUNDLE_ROOT}/vendor"
   echo "source bundle check passed"
