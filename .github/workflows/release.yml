@@ -184,6 +184,9 @@ jobs:
       - name: Verify Pages site
         run: node scripts/release/verify-pages-site.mjs site-dist/index.html site-dist/install.sh
 
+      - name: Build source bundle
+        run: scripts/release/build-source-bundle.sh --check
+
       - name: Upload release assets
         env:
           GH_TOKEN: ${{ github.token }}
@@ -191,7 +194,7 @@ jobs:
         run: |
           tag="${GITHUB_REF_NAME}"
           gh release view "${tag}" >/dev/null 2>&1 || gh release create "${tag}" --title "${tag}" --notes-file release-notes.md
-          gh release upload "${tag}" downloaded-artifacts/* site-dist/updates/latest.json --clobber
+          gh release upload "${tag}" downloaded-artifacts/* site-dist/updates/latest.json dist-release/gsd-dashboard-source-*.tar.gz --clobber
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
