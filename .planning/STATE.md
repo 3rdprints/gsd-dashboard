@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Parser & Agent Telemetry Expansion
 status: executing
-last_updated: "2026-05-03T14:41:09.036Z"
+last_updated: "2026-05-03T14:48:45.184Z"
 progress:
   total_phases: 9
   completed_phases: 8
   total_plans: 49
-  completed_plans: 47
-  percent: 96
+  completed_plans: 48
+  percent: 98
 ---
 
 # State: GSD Dashboard
@@ -23,13 +23,13 @@ progress:
 ## Current Position
 
 Phase: 09 (packaging-updater-distribution) — EXECUTING
-Plan: 5 of 6
+Plan: 6 of 6
 **Milestone:** v1.0 MVP
 **Phase:** 09
-**Plan:** 5 of 6
+**Plan:** 6 of 6
 **Status:** Ready to execute
 
-**Progress:** [██████████] 96%
+**Progress:** [██████████] 98%
 
 ```
 Milestone: [████......] 4/10 phases
@@ -86,6 +86,7 @@ Overall:   [████......] 40%
 - Plan 09-02 duration: 7 min; tasks: 3; files modified: 8
 - Plan 09-03 duration: 7 min; tasks: 3; files modified: 7
 - Plan 09-04 duration: 5 min; tasks: 2; files modified: 5
+- Plan 09-05 duration: 4 min; tasks: 2; files modified: 3
 
 ## Accumulated Context
 
@@ -192,6 +193,8 @@ Overall:   [████......] 40%
 - [Phase 09-packaging-updater-distribution]: Use a nonthrowing updater wrapper that returns UI states rather than exposing Tauri updater exceptions to React components.
 - [Phase 09-packaging-updater-distribution]: Updater manifest publishing fails fast on missing TAURI_SIGNING_PRIVATE_KEY while installer artifacts can still be built without Apple or Windows signing credentials.
 - [Phase 09-packaging-updater-distribution]: Generate updater metadata from actual Tauri artifact files and their .sig contents rather than handwritten signature values.
+- [Phase 09-packaging-updater-distribution]: Native installers remain the primary install path; cargo install is documented as a developer fallback with caveats. — Matches the install-site plan and Phase 09 distribution decisions.
+- [Phase 09-packaging-updater-distribution]: The install script derives download and manual URLs from GSD_DASHBOARD_BASE_URL so release/staging Pages roots can be swapped without editing the script. — Supports Pages staging and the release workflow site-dist layout.
 
 ### Roadmap Evolution
 
@@ -222,9 +225,9 @@ Overall:   [████......] 40%
 
 ## Session Continuity
 
-**Last session:** 2026-05-03T14:41:09.031Z
+**Last session:** 2026-05-03T14:48:17.202Z
 
-**Next session should:** Execute Phase 09 Plan 05.
+**Next session should:** Execute Phase 09 Plan 06.
 
 ---
 *State initialized: 2026-04-23*

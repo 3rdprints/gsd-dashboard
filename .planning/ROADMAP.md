@@ -125,7 +125,14 @@ Plans:
   3. Hovering the tray icon shows a concise tooltip summary (e.g. "3 active projects · Foo 62% · Bar 31%"); left-click toggles show/hide of the main window on every platform including Linux AppIndicator (where "Show dashboard" is always present in the right-click menu as a fallback).
   4. Right-clicking the tray reveals per-project entries that open Project Detail, a "Copy next command" submenu per active project that writes to the OS clipboard, plus Show dashboard / Preferences / Quit.
   5. The tray re-renders promptly on scan completion, on settings changes (max bars, sort order, per-project tray show/hide independent of overall hidden state), and on progress updates — without blocking click handling — and tray display preferences (max bars, sort, per-project show/hide) are configurable in Settings.
-**Plans**: TBD
+**Plans**: 6 plans
+Plans:
+- [x] 09-01-PLAN.md — Wave 0 release, updater, manifest, and Pages validators
+- [x] 09-02-PLAN.md — Tauri updater configuration and key custody
+- [x] 09-03-PLAN.md — User-mediated update UX
+- [x] 09-04-PLAN.md — Release workflow and updater manifest generation
+- [x] 09-05-PLAN.md — GitHub Pages install surface and installer script
+- [ ] 09-06-PLAN.md — Source bundle generation and BUILD.md distribution runbook
 **UI hint**: yes
 
 ### Phase 7: Live Updates
@@ -184,7 +191,7 @@ Plans:
 | 6. Tray Icon with Milestone Bars | 0/? | Not started | - |
 | 7. Live Updates | 0/? | Not started | - |
 | 8. Autostart & OS Polish | 0/? | Not started | - |
-| 9. Packaging, Updater & Distribution | 0/? | Not started | - |
+| 9. Packaging, Updater & Distribution | 5/6 | In Progress | - |
 
 ---
 *Roadmap created: 2026-04-23*
