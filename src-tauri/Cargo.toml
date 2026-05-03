@@ -4,6 +4,20 @@ version = "0.1.0"
 description = "GSD Dashboard desktop app"
 authors = ["smacdonald"]
 edition = "2021"
+include = [
+  "build.rs",
+  "Cargo.lock",
+  "Cargo.toml",
+  "src/**",
+  "icons/**",
+  "capabilities/**",
+  "permissions/**",
+  "tauri.conf.json",
+  "dist/index.html",
+  "dist/assets/**",
+  "../dist/index.html",
+  "../dist/assets/**",
+]
 
 [build-dependencies]
 tauri-build = { version = "2.5.6", features = [] }

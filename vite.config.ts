@@ -7,6 +7,7 @@ export default defineConfig({
   base: "./",
   plugins: [react(), tailwindcss()],
   build: {
+    outDir: "src-tauri/dist",
     rolldownOptions: {
       output: {
         codeSplitting: {
