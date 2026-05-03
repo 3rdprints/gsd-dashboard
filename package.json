@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host localhost --port 1420 --strictPort",
     "build": "tsc && vite build",
-    "test": "vitest run",
+    "test": "vitest run src",
     "tauri": "tauri",
     "release:verify-workflow": "node scripts/release/verify-release-workflow.mjs",
     "release:verify-tauri-config": "node scripts/release/verify-tauri-config.mjs",
