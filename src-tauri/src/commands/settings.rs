@@ -70,7 +70,7 @@ pub async fn save_settings_with_autostart_backend<
     let saved_settings = settings::save(&state.pool, &state.home_dir, input).await?;
     if current_settings.autostart_enabled != saved_settings.autostart_enabled {
         let autostart_enabled = saved_settings.autostart_enabled;
-        let backend_result = tokio::task::spawn_blocking(move || {
+        let backend_result = match tokio::task::spawn_blocking(move || {
             if autostart_enabled {
                 backend.enable()
             } else {
@@ -78,7 +78,13 @@ pub async fn save_settings_with_autostart_backend<
             }
         })
         .await
-        .map_err(|error| AppError::settings(format!("autostart task failed: {error}")))?;
+        {
+            Ok(result) => result,
+            Err(error) => {
+                settings::save(&state.pool, &state.home_dir, current_settings.into()).await?;
+                return Err(AppError::settings(format!("autostart task failed: {error}")));
+            }
+        };
 
         if let Err(error) = backend_result {
             settings::save(&state.pool, &state.home_dir, current_settings.into()).await?;

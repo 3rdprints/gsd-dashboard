@@ -26,12 +26,20 @@ struct FakeAutostartBackend {
     enable_calls: AtomicUsize,
     disable_calls: AtomicUsize,
     fail: AtomicBool,
+    panic: AtomicBool,
 }
 
 impl FakeAutostartBackend {
     fn fail() -> Self {
         Self {
             fail: AtomicBool::new(true),
+            ..Self::default()
+        }
+    }
+
+    fn panic() -> Self {
+        Self {
+            panic: AtomicBool::new(true),
             ..Self::default()
         }
     }
@@ -48,6 +56,10 @@ impl FakeAutostartBackend {
 impl AutostartBackend for FakeAutostartBackend {
     fn enable(&self) -> Result<(), AppError> {
         self.enable_calls.fetch_add(1, Ordering::SeqCst);
+        assert!(
+            !self.panic.load(Ordering::SeqCst),
+            "autostart enable panicked"
+        );
         if self.fail.load(Ordering::SeqCst) {
             Err(AppError::settings("autostart enable failed"))
         } else {
@@ -57,6 +69,10 @@ impl AutostartBackend for FakeAutostartBackend {
 
     fn disable(&self) -> Result<(), AppError> {
         self.disable_calls.fetch_add(1, Ordering::SeqCst);
+        assert!(
+            !self.panic.load(Ordering::SeqCst),
+            "autostart disable panicked"
+        );
         if self.fail.load(Ordering::SeqCst) {
             Err(AppError::settings("autostart disable failed"))
         } else {
@@ -217,6 +233,41 @@ async fn autostart_settings_save_does_not_persist_or_emit_when_backend_fails() {
     .expect_err("backend failure should reject settings save");
 
     assert!(error.to_string().contains("autostart enable failed"));
+    assert_eq!(backend.enable_calls(), 1);
+    assert_eq!(backend.disable_calls(), 0);
+    assert!(!event_seen.load(Ordering::SeqCst));
+
+    let persisted = settings::load_or_initialize(&state.pool, &state.home_dir)
+        .await
+        .expect("settings should reload");
+    assert!(!persisted.autostart_enabled);
+}
+
+#[tokio::test]
+async fn autostart_settings_save_rolls_back_when_blocking_backend_task_panics() {
+    let (_temp_dir, app, state) = app_and_state().await;
+    let current = settings::load_or_initialize(&state.pool, &state.home_dir)
+        .await
+        .expect("settings should load");
+    assert!(!current.autostart_enabled);
+
+    let event_seen = Arc::new(AtomicBool::new(false));
+    let event_seen_clone = Arc::clone(&event_seen);
+    app.listen("settings-changed", move |_| {
+        event_seen_clone.store(true, Ordering::SeqCst);
+    });
+
+    let backend = Arc::new(FakeAutostartBackend::panic());
+    let error = save_settings_with_autostart_backend(
+        app.handle(),
+        &state,
+        settings_input(&current, true),
+        backend.clone(),
+    )
+    .await
+    .expect_err("backend task panic should reject settings save");
+
+    assert!(error.to_string().contains("autostart task failed"));
     assert_eq!(backend.enable_calls(), 1);
     assert_eq!(backend.disable_calls(), 0);
     assert!(!event_seen.load(Ordering::SeqCst));
