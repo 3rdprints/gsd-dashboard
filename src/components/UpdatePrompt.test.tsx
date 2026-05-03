@@ -30,7 +30,7 @@ describe("UpdatePrompt", () => {
     vi.mocked(checkForUpdate).mockResolvedValue({
       state: "available",
       version: "1.2.3",
-      update: { downloadAndInstall: vi.fn() }
+      update: { downloadAndInstall: vi.fn() } as never
     });
     render(<UpdatePrompt />);
 
