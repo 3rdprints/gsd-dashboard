@@ -8,6 +8,7 @@ use std::{
 
 use deadpool_sqlite::Pool;
 use serde::Serialize;
+use tokio::sync::Mutex;
 
 use crate::watcher::WatcherRuntime;
 
@@ -19,6 +20,7 @@ pub struct AppState {
     pub cache_path: PathBuf,
     pub boot_status: BootStatus,
     pub watcher_runtime: WatcherRuntime,
+    pub settings_lock: Arc<Mutex<()>>,
     tray_refresh_requests: Arc<AtomicU64>,
 }
 
@@ -48,6 +50,7 @@ impl AppState {
             cache_path,
             boot_status,
             watcher_runtime: WatcherRuntime::new(),
+            settings_lock: Arc::new(Mutex::new(())),
             tray_refresh_requests: Arc::new(AtomicU64::new(0)),
         }
     }

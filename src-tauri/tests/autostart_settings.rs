@@ -7,8 +7,12 @@ use gsd_dashboard::{
 };
 use std::sync::{
     atomic::{AtomicBool, AtomicUsize, Ordering},
+    mpsc,
     Arc,
+    Condvar,
+    Mutex,
 };
+use std::time::Duration;
 use tauri::Listener;
 
 #[test]
@@ -78,6 +82,56 @@ impl AutostartBackend for FakeAutostartBackend {
         } else {
             Ok(())
         }
+    }
+}
+
+struct BlockingFailAutostartBackend {
+    entered: Mutex<Option<mpsc::Sender<()>>>,
+    released: Arc<(Mutex<bool>, Condvar)>,
+}
+
+impl BlockingFailAutostartBackend {
+    fn new(entered: mpsc::Sender<()>) -> Self {
+        Self {
+            entered: Mutex::new(Some(entered)),
+            released: Arc::new((Mutex::new(false), Condvar::new())),
+        }
+    }
+
+    fn release(&self) {
+        let (lock, cvar) = &*self.released;
+        let mut released = lock.lock().expect("release lock should not be poisoned");
+        *released = true;
+        cvar.notify_all();
+    }
+
+    fn wait_until_released(&self) {
+        let (lock, cvar) = &*self.released;
+        let mut released = lock.lock().expect("release lock should not be poisoned");
+        while !*released {
+            released = cvar
+                .wait(released)
+                .expect("release lock should not be poisoned");
+        }
+    }
+}
+
+impl AutostartBackend for BlockingFailAutostartBackend {
+    fn enable(&self) -> Result<(), AppError> {
+        if let Some(entered) = self
+            .entered
+            .lock()
+            .expect("entered lock should not be poisoned")
+            .take()
+        {
+            let _ = entered.send(());
+        }
+        self.wait_until_released();
+        Err(AppError::settings("autostart enable failed"))
+    }
+
+    fn disable(&self) -> Result<(), AppError> {
+        Ok(())
     }
 }
 
@@ -276,4 +330,68 @@ async fn autostart_settings_save_rolls_back_when_blocking_backend_task_panics() 
         .await
         .expect("settings should reload");
     assert!(!persisted.autostart_enabled);
+}
+
+#[tokio::test]
+async fn autostart_settings_save_serializes_rollback_against_newer_save() {
+    let (_temp_dir, app, state) = app_and_state().await;
+    let current = settings::load_or_initialize(&state.pool, &state.home_dir)
+        .await
+        .expect("settings should load");
+    assert!(!current.autostart_enabled);
+
+    let (entered_tx, entered_rx) = mpsc::channel();
+    let blocking_backend = Arc::new(BlockingFailAutostartBackend::new(entered_tx));
+    let first_handle = app.handle().clone();
+    let first_state = state.clone();
+    let first_input = settings_input(&current, true);
+    let first_backend = blocking_backend.clone();
+    let first_save = tokio::spawn(async move {
+        save_settings_with_autostart_backend(
+            &first_handle,
+            &first_state,
+            first_input,
+            first_backend,
+        )
+        .await
+    });
+
+    tokio::task::spawn_blocking(move || entered_rx.recv())
+        .await
+        .expect("entered wait should not panic")
+        .expect("first backend should be entered");
+
+    let second_handle = app.handle().clone();
+    let second_state = state.clone();
+    let second_input = settings_input(&current, true);
+    let second_backend = Arc::new(FakeAutostartBackend::default());
+    let second_save = tokio::spawn(async move {
+        save_settings_with_autostart_backend(
+            &second_handle,
+            &second_state,
+            second_input,
+            second_backend,
+        )
+        .await
+    });
+
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    blocking_backend.release();
+
+    let first_error = first_save
+        .await
+        .expect("first save task should not panic")
+        .expect_err("first save should fail");
+    assert!(first_error.to_string().contains("autostart enable failed"));
+
+    let second_saved = second_save
+        .await
+        .expect("second save task should not panic")
+        .expect("second save should succeed");
+    assert!(second_saved.autostart_enabled);
+
+    let persisted = settings::load_or_initialize(&state.pool, &state.home_dir)
+        .await
+        .expect("settings should reload");
+    assert!(persisted.autostart_enabled);
 }

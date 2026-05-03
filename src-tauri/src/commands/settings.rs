@@ -66,6 +66,7 @@ pub async fn save_settings_with_autostart_backend<
     input: SettingsInput,
     backend: B,
 ) -> Result<AppSettings, AppError> {
+    let _settings_guard = state.settings_lock.lock().await;
     let current_settings = settings::load_or_initialize(&state.pool, &state.home_dir).await?;
     let saved_settings = settings::save(&state.pool, &state.home_dir, input).await?;
     if current_settings.autostart_enabled != saved_settings.autostart_enabled {
