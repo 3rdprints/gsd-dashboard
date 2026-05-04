@@ -11,6 +11,9 @@ export type TimeOfDayHistogramProps = {
   data: GlobalHistogramBucket[];
 };
 
+/**
+ * Provides the exported time of day histogram function.
+ */
 export function TimeOfDayHistogram({ data }: TimeOfDayHistogramProps) {
   const chartData = normalizeHours(data);
 

@@ -21,6 +21,9 @@ const detailTabs: Array<{ id: ProjectDetailTab; label: string }> = [
   { id: "charts", label: "Charts" }
 ];
 
+/**
+ * Renders the project detail route.
+ */
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [actionError, setActionError] = useState<string | null>(null);

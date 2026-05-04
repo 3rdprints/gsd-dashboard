@@ -16,6 +16,9 @@ type Chip = {
   remove: () => SessionFilters;
 };
 
+/**
+ * Provides the exported filter chips row function.
+ */
 export function FilterChipsRow({ filters, projects, onChange, onClearAll }: FilterChipsRowProps) {
   const chips = buildChips(filters, projects);
   if (chips.length === 0) return null;

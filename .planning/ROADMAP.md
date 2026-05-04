@@ -17,6 +17,7 @@
 - [ ] **Phase 7: Live Updates** - notify watchers on .planning/ and session dirs with project-level debouncing and 60s polling fallback
 - [ ] **Phase 8: Autostart & OS Polish** - Launch-on-login with hidden-startup on all three OSes
 - [ ] **Phase 9: Packaging, Updater & Distribution** - CI matrix, signed releases, GitHub Pages site + install.sh + updater manifest, cargo install channel
+- [ ] **Phase 9.1: Private Prerelease Updater Proof** - Post-merge signed updater proof with real release artifacts and recorded evidence
 
 ## Phase Details
 
@@ -125,7 +126,14 @@ Plans:
   3. Hovering the tray icon shows a concise tooltip summary (e.g. "3 active projects · Foo 62% · Bar 31%"); left-click toggles show/hide of the main window on every platform including Linux AppIndicator (where "Show dashboard" is always present in the right-click menu as a fallback).
   4. Right-clicking the tray reveals per-project entries that open Project Detail, a "Copy next command" submenu per active project that writes to the OS clipboard, plus Show dashboard / Preferences / Quit.
   5. The tray re-renders promptly on scan completion, on settings changes (max bars, sort order, per-project tray show/hide independent of overall hidden state), and on progress updates — without blocking click handling — and tray display preferences (max bars, sort, per-project show/hide) are configurable in Settings.
-**Plans**: TBD
+**Plans**: 6 plans
+Plans:
+- [x] 09-01-PLAN.md — Wave 0 release, updater, manifest, and Pages validators
+- [x] 09-02-PLAN.md — Tauri updater configuration and key custody
+- [x] 09-03-PLAN.md — User-mediated update UX
+- [x] 09-04-PLAN.md — Release workflow and updater manifest generation
+- [x] 09-05-PLAN.md — GitHub Pages install surface and installer script
+- [x] 09-06-PLAN.md — Source bundle generation and BUILD.md distribution runbook
 **UI hint**: yes
 
 ### Phase 7: Live Updates
@@ -168,9 +176,30 @@ Plans:
   1. Pushing a `v*.*.*` tag triggers a GitHub Actions matrix build that produces and attaches a macOS universal `.dmg` (signed+notarized when an Apple Developer cert is provided, unsigned otherwise), Windows `.msi` + `.exe`, and Linux `.deb` + `.AppImage` + `.rpm` to a GitHub Release, plus a source bundle `.tar.gz` with `cargo vendor` and pinned node deps.
   2. Running `cargo install gsd-dashboard` produces a working binary with the frontend bundled in and documented caveats (no app bundle, no auto-update, macOS Gatekeeper warning).
   3. The GitHub Pages site hosts a landing `index.html` with screenshots and per-platform downloads, an `install.sh` one-liner that detects OS/arch and installs the matching latest artifact, and a signed `updates/latest.json` manifest regenerated on every tagged release.
-  4. An installed dashboard detects a newer released version, verifies its signature against the public key baked into `tauri.conf.json`, and auto-updates — proven end-to-end on at least one staging release before v1.0.
+  4. The release runbook contains a concrete private prerelease updater proof checklist, and the real end-to-end proof is deferred to Phase 9.1 because it requires this phase's release workflow to be merged first.
   5. The updater private key is never stored in plaintext in the repo; it lives in GH Actions secrets and an offline backup, and release CI fails fast if the signing secret is absent.
-**Plans**: TBD
+**Plans**: 6 plans
+Plans:
+- [x] 09-01-PLAN.md — Wave 0 release, updater, manifest, and Pages validators
+- [x] 09-02-PLAN.md — Tauri updater configuration and key custody
+- [x] 09-03-PLAN.md — User-mediated update UX
+- [x] 09-04-PLAN.md — Release workflow and updater manifest generation
+- [x] 09-05-PLAN.md — GitHub Pages install surface and installer script
+- [x] 09-06-PLAN.md — Source bundle generation and BUILD.md distribution runbook
+
+### Phase 9.1: Private Prerelease Updater Proof
+**Goal**: After Phase 9 is merged, prove signed updater artifacts work end-to-end from a private prerelease and record concrete evidence.
+**Depends on**: Phase 9
+**Requirements**: UPD-03
+**Success Criteria** (what must be TRUE):
+  1. The Phase 9 release workflow exists on the ref used for proof tags.
+  2. An older signed proof artifact installs successfully on the primary platform.
+  3. A newer signed proof artifact and `/updates/latest.json` are published by the release workflow.
+  4. The installed older app updates through the Settings update panel and reports the newer version after restart.
+  5. `docs/distribution/BUILD.md` records `old_tag`, `new_tag`, `artifact_url`, `manifest_url`, `old_version`, `new_version`, `verified_at`, and `result`.
+**Plans**: 1 plan
+Plans:
+- [ ] 09.1-01-PLAN.md — Run private prerelease updater proof and record evidence
 
 ## Progress
 
@@ -184,7 +213,8 @@ Plans:
 | 6. Tray Icon with Milestone Bars | 0/? | Not started | - |
 | 7. Live Updates | 0/? | Not started | - |
 | 8. Autostart & OS Polish | 0/? | Not started | - |
-| 9. Packaging, Updater & Distribution | 0/? | Not started | - |
+| 9. Packaging, Updater & Distribution | 6/6 | In Progress | - |
+| 9.1 Private Prerelease Updater Proof | 0/1 | Not started | - |
 
 ---
 *Roadmap created: 2026-04-23*

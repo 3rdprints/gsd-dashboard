@@ -15,6 +15,7 @@ pub mod sessions;
 pub mod settings;
 pub mod store;
 pub mod tray;
+pub mod updater;
 pub mod watcher;
 
 pub use commands::projects::{

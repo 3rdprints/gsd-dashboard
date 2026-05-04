@@ -8,6 +8,9 @@ export type ChartCardProps = {
   children: ReactNode;
 };
 
+/**
+ * Provides the exported chart card function.
+ */
 export function ChartCard({ title, subtitle, loading = false, empty = false, children }: ChartCardProps) {
   return (
     <section className="chart-card" aria-label={`${title} chart`}>

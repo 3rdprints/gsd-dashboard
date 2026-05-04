@@ -1,0 +1,241 @@
+name: release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: ${{ matrix.os }} release build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-latest
+          - windows-latest
+          - ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Validate release tag
+        shell: bash
+        run: |
+          if [[ ! "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release workflow requires a semantic version tag like v1.2.3; got ${GITHUB_REF_NAME}." >&2
+            exit 1
+          fi
+
+      - name: Install Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Configure macOS universal targets
+        if: matrix.os == 'macos-latest'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - name: Install Ubuntu Tauri packages
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Check doc-comment coverage
+        run: npm run docs:check
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Build macOS universal DMG
+        if: matrix.os == 'macos-latest'
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: npm run tauri build -- --target universal-apple-darwin --bundles dmg
+
+      - name: Assert macOS universal bundle
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: |
+          universal_dmg="$(find src-tauri/target/universal-apple-darwin/release/bundle/dmg -type f -name '*universal*.dmg' -print -quit || true)"
+          if [ -n "${universal_dmg}" ]; then
+            echo "macOS universal DMG found: ${universal_dmg}"
+            exit 0
+          fi
+          app_path="$(find src-tauri/target/universal-apple-darwin/release/bundle/macos -maxdepth 1 -type d -name '*.app' -print -quit)"
+          scripts/release/assert-macos-universal.sh "${app_path}"
+
+      - name: Build Windows installers
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npm run tauri build -- --bundles msi,nsis
+
+      - name: Build Linux installers
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npm run tauri build -- --bundles deb,appimage,rpm
+
+      - name: Collect macOS artifacts
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: |
+          mkdir -p release-artifacts
+          find src-tauri/target/universal-apple-darwin/release/bundle -type f \( -name '*.dmg' -o -name '*.app.tar.gz' -o -name '*.sig' \) -exec cp {} release-artifacts/ \;
+
+      - name: Collect Windows artifacts
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          mkdir -p release-artifacts
+          find src-tauri/target/release/bundle -type f \( -name '*.msi' -o -name '*.exe' -o -name '*.sig' \) -exec cp {} release-artifacts/ \;
+
+      - name: Collect Linux artifacts
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          mkdir -p release-artifacts
+          find src-tauri/target/release/bundle -type f \( -name '*.deb' -o -name '*.AppImage' -o -name '*.AppImage.tar.gz' -o -name '*.rpm' -o -name '*.sig' \) -exec cp {} release-artifacts/ \;
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.os }}
+          path: release-artifacts/*
+          if-no-files-found: error
+
+  manifest-pages:
+    name: release manifest and Pages
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Validate release tag
+        shell: bash
+        run: |
+          if [[ ! "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release workflow requires a semantic version tag like v1.2.3; got ${GITHUB_REF_NAME}." >&2
+            exit 1
+          fi
+
+      - name: Install Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: downloaded-artifacts
+          merge-multiple: true
+
+      - name: Assemble Pages site
+        shell: bash
+        run: |
+          rm -rf site-dist && mkdir -p site-dist/updates site-dist/downloads
+          cp -R docs/public/. site-dist/
+          cp downloaded-artifacts/* site-dist/downloads/
+          (
+            cd site-dist/downloads
+            for artifact in *; do
+              if [ -f "${artifact}" ] && [[ "${artifact}" != *.sha256 ]]; then
+                shasum -a 256 "${artifact}" > "${artifact}.sha256"
+              fi
+            done
+          )
+
+      - name: Prepare release notes
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        shell: bash
+        run: |
+          {
+            echo "GSD Dashboard release artifacts for macOS, Windows, and Linux."
+            echo
+            if [ -n "${TAURI_SIGNING_PRIVATE_KEY}" ]; then
+              echo "Signed artifacts: signing credentials were available."
+            else
+              echo "Unsigned artifact: signing credentials were not available."
+            fi
+          } > release-notes.md
+
+      - name: Gate updater signing secrets
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: scripts/release/assert-release-secrets.sh
+
+      - name: Generate updater manifest
+        env:
+          GSD_DASHBOARD_BASE_URL: ${{ vars.GSD_DASHBOARD_BASE_URL }}
+        shell: bash
+        run: |
+          base_url="${GSD_DASHBOARD_BASE_URL:-https://smacdonald.github.io/gsd-dashboard/}"
+          version="${GITHUB_REF_NAME#v}"
+          node scripts/release/generate-updater-manifest.mjs \
+            --version "${version}" \
+            --release-url-base "${base_url%/}/downloads/" \
+            --artifact-dir site-dist/downloads \
+            --out site-dist/updates/latest.json
+          node scripts/release/verify-updater-manifest.mjs site-dist/updates/latest.json
+
+      - name: Verify Pages site
+        run: node scripts/release/verify-pages-site.mjs site-dist/index.html site-dist/install.sh
+
+      - name: Build source bundle
+        run: scripts/release/build-source-bundle.sh
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          gh release view "${tag}" >/dev/null 2>&1 || gh release create "${tag}" --title "${tag}" --notes-file release-notes.md
+          gh release upload "${tag}" downloaded-artifacts/* site-dist/downloads/*.sha256 site-dist/updates/latest.json dist-release/gsd-dashboard-source-*.tar.gz --clobber
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site-dist
+
+      - name: Deploy Pages
+        uses: actions/deploy-pages@v4

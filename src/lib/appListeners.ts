@@ -31,6 +31,9 @@ type TrayNavigatePayload =
       route: string;
     };
 
+/**
+ * Registers Tauri event listeners that invalidate cached application data.
+ */
 export function registerAppListeners() {
   if (!appListenerInternals.hasTauriInternals()) {
     return () => {};
@@ -103,6 +106,9 @@ export function registerAppListeners() {
   };
 }
 
+/**
+ * Reports whether the current runtime exposes Tauri internals.
+ */
 export function hasTauriInternals() {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }

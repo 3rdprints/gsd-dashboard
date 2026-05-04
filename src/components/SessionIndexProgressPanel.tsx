@@ -30,6 +30,9 @@ type SessionIndexProgressPanelProps = {
   state: SessionIndexState;
 };
 
+/**
+ * Renders the session index progress panel.
+ */
 export function SessionIndexProgressPanel({ state }: SessionIndexProgressPanelProps) {
   const isIndexing = state.status === "indexing";
   const failed = state.status === "failed";
@@ -82,6 +85,9 @@ export function SessionIndexProgressPanel({ state }: SessionIndexProgressPanelPr
   );
 }
 
+/**
+ * Reduces incoming progress events into session index event.
+ */
 export function reduceSessionIndexEvent(
   current: SessionIndexState,
   event: SessionIndexEvent
@@ -122,6 +128,9 @@ export function reduceSessionIndexEvent(
   }
 }
 
+/**
+ * Builds the complete session index state used by scan and session progress UI.
+ */
 export function completeSessionIndexState(
   current: SessionIndexState,
   summary: SessionIndexSummary

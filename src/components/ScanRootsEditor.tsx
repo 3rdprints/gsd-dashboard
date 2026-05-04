@@ -37,6 +37,9 @@ type ScanRootsEditorProps = {
   title?: string;
 };
 
+/**
+ * Provides the exported scan roots editor function.
+ */
 export function ScanRootsEditor({ title = "Settings" }: ScanRootsEditorProps) {
   const queryClient = useQueryClient();
   const settings = useQuery({

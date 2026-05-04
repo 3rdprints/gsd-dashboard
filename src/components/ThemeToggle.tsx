@@ -14,6 +14,9 @@ const THEME_OPTIONS: Array<{ value: ThemeMode; label: string; icon: typeof Sun }
   { value: "dark", label: "Dark", icon: Moon }
 ];
 
+/**
+ * Provides the exported theme toggle function.
+ */
 export function ThemeToggle({ onThemeModeChange, themeMode }: ThemeToggleProps) {
   return (
     <div className="theme-toggle" aria-label="Theme mode" role="group">

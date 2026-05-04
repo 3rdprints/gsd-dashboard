@@ -6,8 +6,13 @@
   "scripts": {
     "dev": "vite --host localhost --port 1420 --strictPort",
     "build": "tsc && vite build",
-    "test": "vitest run",
-    "tauri": "tauri"
+    "test": "vitest run src && node --test scripts/release/*.test.mjs",
+    "docs:check": "node scripts/quality/check-doc-comments.mjs --threshold 85",
+    "tauri": "tauri",
+    "release:verify-workflow": "node scripts/release/verify-release-workflow.mjs",
+    "release:verify-tauri-config": "node scripts/release/verify-tauri-config.mjs",
+    "release:verify-manifest": "node scripts/release/verify-updater-manifest.mjs",
+    "release:verify-pages": "node scripts/release/verify-pages-site.mjs"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.8",
@@ -15,6 +20,8 @@
     "@tauri-apps/api": "2.11.0",
     "@tauri-apps/plugin-clipboard-manager": "2.3.2",
     "@tauri-apps/plugin-opener": "2.5.4",
+    "@tauri-apps/plugin-process": "2.3.1",
+    "@tauri-apps/plugin-updater": "2.10.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.9.0",

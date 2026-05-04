@@ -1,7 +1,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    gsd_dashboard::autostart::register_autostart_plugin(tauri::Builder::default())
+    gsd_dashboard::autostart::register_autostart_plugin(
+        gsd_dashboard::updater::register_updater_plugins(tauri::Builder::default()),
+    )
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {

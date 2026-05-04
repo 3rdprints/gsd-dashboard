@@ -6,6 +6,9 @@ type StateExcerptProps = {
   excerpt: string | null;
 };
 
+/**
+ * Provides the exported state excerpt function.
+ */
 export function StateExcerpt({ statePath, excerpt }: StateExcerptProps) {
   const lines = (excerpt ?? "Current position is not available.").split(/\r?\n/);
 

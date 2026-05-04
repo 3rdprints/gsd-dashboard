@@ -4,6 +4,9 @@ type PortfolioHeaderStatsProps = {
   stats: PortfolioStats;
 };
 
+/**
+ * Provides the exported portfolio header stats function.
+ */
 export function PortfolioHeaderStats({ stats }: PortfolioHeaderStatsProps) {
   return (
     <dl className="portfolio-stats" aria-label="Portfolio stats">

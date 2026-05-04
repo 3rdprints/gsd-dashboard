@@ -14,6 +14,9 @@ type ActivityHeatmapProps = {
   endDate?: Date;
 };
 
+/**
+ * Formats heatmap cell class for value.
+ */
 export function heatmapClassForValue(value?: HeatmapCalendarValue | null) {
   const count = value?.count ?? 0;
 
@@ -25,6 +28,9 @@ export function heatmapClassForValue(value?: HeatmapCalendarValue | null) {
   return "heatmap-cell-0";
 }
 
+/**
+ * Formats heatmap cell title for value.
+ */
 export function heatmapTitleForValue(value?: HeatmapCalendarValue | null) {
   const count = value?.count ?? 0;
   const sessionLabel = count === 1 ? "session" : "sessions";
@@ -34,6 +40,9 @@ export function heatmapTitleForValue(value?: HeatmapCalendarValue | null) {
   return `${count.toLocaleString()} ${sessionLabel} · ${projectName} · ${tokenTotal.toLocaleString()} tokens`;
 }
 
+/**
+ * Provides the exported activity heatmap function.
+ */
 export function ActivityHeatmap({ days, endDate = new Date() }: ActivityHeatmapProps) {
   const values = days.map((day) => ({
     date: day.date,

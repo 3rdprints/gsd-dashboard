@@ -19,6 +19,9 @@ export type DayOfWeekChartProps = {
   data: GlobalDayOfWeekBucket[];
 };
 
+/**
+ * Renders the day of week chart.
+ */
 export function DayOfWeekChart({ data }: DayOfWeekChartProps) {
   const chartData = normalizeDays(data);
 

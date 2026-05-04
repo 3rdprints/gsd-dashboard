@@ -27,6 +27,9 @@ type ScanProgressPanelProps = {
   state: ScanState;
 };
 
+/**
+ * Renders the scan progress panel.
+ */
 export function ScanProgressPanel({ state }: ScanProgressPanelProps) {
   const isScanning = state.status === "scanning";
   const completedWithErrors = state.status === "complete" && state.errorCount > 0;
@@ -97,6 +100,9 @@ export function ScanProgressPanel({ state }: ScanProgressPanelProps) {
   );
 }
 
+/**
+ * Reduces incoming progress events into scan event.
+ */
 export function reduceScanEvent(current: ScanState, event: ScanEvent): ScanState {
   switch (event.event) {
     case "started":
@@ -149,6 +155,9 @@ type ScanSummaryPayload = ScanSummary & {
   error_count?: number;
 };
 
+/**
+ * Builds the complete scan state used by scan and session progress UI.
+ */
 export function completeScanState(current: ScanState, summary: ScanSummaryPayload): ScanState {
   const discoveredCount = readCount(
     summary.discoveredCount,

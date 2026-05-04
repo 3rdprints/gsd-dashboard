@@ -15,6 +15,9 @@ type ProjectCardProps = {
   hideDisabled?: boolean;
 };
 
+/**
+ * Provides the exported project card function.
+ */
 export function ProjectCard({ project, onHideProject, hideDisabled = false }: ProjectCardProps) {
   const [copied, setCopied] = useState(false);
   const [hideError, setHideError] = useState(false);

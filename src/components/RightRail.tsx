@@ -9,6 +9,9 @@ type RightRailProps = {
   unmatchedSessions: UnmatchedSessions;
 };
 
+/**
+ * Provides the exported right rail function.
+ */
 export function RightRail({ hiddenProjects, unmatchedSessions }: RightRailProps) {
   return (
     <aside className="right-rail" aria-label="Portfolio side panel">

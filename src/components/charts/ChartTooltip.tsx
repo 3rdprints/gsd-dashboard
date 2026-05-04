@@ -11,6 +11,9 @@ export type ChartTooltipProps = {
   valueFormatter?: (value: number | string) => string;
 };
 
+/**
+ * Provides the exported chart tooltip function.
+ */
 export function ChartTooltip({ active, label, payload, valueFormatter = String }: ChartTooltipProps) {
   if (!active || !payload?.length) {
     return null;

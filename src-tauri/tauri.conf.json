@@ -7,7 +7,7 @@
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
     "devUrl": "http://localhost:1420",
-    "frontendDist": "../dist"
+    "frontendDist": "dist"
   },
   "app": {
     "windows": [
@@ -26,7 +26,23 @@
     }
   },
   "bundle": {
-    "active": false,
-    "targets": "all"
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.ico"
+    ],
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlEMDlGREU3RENCQzQ3QjQKUldTMFI3emM1LzBKblNKNFcyTktBL2xkeFhnb3UvRzhrVXlLZHN0RXFieFc4SkEyazVsRTI4YWkK",
+      "endpoints": [
+        "https://smacdonald.github.io/gsd-dashboard/updates/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

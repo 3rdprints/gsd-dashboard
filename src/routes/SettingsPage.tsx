@@ -3,6 +3,7 @@ import { Database, Eye, Loader2, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { ScanRootsEditor } from "../components/ScanRootsEditor";
+import { UpdatePrompt } from "../components/UpdatePrompt";
 import { WatcherStatusPanel } from "../components/WatcherStatusPanel";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
@@ -26,6 +27,9 @@ const REBUILD_CONFIRMATION =
 const CLEAR_SESSION_INDEX_CONFIRMATION =
   "Clear session index: This removes derived Claude/Codex session rows and index offsets. Source session files will not be changed.";
 
+/**
+ * Renders the settings route.
+ */
 export function SettingsPage() {
   const queryClient = useQueryClient();
   const settings = useQuery({ queryKey: settingsQueryKey, queryFn: getSettings });
@@ -179,6 +183,8 @@ export function SettingsPage() {
       </section>
 
       <ScanProgressPanel state={scanState} />
+
+      <UpdatePrompt />
 
       <section className="settings-panel" aria-labelledby="indexing-title">
         <h2 id="indexing-title">Indexing</h2>

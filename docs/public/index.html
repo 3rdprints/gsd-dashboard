@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GSD Dashboard</title>
+    <meta
+      name="description"
+      content="GSD Dashboard is a local-first desktop app for tracking GSD project progress and coding-session activity."
+    >
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #F7F8FA;
+        --surface: #FFFFFF;
+        --accent: #2563EB;
+        --text: #0E1116;
+        --muted: #4B5563;
+        --line: #D8DEE8;
+        --warning-bg: #FFF7E6;
+        --warning-text: #6B4100;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0E1116;
+          --surface: #171B22;
+          --accent: #60A5FA;
+          --text: #F7F8FA;
+          --muted: #A8B0BD;
+          --line: #2D3440;
+          --warning-bg: #2A2215;
+          --warning-text: #F4C983;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .page {
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .hero {
+        min-height: 88vh;
+        display: grid;
+        grid-template-columns: minmax(0, 0.92fr) minmax(360px, 1.08fr);
+        gap: 32px;
+        align-items: center;
+        padding: 48px 0 32px;
+      }
+
+      .eyebrow,
+      .label {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        margin-bottom: 16px;
+        font-size: 28px;
+        font-weight: 600;
+        line-height: 1.2;
+      }
+
+      h2 {
+        margin-bottom: 16px;
+        font-size: 20px;
+        font-weight: 600;
+        line-height: 1.2;
+      }
+
+      h3 {
+        margin-bottom: 8px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .lede {
+        max-width: 560px;
+        color: var(--muted);
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 24px 0 16px;
+      }
+
+      .button {
+        display: inline-flex;
+        min-height: 40px;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0 16px;
+        background: var(--surface);
+        color: var(--text);
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      .button.primary {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #FFFFFF;
+      }
+
+      .command {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px 16px;
+        background: var(--surface);
+        color: var(--text);
+        font: 600 14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        white-space: nowrap;
+      }
+
+      .note {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .screenshot {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: 0 24px 60px rgb(14 17 22 / 12%);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .card,
+      .section {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+      }
+
+      .card {
+        padding: 16px;
+      }
+
+      .section {
+        margin: 24px 0;
+        padding: 24px;
+      }
+
+      .downloads {
+        margin-top: 24px;
+      }
+
+      .downloads a {
+        display: inline-flex;
+        min-height: 40px;
+        align-items: center;
+        margin-top: 8px;
+        font-weight: 600;
+      }
+
+      .warning {
+        border-color: #E8B84B;
+        background: var(--warning-bg);
+        color: var(--warning-text);
+      }
+
+      .footer {
+        padding: 24px 0 40px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      @media (max-width: 860px) {
+        .hero {
+          min-height: auto;
+          grid-template-columns: 1fr;
+          padding-top: 32px;
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero" aria-label="GSD Dashboard">
+        <div>
+          <p class="eyebrow">Local-first project operations</p>
+          <h1>GSD Dashboard</h1>
+          <p class="lede">
+            Track every Get Shit Done project from one desktop dashboard with milestone progress,
+            session activity, native tray status, and quiet update controls.
+          </p>
+
+          <div class="actions" aria-label="Primary downloads">
+            <a class="button primary" href="https://github.com/smacdonald/gsd-dashboard/releases/latest/download/GSD-Dashboard.dmg">Download for macOS</a>
+            <a class="button" href="#platform-downloads">All platforms</a>
+          </div>
+
+          <p class="label">Cautious script install</p>
+          <code class="command">curl -fsSL https://smacdonald.github.io/gsd-dashboard/install.sh | sh</code>
+          <p class="note">The script detects OS and architecture, shows the selected artifact, and prompts before downloading.</p>
+        </div>
+
+        <img
+          class="screenshot"
+          src="./assets/gsd-dashboard-screenshot.png"
+          width="1280"
+          height="800"
+          alt="GSD Dashboard showing project cards, progress bars, and session activity."
+        >
+      </section>
+
+      <section id="platform-downloads" class="section downloads" aria-labelledby="downloads-title">
+        <h2 id="downloads-title">Native installers first</h2>
+        <div class="grid">
+          <article class="card">
+            <h3>macOS</h3>
+            <p>Universal app bundle packaged as a disk image.</p>
+            <a href="https://github.com/smacdonald/gsd-dashboard/releases/latest/download/GSD-Dashboard.dmg">macOS DMG</a>
+          </article>
+          <article class="card">
+            <h3>Windows</h3>
+            <p>Use the MSI for managed installs or the EXE for the NSIS installer path.</p>
+            <a href="https://github.com/smacdonald/gsd-dashboard/releases/latest/download/GSD-Dashboard.msi">Windows MSI</a><br>
+            <a href="https://github.com/smacdonald/gsd-dashboard/releases/latest/download/GSD-Dashboard.exe">Windows EXE</a>
+          </article>
+          <article class="card">
+            <h3>Linux</h3>
+            <p>Prefer the package format for your distribution family; AppImage is the portable fallback.</p>
+            <a href="https://github.com/smacdonald/gsd-dashboard/releases/latest/download/gsd-dashboard.deb">Linux DEB</a><br>
+            <a href="https://github.com/smacdonald/gsd-dashboard/releases/latest/download/gsd-dashboard.rpm">Linux RPM</a><br>
+            <a href="https://github.com/smacdonald/gsd-dashboard/releases/latest/download/gsd-dashboard.AppImage">Linux AppImage</a>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="screenshots-title">
+        <h2 id="screenshots-title">Screenshots</h2>
+        <img
+          class="screenshot"
+          src="./assets/gsd-dashboard-screenshot.png"
+          width="1280"
+          height="800"
+          alt="Portfolio view with current phases, progress, and daily activity."
+        >
+      </section>
+
+      <section class="section warning" aria-labelledby="caveats-title">
+        <h2 id="caveats-title">Installer caveats</h2>
+        <p>Prefer signed release artifacts for daily use. The installer verifies SHA-256 checksums before opening or installing downloads; use the release assets to inspect signatures and checksums manually.</p>
+      </section>
+
+      <section class="section" aria-labelledby="developer-fallback-title">
+        <h2 id="developer-fallback-title">Developer fallback</h2>
+        <code class="command">cargo install gsd-dashboard</code>
+        <p class="note"><code>cargo install gsd-dashboard</code> installs the binary without a native app bundle, auto-update support, or normal macOS Gatekeeper trust. Prefer the native installer for daily use.</p>
+      </section>
+
+      <section class="section" aria-labelledby="release-debug-title">
+        <h2 id="release-debug-title">Release and debug</h2>
+        <p>
+          <a href="https://github.com/smacdonald/gsd-dashboard/releases/latest/download/gsd-dashboard-source-latest.tar.gz">Source bundle</a>
+          keeps release source and pinned dependency metadata together for source builds.
+        </p>
+        <p>
+          <a href="updates/latest.json">Updater manifest</a>
+          is the stable path used by the desktop updater.
+        </p>
+      </section>
+    </main>
+
+    <footer class="page footer">
+      GSD Dashboard is local-first distribution for GSD project visibility.
+    </footer>
+  </body>
+</html>

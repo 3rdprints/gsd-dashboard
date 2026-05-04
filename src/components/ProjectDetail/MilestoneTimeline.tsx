@@ -8,6 +8,9 @@ type MilestoneTimelineProps = {
   milestones: ProjectMilestone[];
 };
 
+/**
+ * Provides the exported milestone timeline function.
+ */
 export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
   const [expanded, setExpanded] = useState<Set<number>>(() => {
     const activeIndex = milestones.findIndex((milestone) =>

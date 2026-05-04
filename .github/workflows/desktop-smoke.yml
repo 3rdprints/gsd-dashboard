@@ -45,8 +45,11 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
+      - name: Check doc-comment coverage
+        run: npm run docs:check
+
       - name: Build frontend
         run: npm run build
 
       - name: Build Tauri debug app
-        run: npm run tauri build -- --debug
+        run: npm run tauri build -- --debug --no-bundle

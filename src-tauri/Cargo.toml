@@ -4,6 +4,18 @@ version = "0.1.0"
 description = "GSD Dashboard desktop app"
 authors = ["smacdonald"]
 edition = "2021"
+include = [
+  "build.rs",
+  "Cargo.lock",
+  "Cargo.toml",
+  "src/**",
+  "icons/**",
+  "capabilities/**",
+  "permissions/**",
+  "tauri.conf.json",
+  "dist/index.html",
+  "dist/assets/**",
+]
 
 [build-dependencies]
 tauri-build = { version = "2.5.6", features = [] }
@@ -22,12 +34,14 @@ dirs = "6.0.0"
 gray_matter = "0.3.2"
 ignore = "0.4.25"
 notify = "=8.2.0"
-notify-debouncer-full = "0.7"
+notify-debouncer-full = "0.5"
 pulldown-cmark = "0.13.3"
 tauri-plugin-clipboard-manager = "2.3.2"
 tauri-plugin-opener = "2.5.3"
 tiny-skia = "0.12.0"
 tauri-plugin-autostart = "2.5.1"
+tauri-plugin-updater = "2.10.1"
+tauri-plugin-process = "2.3.1"
 
 [dev-dependencies]
 tauri = { version = "2.10.3", features = ["test"] }

@@ -33,6 +33,9 @@ export type ProjectChartsTabProps = {
   projectId: string;
 };
 
+/**
+ * Renders the project charts project detail tab.
+ */
 export function ProjectChartsTab({ projectId }: ProjectChartsTabProps) {
   const [range, setRange] = useState<ProjectChartRange>("30d");
   const charts = useQuery({
