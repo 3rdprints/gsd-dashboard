@@ -230,7 +230,7 @@ jobs:
           gh release upload "${tag}" downloaded-artifacts/* site-dist/downloads/*.sha256 site-dist/updates/latest.json dist-release/gsd-dashboard-source-*.tar.gz --clobber
 
       - name: Configure Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
