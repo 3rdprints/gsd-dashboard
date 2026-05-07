@@ -88,16 +88,15 @@ This project was initialized with `/gsd-new-project`. Phase workflow:
 <claude-mem-context>
 # Memory Context
 
-# [gsd-dashboard] recent context, 2026-05-07 8:23am EDT
+# [gsd-dashboard] recent context, 2026-05-07 8:25am EDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (16,945t read) | 404,180t work | 96% savings
+Stats: 50 obs (16,723t read) | 388,511t work | 96% savings
 
 ### May 3, 2026
-5 4:30p 🔵 Build Failures Root Cause: Missing Application Icons for Desktop Bundling
 7 4:31p 🔵 Icon Assets Exist but Bundler Can't Locate Them: Configuration Missing in Cargo.toml
 8 " 🔵 Icon Assets Valid and Properly Formatted; Missing Reference in Cargo.toml Build Configuration
 9 " 🔴 Fixed failing PR checks by stabilizing release validation and workflow
@@ -150,6 +149,7 @@ Stats: 50 obs (16,945t read) | 404,180t work | 96% savings
 1749 " 🔵 Composite action upload-pages-artifact internally uses newer upload-artifact dependency
 1750 8:12a ✅ Updated GitHub Actions to Node 24 compatible versions in release workflow
 1753 " ✅ Committed GitHub Actions Node 24 runtime upgrade to release workflow
+1764 8:23a ✅ Updated AGENTS.md with agent memory context documentation
 
-Access 404k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 389k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>
