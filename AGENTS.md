@@ -83,3 +83,68 @@ This project was initialized with `/gsd-new-project`. Phase workflow:
 
 ---
 *Last updated: 2026-04-24 after Phase 01 foundation completion*
+
+
+<claude-mem-context>
+# Memory Context
+
+# [gsd-dashboard] recent context, 2026-05-07 8:09am EDT
+
+Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
+Format: ID TIME TYPE TITLE
+Fetch details: get_observations([IDs]) | Search: mem-search skill
+
+Stats: 45 obs (16,287t read) | 428,995t work | 96% savings
+
+### May 3, 2026
+1 4:28p 🔵 PR #26 Status: 2 Failing Builds, 22 Unresolved CodeRabbit Comments
+2 " 🔵 Build Failures Occur During Tauri Desktop Build Phase
+3 4:29p 🔵 Build Logs Contain No Standard Error Patterns
+4 " 🔵 Failed Step Identified: Build Tauri Debug App Process Timeout/Termination
+5 4:30p 🔵 Build Failures Root Cause: Missing Application Icons for Desktop Bundling
+6 " 🔵 22 CodeRabbit Review Comments Identified Across Release Tooling and Components
+7 4:31p 🔵 Icon Assets Exist but Bundler Can't Locate Them: Configuration Missing in Cargo.toml
+8 " 🔵 Icon Assets Valid and Properly Formatted; Missing Reference in Cargo.toml Build Configuration
+9 " 🔴 Fixed failing PR checks by stabilizing release validation and workflow
+10 5:17p 🔴 URL signature validation expanded to reject all URL schemes
+11 5:19p 🔵 GitHub Actions smoke tests passed on all platforms for URL signature validation fix
+12 5:20p 🔵 All PR #26 checks passed including smoke tests and code review
+81 9:55p 🔵 Cross-phase integration audit: Frontend-backend IPC and event-driven cache invalidation architecture
+82 9:56p 🔵 Requirements documentation out of sync with phase implementation evidence
+83 " 🔵 Settings-autostart-tray integration with transactional rollback on failure
+84 9:57p 🔵 Milestone scoping mismatch: STATE.md lists Phase 10 in v1.0; ROADMAP.md does not
+85 " 🔵 Frontend test infrastructure misconfigured; backend integration tests fully operational
+110 10:21p 🔵 Phase 09.1 missing from ROADMAP.md despite having executable plan
+111 " 🔵 Task 1 preflight verification passes - release infrastructure and evidence gates confirmed
+113 10:23p 🔵 Phase 09.1 IS defined in ROADMAP.md despite roadmap.get-phase query returning not-found
+114 " 🔵 Phase 9.1 plan structure fully valid; all three tasks properly formed for execution
+### May 4, 2026
+171 6:09a 🔵 Phase 9.1 structure and preflight verification completed
+181 6:18a 🔵 Batch execution context tool times out at 120 seconds
+182 " 🔵 Release verification infrastructure exists without automated test coverage
+183 6:19a 🔵 All frontend and release script tests passing (86 tests, 0 failures)
+184 6:21a 🔵 Rust cargo test suite exceeds 120-second timeout
+185 " 🔵 Rust backend cargo test suite passes 60+ tests across multiple modules
+186 " 🔵 Rust cargo test suite: 163+ tests across 30+ modules, 2 ignored, all passing
+187 " 🔵 Rust cargo test suite completes successfully: 170+ tests pass, exit code 0
+### May 6, 2026
+1450 10:22p 🔵 v0.1.1 Release Job Failed with Completion Status
+1451 10:23p ✅ Rerun Failed Release Jobs via GitHub Actions
+1452 " ✅ Release Job Rerun Queued and Monitoring Initiated
+1453 " ✅ Release Job Execution In Progress
+1454 " 🔵 Release Build Job Status: Multi-Platform Progress
+1455 10:24p 🔵 macOS Release Build Running Without Failures
+1456 10:27p 🔵 Release Build Status: macOS Still Running, Platform Builds Progressing
+1498 11:04p 🔵 macOS notarization failure blocking v0.1.1 release
+1499 " 🔵 macOS notarization fails with 401 authentication error
+1556 11:44p 🔵 GSD Phase 9.1 Execution In Progress
+1557 " 🔵 macOS Release Build Job Has No Log Output
+### May 7, 2026
+1717 7:52a 🔵 GitHub Pages not enabled on repository despite deployment workflow in place
+1737 8:08a 🔵 GitHub Pages URL references identified across codebase
+1738 8:09a ✅ Updated GitHub Pages URL from smacdonald to horknfbr across all configuration and release scripts
+1739 " ✅ Configured GitHub Pages for horknfbr/gsd-dashboard repository
+1740 " 🔵 URL migration verification complete - all old references removed, new URLs confirmed
+
+Access 429k tokens of past work via get_observations([IDs]) or mem-search skill.
+</claude-mem-context>
