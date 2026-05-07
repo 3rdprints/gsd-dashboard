@@ -88,21 +88,16 @@ This project was initialized with `/gsd-new-project`. Phase workflow:
 <claude-mem-context>
 # Memory Context
 
-# [gsd-dashboard] recent context, 2026-05-07 8:09am EDT
+# [gsd-dashboard] recent context, 2026-05-07 8:23am EDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 45 obs (16,287t read) | 428,995t work | 96% savings
+Stats: 50 obs (16,945t read) | 404,180t work | 96% savings
 
 ### May 3, 2026
-1 4:28p 🔵 PR #26 Status: 2 Failing Builds, 22 Unresolved CodeRabbit Comments
-2 " 🔵 Build Failures Occur During Tauri Desktop Build Phase
-3 4:29p 🔵 Build Logs Contain No Standard Error Patterns
-4 " 🔵 Failed Step Identified: Build Tauri Debug App Process Timeout/Termination
 5 4:30p 🔵 Build Failures Root Cause: Missing Application Icons for Desktop Bundling
-6 " 🔵 22 CodeRabbit Review Comments Identified Across Release Tooling and Components
 7 4:31p 🔵 Icon Assets Exist but Bundler Can't Locate Them: Configuration Missing in Cargo.toml
 8 " 🔵 Icon Assets Valid and Properly Formatted; Missing Reference in Cargo.toml Build Configuration
 9 " 🔴 Fixed failing PR checks by stabilizing release validation and workflow
@@ -145,6 +140,16 @@ Stats: 45 obs (16,287t read) | 428,995t work | 96% savings
 1738 8:09a ✅ Updated GitHub Pages URL from smacdonald to horknfbr across all configuration and release scripts
 1739 " ✅ Configured GitHub Pages for horknfbr/gsd-dashboard repository
 1740 " 🔵 URL migration verification complete - all old references removed, new URLs confirmed
+1741 " ✅ URL migration fully verified with all release automation tests passing
+1742 " ✅ GitHub Pages URL migration committed to repository
+1744 8:10a 🔵 GitHub Actions versions in use across workflow automation
+1745 " 🔵 GitHub Actions runtime version mismatch - some actions use Node 20 despite Node 24 workflows
+1746 8:11a 🔵 Upgrade path identified for download-artifact action
+1747 " 🔵 Additional GitHub Actions upgrades available for Node 24 alignment
+1748 " 🔵 Complete GitHub Actions upgrade path identified for Node 24 alignment
+1749 " 🔵 Composite action upload-pages-artifact internally uses newer upload-artifact dependency
+1750 8:12a ✅ Updated GitHub Actions to Node 24 compatible versions in release workflow
+1753 " ✅ Committed GitHub Actions Node 24 runtime upgrade to release workflow
 
-Access 429k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 404k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>
