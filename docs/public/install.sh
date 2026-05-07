@@ -25,7 +25,7 @@ for arg in "$@"; do
   esac
 done
 
-base_url="${GSD_DASHBOARD_BASE_URL:-https://smacdonald.github.io/gsd-dashboard/}"
+base_url="${GSD_DASHBOARD_BASE_URL:-https://horknfbr.github.io/gsd-dashboard/}"
 base_url="${base_url%/}/"
 manual_url="${base_url}#platform-downloads"
 

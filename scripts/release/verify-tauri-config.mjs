@@ -89,7 +89,7 @@ function validConfigFixture() {
     plugins: {
       updater: {
         pubkey: "trusted-public-key",
-        endpoints: ["https://smacdonald.github.io/gsd-dashboard/updates/latest.json"],
+        endpoints: ["https://horknfbr.github.io/gsd-dashboard/updates/latest.json"],
         windows: {
           installMode: "passive"
         }

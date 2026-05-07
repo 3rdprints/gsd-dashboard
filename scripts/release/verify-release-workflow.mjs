@@ -131,7 +131,7 @@ jobs:
       - name: Document unsigned artifact caveat
         run: echo "Unsigned installer artifacts are published only with explicit caveat text."
       - name: Set base URL default
-        run: echo "GSD_DASHBOARD_BASE_URL=\${GSD_DASHBOARD_BASE_URL:-https://smacdonald.github.io/gsd-dashboard}" >> "$GITHUB_ENV"
+        run: echo "GSD_DASHBOARD_BASE_URL=\${GSD_DASHBOARD_BASE_URL:-https://horknfbr.github.io/gsd-dashboard}" >> "$GITHUB_ENV"
       - uses: actions/upload-pages-artifact@v4
       - uses: actions/deploy-pages@v4
 `;

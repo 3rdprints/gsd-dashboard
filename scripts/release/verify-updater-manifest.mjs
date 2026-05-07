@@ -105,15 +105,15 @@ function validManifestFixture() {
     pub_date: "2026-05-03T00:00:00Z",
     platforms: {
       "darwin-universal": {
-        url: "https://smacdonald.github.io/gsd-dashboard/downloads/GSD-Dashboard_0.1.1_universal.dmg",
+        url: "https://horknfbr.github.io/gsd-dashboard/downloads/GSD-Dashboard_0.1.1_universal.dmg",
         signature: "darwin-inline-signature"
       },
       "windows-x86_64": {
-        url: "https://smacdonald.github.io/gsd-dashboard/downloads/GSD-Dashboard_0.1.1_x64_en-US.msi",
+        url: "https://horknfbr.github.io/gsd-dashboard/downloads/GSD-Dashboard_0.1.1_x64_en-US.msi",
         signature: "windows-inline-signature"
       },
       "linux-x86_64": {
-        url: "https://smacdonald.github.io/gsd-dashboard/downloads/gsd-dashboard_0.1.1_amd64.AppImage.tar.gz",
+        url: "https://horknfbr.github.io/gsd-dashboard/downloads/gsd-dashboard_0.1.1_amd64.AppImage.tar.gz",
         signature: "linux-inline-signature"
       }
     }
@@ -122,7 +122,7 @@ function validManifestFixture() {
 
 function invalidManifestFixture() {
   const manifest = validManifestFixture();
-  manifest.platforms["darwin-universal"].signature = "http://smacdonald.github.io/gsd-dashboard/downloads/GSD-Dashboard.sig";
+  manifest.platforms["darwin-universal"].signature = "http://horknfbr.github.io/gsd-dashboard/downloads/GSD-Dashboard.sig";
   manifest.platforms["windows-x86_64"].signature = "data:text/plain,windows-signature";
   manifest.platforms["linux-x86_64"].signature = "downloads/linux.sig";
   return manifest;
