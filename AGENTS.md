@@ -88,7 +88,7 @@ This project was initialized with `/gsd-new-project`. Phase workflow:
 <claude-mem-context>
 # Memory Context
 
-# [gsd-dashboard] recent context, 2026-05-07 8:25am EDT
+## [gsd-dashboard] recent context, 2026-05-07 8:25am EDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
 Format: ID TIME TYPE TITLE
