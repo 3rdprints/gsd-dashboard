@@ -9,7 +9,7 @@ const DEFAULT_WORKFLOW_PATH = ".github/workflows/release.yml";
 const REQUIRED_TAG_PATTERN = "v*.*.*";
 const REQUIRED_OS_VALUES = ["macos-latest", "windows-latest", "ubuntu-latest"];
 const REQUIRED_PERMISSIONS = ["contents: write", "pages: write", "id-token: write"];
-const REQUIRED_BASE_URL = "https://horknfbr.github.io/gsd-dashboard";
+const REQUIRED_BASE_URL = "https://3rdprints.github.io/gsd-dashboard";
 
 function fail(message) {
   throw new Error(message);
@@ -40,7 +40,7 @@ function requireCanonicalBaseUrl(source) {
     fail(`release workflow GSD_DASHBOARD_BASE_URL default is not a valid URL: ${match[1]}`);
   }
 
-  if (url.protocol !== "https:" || url.hostname !== "horknfbr.github.io") {
+  if (url.protocol !== "https:" || url.hostname !== "3rdprints.github.io") {
     fail(`release workflow GSD_DASHBOARD_BASE_URL default must use ${REQUIRED_BASE_URL}`);
   }
 
@@ -155,7 +155,7 @@ jobs:
       - name: Document unsigned artifact caveat
         run: echo "Unsigned installer artifacts are published only with explicit caveat text."
       - name: Set base URL default
-        run: echo "GSD_DASHBOARD_BASE_URL=\${GSD_DASHBOARD_BASE_URL:-https://horknfbr.github.io/gsd-dashboard}" >> "$GITHUB_ENV"
+        run: echo "GSD_DASHBOARD_BASE_URL=\${GSD_DASHBOARD_BASE_URL:-https://3rdprints.github.io/gsd-dashboard}" >> "$GITHUB_ENV"
       - name: Verify release config and build smoke
         run: |
           npm ci

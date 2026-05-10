@@ -214,7 +214,7 @@ jobs:
           GSD_DASHBOARD_BASE_URL: ${{ vars.GSD_DASHBOARD_BASE_URL }}
         shell: bash
         run: |
-          base_url="${GSD_DASHBOARD_BASE_URL:-https://horknfbr.github.io/gsd-dashboard}"
+          base_url="${GSD_DASHBOARD_BASE_URL:-https://3rdprints.github.io/gsd-dashboard}"
           version="${GITHUB_REF_NAME#v}"
           node scripts/release/generate-updater-manifest.mjs \
             --version "${version}" \

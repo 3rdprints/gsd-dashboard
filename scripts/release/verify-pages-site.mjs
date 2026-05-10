@@ -98,7 +98,7 @@ done
 os="$(uname -s)"
 arch="$(uname -m)"
 artifact="GSD-Dashboard.dmg"
-base_url="\${GSD_DASHBOARD_BASE_URL:-https://horknfbr.github.io/gsd-dashboard}"
+base_url="\${GSD_DASHBOARD_BASE_URL:-https://3rdprints.github.io/gsd-dashboard}"
 printf 'Install \`%s\` for \`%s/%s\`? ' "$artifact" "$os" "$arch"
 prompt="Install \`\${artifact}\` for \`\${os}/\${arch}\`?"
 checksum_url="\${CHECKSUM_URL:-\${base_url}/downloads/\${artifact}.sha256}"
