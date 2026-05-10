@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GSD Dashboard mockup v2</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f8fb;
+        --panel: #ffffff;
+        --muted: #657085;
+        --line: #dbe3ef;
+        --ink: #152033;
+        --blue: #2563eb;
+        --green: #16a34a;
+        --amber: #d97706;
+        --red: #dc2626;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        width: 1280px;
+        height: 800px;
+        margin: 0;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--ink);
+      }
+      .app-shell {
+        display: grid;
+        grid-template-columns: 168px 1fr;
+        width: 1280px;
+        height: 800px;
+        background: linear-gradient(180deg, #f8fafc 0%, #eef3f9 100%);
+      }
+      .app-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 24px 18px;
+        border-right: 1px solid #d8e1ee;
+        background: #111827;
+        color: #d8dee9;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 18px;
+        font-weight: 800;
+        letter-spacing: 0;
+      }
+      .brand-mark {
+        width: 28px;
+        height: 28px;
+        border-radius: 7px;
+        background: linear-gradient(135deg, #2563eb, #14b8a6);
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 38px;
+        padding: 0 12px;
+        border-radius: 8px;
+        color: #aeb8c8;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .nav-item.active {
+        color: #ffffff;
+        background: #1d4ed8;
+      }
+      .nav-icon {
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+        border: 2px solid currentColor;
+      }
+      .nav-spacer {
+        flex: 1;
+      }
+      .user-strip {
+        display: grid;
+        gap: 7px;
+        padding-top: 14px;
+        border-top: 1px solid rgb(255 255 255 / 14%);
+      }
+      .user-line {
+        height: 7px;
+        border-radius: 999px;
+        background: #445064;
+      }
+      .page-stack {
+        display: grid;
+        grid-template-rows: auto auto 1fr;
+        gap: 14px;
+        padding: 26px 34px;
+      }
+      .app-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        align-items: flex-start;
+      }
+      .eyebrow {
+        margin: 0 0 6px;
+        color: var(--blue);
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+      h1 {
+        margin: 0;
+        font-size: 31px;
+        line-height: 1;
+        letter-spacing: 0;
+      }
+      .subhead {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .header-actions {
+        display: flex;
+        gap: 10px;
+      }
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 34px;
+        padding: 0 15px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        font-size: 13px;
+        font-weight: 800;
+      }
+      .button.primary {
+        border-color: var(--blue);
+        background: var(--blue);
+        color: #fff;
+      }
+      .portfolio-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin: 0;
+      }
+      .stat-cell,
+      .project-card,
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        box-shadow: 0 12px 28px rgb(15 23 42 / 7%);
+      }
+      .stat-cell {
+        padding: 11px 16px;
+      }
+      .stat-value {
+        display: block;
+        font-size: 23px;
+        font-weight: 850;
+      }
+      .stat-label {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 750;
+        text-transform: uppercase;
+      }
+      .content-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 292px;
+        gap: 14px;
+        min-height: 0;
+      }
+      .main-column {
+        display: grid;
+        grid-template-rows: auto auto;
+        gap: 14px;
+        min-width: 0;
+      }
+      .cards-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+      .project-card {
+        padding: 13px 16px;
+      }
+      .project-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 11px;
+      }
+      .project-name {
+        margin: 0 0 5px;
+        font-size: 16px;
+        font-weight: 850;
+      }
+      .project-meta,
+      .activity-meta {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 650;
+      }
+      .status-badge {
+        align-self: flex-start;
+        padding: 5px 8px;
+        border-radius: 999px;
+        background: #e0edff;
+        color: #1d4ed8;
+        font-size: 11px;
+        font-weight: 800;
+      }
+      .status-badge.warn {
+        background: #fff7ed;
+        color: var(--amber);
+      }
+      .progress-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+      }
+      .track {
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e8edf5;
+      }
+      .fill {
+        height: 100%;
+        border-radius: inherit;
+        background: var(--blue);
+      }
+      .fill.green {
+        background: var(--green);
+      }
+      .fill.amber {
+        background: var(--amber);
+      }
+      .pct {
+        font-size: 12px;
+        font-weight: 850;
+      }
+      .modules {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-top: 11px;
+      }
+      .module {
+        min-height: 36px;
+        padding: 7px 8px;
+        border-radius: 7px;
+        background: #f4f7fb;
+      }
+      .module b {
+        display: block;
+        font-size: 14px;
+      }
+      .module span {
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 750;
+        text-transform: uppercase;
+      }
+      .activity-panel {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 14px;
+        padding: 13px 16px;
+      }
+      .panel-title {
+        margin: 0 0 10px;
+        font-size: 15px;
+        font-weight: 850;
+      }
+      .heatmap {
+        display: grid;
+        grid-template-columns: repeat(18, 1fr);
+        gap: 4px;
+      }
+      .day {
+        aspect-ratio: 1;
+        border-radius: 3px;
+        background: #e7edf5;
+      }
+      .day.l1 {
+        background: #bfdbfe;
+      }
+      .day.l2 {
+        background: #60a5fa;
+      }
+      .day.l3 {
+        background: #2563eb;
+      }
+      .timeline {
+        display: grid;
+        gap: 9px;
+      }
+      .activity-item {
+        display: grid;
+        grid-template-columns: 10px 1fr auto;
+        gap: 9px;
+        align-items: center;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--green);
+      }
+      .dot.blue {
+        background: var(--blue);
+      }
+      .dot.amber {
+        background: var(--amber);
+      }
+      .activity-title {
+        height: 9px;
+        border-radius: 999px;
+        background: #263244;
+      }
+      .right-rail {
+        display: grid;
+        gap: 10px;
+        align-content: start;
+      }
+      .rail-section {
+        padding: 13px 15px;
+      }
+      .rail-list {
+        display: grid;
+        gap: 9px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .rail-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .mini-chart {
+        display: flex;
+        align-items: end;
+        gap: 6px;
+        height: 70px;
+        padding-top: 8px;
+      }
+      .bar {
+        flex: 1;
+        border-radius: 5px 5px 0 0;
+        background: #93c5fd;
+      }
+      .bar.hot {
+        background: var(--blue);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <nav class="app-nav" aria-label="Main">
+        <div class="brand"><span class="brand-mark"></span><span>GSD</span></div>
+        <div class="nav-item active"><span class="nav-icon"></span><span>Portfolio</span></div>
+        <div class="nav-item"><span class="nav-icon"></span><span>Sessions</span></div>
+        <div class="nav-item"><span class="nav-icon"></span><span>Settings</span></div>
+        <div class="nav-spacer"></div>
+        <div class="user-strip">
+          <span class="user-line" style="width: 74%"></span>
+          <span class="user-line" style="width: 52%"></span>
+        </div>
+      </nav>
+      <section class="page-stack" aria-label="Portfolio mockup">
+        <header class="app-header">
+          <div>
+            <p class="eyebrow">Local-first project operations</p>
+            <h1>Portfolio</h1>
+            <p class="subhead">Milestones, phases, scans, and coding-session activity in one native dashboard.</p>
+          </div>
+          <div class="header-actions">
+            <span class="button">Index Sessions</span>
+            <span class="button primary">Scan Projects</span>
+          </div>
+        </header>
+        <dl class="portfolio-stats">
+          <div class="stat-cell"><dt class="stat-label">Projects tracked</dt><dd class="stat-value">12</dd></div>
+          <div class="stat-cell"><dt class="stat-label">Active milestones</dt><dd class="stat-value">5</dd></div>
+          <div class="stat-cell"><dt class="stat-label">Sessions today</dt><dd class="stat-value">18</dd></div>
+          <div class="stat-cell"><dt class="stat-label">Parse alerts</dt><dd class="stat-value">2</dd></div>
+        </dl>
+        <div class="content-grid">
+          <div class="main-column">
+            <div class="cards-grid">
+              <article class="project-card">
+                <div class="project-head"><div><h2 class="project-name">gsd-dashboard</h2><span class="project-meta">Phase 09 · Packaging</span></div><span class="status-badge">Active</span></div>
+                <div class="progress-row"><div class="track"><div class="fill" style="width: 82%"></div></div><span class="pct">82%</span></div>
+                <div class="modules"><div class="module"><b>9</b><span>Sessions</span></div><div class="module"><b>4</b><span>Tasks</span></div><div class="module"><b>Now</b><span>Watch</span></div></div>
+              </article>
+              <article class="project-card">
+                <div class="project-head"><div><h2 class="project-name">codex-skills</h2><span class="project-meta">Phase 04 · Review</span></div><span class="status-badge">On track</span></div>
+                <div class="progress-row"><div class="track"><div class="fill green" style="width: 64%"></div></div><span class="pct">64%</span></div>
+                <div class="modules"><div class="module"><b>6</b><span>Sessions</span></div><div class="module"><b>11</b><span>Files</span></div><div class="module"><b>Clean</b><span>State</span></div></div>
+              </article>
+              <article class="project-card">
+                <div class="project-head"><div><h2 class="project-name">release-ops</h2><span class="project-meta">Phase 02 · Hardening</span></div><span class="status-badge warn">Needs check</span></div>
+                <div class="progress-row"><div class="track"><div class="fill amber" style="width: 38%"></div></div><span class="pct">38%</span></div>
+                <div class="modules"><div class="module"><b>3</b><span>Sessions</span></div><div class="module"><b>1</b><span>Alert</span></div><div class="module"><b>CI</b><span>Gate</span></div></div>
+              </article>
+              <article class="project-card">
+                <div class="project-head"><div><h2 class="project-name">agent-notes</h2><span class="project-meta">Phase 01 · Capture</span></div><span class="status-badge">Indexed</span></div>
+                <div class="progress-row"><div class="track"><div class="fill" style="width: 56%"></div></div><span class="pct">56%</span></div>
+                <div class="modules"><div class="module"><b>14</b><span>Sessions</span></div><div class="module"><b>7d</b><span>Window</span></div><div class="module"><b>OK</b><span>Parse</span></div></div>
+              </article>
+            </div>
+            <section class="panel activity-panel">
+              <div>
+                <h2 class="panel-title">Portfolio activity</h2>
+                <div class="heatmap" aria-hidden="true">
+                  <span class="day l1"></span><span class="day"></span><span class="day l2"></span><span class="day l3"></span><span class="day l1"></span><span class="day l2"></span><span class="day"></span><span class="day l1"></span><span class="day l3"></span><span class="day l2"></span><span class="day"></span><span class="day l1"></span><span class="day l2"></span><span class="day l3"></span><span class="day"></span><span class="day l1"></span><span class="day l2"></span><span class="day"></span>
+                  <span class="day"></span><span class="day l1"></span><span class="day l1"></span><span class="day l2"></span><span class="day l3"></span><span class="day"></span><span class="day l2"></span><span class="day l1"></span><span class="day"></span><span class="day l3"></span><span class="day l2"></span><span class="day l1"></span><span class="day"></span><span class="day l2"></span><span class="day l3"></span><span class="day l1"></span><span class="day"></span><span class="day l2"></span>
+                  <span class="day l2"></span><span class="day l3"></span><span class="day"></span><span class="day l1"></span><span class="day"></span><span class="day l2"></span><span class="day l1"></span><span class="day l3"></span><span class="day l2"></span><span class="day"></span><span class="day l1"></span><span class="day"></span><span class="day l2"></span><span class="day l3"></span><span class="day l1"></span><span class="day l2"></span><span class="day"></span><span class="day l3"></span>
+                </div>
+              </div>
+              <div>
+                <h2 class="panel-title">Recent sessions</h2>
+                <div class="timeline">
+                  <div class="activity-item"><span class="dot blue"></span><span class="activity-title" style="width: 92%"></span><span class="activity-meta">12m</span></div>
+                  <div class="activity-item"><span class="dot"></span><span class="activity-title" style="width: 76%"></span><span class="activity-meta">28m</span></div>
+                  <div class="activity-item"><span class="dot amber"></span><span class="activity-title" style="width: 84%"></span><span class="activity-meta">1h</span></div>
+                  <div class="activity-item"><span class="dot blue"></span><span class="activity-title" style="width: 68%"></span><span class="activity-meta">2h</span></div>
+                </div>
+              </div>
+            </section>
+          </div>
+          <aside class="right-rail" aria-label="Portfolio side panel">
+            <section class="panel rail-section">
+              <h2 class="panel-title">Watcher status</h2>
+              <ul class="rail-list">
+                <li class="rail-row"><span>Planning roots</span><strong>7</strong></li>
+                <li class="rail-row"><span>Live watchers</span><strong>5</strong></li>
+                <li class="rail-row"><span>Polling fallback</span><strong>0</strong></li>
+              </ul>
+            </section>
+            <section class="panel rail-section">
+              <h2 class="panel-title">Session volume</h2>
+              <div class="mini-chart" aria-hidden="true">
+                <span class="bar" style="height: 38%"></span><span class="bar hot" style="height: 70%"></span><span class="bar" style="height: 52%"></span><span class="bar hot" style="height: 86%"></span><span class="bar" style="height: 44%"></span><span class="bar hot" style="height: 65%"></span><span class="bar" style="height: 58%"></span>
+              </div>
+            </section>
+            <section class="panel rail-section">
+              <h2 class="panel-title">Unmatched sessions</h2>
+              <ul class="rail-list">
+                <li class="rail-row"><span>Claude Code</span><strong>3</strong></li>
+                <li class="rail-row"><span>Codex</span><strong>2</strong></li>
+              </ul>
+            </section>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
