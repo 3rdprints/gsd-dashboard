@@ -1,16 +1,19 @@
-name: desktop-smoke
+# Depot CI Migration
+# Source: .github/workflows/desktop-smoke.yml
+#
+# No changes were necessary.
 
+name: desktop-smoke
 on:
   pull_request:
   push:
     branches:
       - main
       - gsd/phase-01-foundation
-
 jobs:
   debug-build:
     name: ${{ matrix.os }} debug build
-    runs-on: ${{ matrix.os }}
+    runs-on: depot-${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -18,20 +21,16 @@ jobs:
           - macos-latest
           - windows-latest
           - ubuntu-latest
-
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
-
       - name: Install Node
         uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
-
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
-
       - name: Install Ubuntu Tauri packages
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -41,15 +40,11 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev \
             patchelf
-
       - name: Install Node dependencies
         run: npm ci
-
       - name: Check doc-comment coverage
         run: npm run docs:check
-
       - name: Build frontend
         run: npm run build
-
       - name: Build Tauri debug app
         run: npm run tauri build -- --debug --no-bundle

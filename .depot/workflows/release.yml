@@ -1,19 +1,22 @@
-name: release
+# Depot CI Migration
+# Source: .github/workflows/release.yml
+#
+# Changes made:
+# - Changed GitHub runs-on labels to their Depot equivalents
 
+name: release
 on:
   push:
     tags: ["v*.*.*"]
   workflow_dispatch:
-
 permissions:
   contents: write
   pages: write
   id-token: write
-
 jobs:
   build:
     name: ${{ matrix.os }} release build
-    runs-on: ${{ matrix.os }}
+    runs-on: depot-${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -21,11 +24,9 @@ jobs:
           - macos-latest
           - windows-latest
           - ubuntu-latest
-
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
-
       - name: Validate release tag
         shell: bash
         run: |
@@ -33,20 +34,16 @@ jobs:
             echo "Release workflow requires a semantic version tag like v1.2.3; got ${GITHUB_REF_NAME}." >&2
             exit 1
           fi
-
       - name: Install Node
         uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
-
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
-
       - name: Configure macOS universal targets
         if: matrix.os == 'macos-latest'
         run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
-
       - name: Install Ubuntu Tauri packages
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -56,16 +53,12 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev \
             patchelf
-
       - name: Install Node dependencies
         run: npm ci
-
       - name: Check doc-comment coverage
         run: npm run docs:check
-
       - name: Build frontend
         run: npm run build
-
       - name: Build macOS universal DMG
         if: matrix.os == 'macos-latest'
         env:
@@ -78,7 +71,6 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: npm run tauri build -- --target universal-apple-darwin --bundles app,dmg
-
       - name: Assert macOS universal bundle
         if: matrix.os == 'macos-latest'
         shell: bash
@@ -90,7 +82,6 @@ jobs:
           fi
           app_path="$(find src-tauri/target/universal-apple-darwin/release/bundle/macos -maxdepth 1 -type d -name '*.app' -print -quit)"
           scripts/release/assert-macos-universal.sh "${app_path}"
-
       - name: Build Windows installers
         if: matrix.os == 'windows-latest'
         shell: pwsh
@@ -98,51 +89,43 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: npm run tauri build -- --bundles msi,nsis
-
       - name: Build Linux installers
         if: matrix.os == 'ubuntu-latest'
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: npm run tauri build -- --bundles deb,appimage,rpm
-
       - name: Collect macOS artifacts
         if: matrix.os == 'macos-latest'
         shell: bash
         run: |
           mkdir -p release-artifacts
           find src-tauri/target/universal-apple-darwin/release/bundle -type f \( -name '*.dmg' -o -name '*.app.tar.gz' -o -name '*.sig' \) -exec cp {} release-artifacts/ \;
-
       - name: Collect Windows artifacts
         if: matrix.os == 'windows-latest'
         shell: bash
         run: |
           mkdir -p release-artifacts
           find src-tauri/target/release/bundle -type f \( -name '*.msi' -o -name '*.exe' -o -name '*.sig' \) -exec cp {} release-artifacts/ \;
-
       - name: Collect Linux artifacts
         if: matrix.os == 'ubuntu-latest'
         shell: bash
         run: |
           mkdir -p release-artifacts
           find src-tauri/target/release/bundle -type f \( -name '*.deb' -o -name '*.AppImage' -o -name '*.AppImage.tar.gz' -o -name '*.rpm' -o -name '*.sig' \) -exec cp {} release-artifacts/ \;
-
       - name: Upload release artifacts
         uses: actions/upload-artifact@v7
         with:
           name: release-${{ matrix.os }}
           path: release-artifacts/*
           if-no-files-found: error
-
   manifest-pages:
     name: release manifest and Pages
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     needs: build
-
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
-
       - name: Validate release tag
         shell: bash
         run: |
@@ -150,20 +133,17 @@ jobs:
             echo "Release workflow requires a semantic version tag like v1.2.3; got ${GITHUB_REF_NAME}." >&2
             exit 1
           fi
-
       - name: Install Node
         uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
-
       - name: Download release artifacts
         uses: actions/download-artifact@v8
         with:
           pattern: release-*
           path: downloaded-artifacts
           merge-multiple: true
-
       - name: Assemble Pages site
         shell: bash
         run: |
@@ -178,7 +158,6 @@ jobs:
               fi
             done
           )
-
       - name: Prepare release notes
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -193,13 +172,11 @@ jobs:
               echo "Unsigned artifact: signing credentials were not available."
             fi
           } > release-notes.md
-
       - name: Gate updater signing secrets
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: scripts/release/assert-release-secrets.sh
-
       - name: Verify release config and build smoke
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -208,7 +185,6 @@ jobs:
           npm ci
           npm run release:verify-tauri-config
           npm run build
-
       - name: Generate updater manifest
         env:
           GSD_DASHBOARD_BASE_URL: ${{ vars.GSD_DASHBOARD_BASE_URL }}
@@ -222,13 +198,10 @@ jobs:
             --artifact-dir site-dist/downloads \
             --out site-dist/updates/latest.json
           node scripts/release/verify-updater-manifest.mjs site-dist/updates/latest.json
-
       - name: Verify Pages site
         run: node scripts/release/verify-pages-site.mjs site-dist/index.html site-dist/install.sh
-
       - name: Build source bundle
         run: scripts/release/build-source-bundle.sh
-
       - name: Upload release assets
         env:
           GH_TOKEN: ${{ github.token }}
@@ -237,14 +210,11 @@ jobs:
           tag="${GITHUB_REF_NAME}"
           gh release view "${tag}" >/dev/null 2>&1 || gh release create "${tag}" --title "${tag}" --notes-file release-notes.md
           gh release upload "${tag}" downloaded-artifacts/* site-dist/downloads/*.sha256 site-dist/updates/latest.json dist-release/gsd-dashboard-source-*.tar.gz --clobber
-
       - name: Configure Pages
         uses: actions/configure-pages@v6
-
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
           path: site-dist
-
       - name: Deploy Pages
         uses: actions/deploy-pages@v5

@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const DEFAULT_WORKFLOW_PATH = ".github/workflows/release.yml";
+const DEFAULT_WORKFLOW_PATH = ".depot/workflows/release.yml";
 const REQUIRED_TAG_PATTERN = "v*.*.*";
 const REQUIRED_OS_VALUES = ["macos-latest", "windows-latest", "ubuntu-latest"];
 const REQUIRED_PERMISSIONS = ["contents: write", "pages: write", "id-token: write"];
