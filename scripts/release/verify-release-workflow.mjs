@@ -9,6 +9,7 @@ const DEFAULT_WORKFLOW_PATH = ".github/workflows/release.yml";
 const REQUIRED_TAG_PATTERN = "v*.*.*";
 const REQUIRED_OS_VALUES = ["macos-latest", "windows-latest", "ubuntu-latest"];
 const REQUIRED_PERMISSIONS = ["contents: write", "pages: write", "id-token: write"];
+const REQUIRED_BASE_URL = "https://horknfbr.github.io/gsd-dashboard";
 
 function fail(message) {
   throw new Error(message);
@@ -23,6 +24,28 @@ function requireIncludes(source, needle, description) {
 function requireRegex(source, pattern, description) {
   if (!pattern.test(source)) {
     fail(`release workflow missing ${description}`);
+  }
+}
+
+function requireCanonicalBaseUrl(source) {
+  const match = source.match(/(?:GSD_DASHBOARD_BASE_URL|base_url)=["']?\$\{GSD_DASHBOARD_BASE_URL:-([^}]+)\}/);
+  if (!match) {
+    fail("release workflow missing GSD_DASHBOARD_BASE_URL defaulting behavior");
+  }
+
+  let url;
+  try {
+    url = new URL(match[1]);
+  } catch {
+    fail(`release workflow GSD_DASHBOARD_BASE_URL default is not a valid URL: ${match[1]}`);
+  }
+
+  if (url.protocol !== "https:" || url.hostname !== "horknfbr.github.io") {
+    fail(`release workflow GSD_DASHBOARD_BASE_URL default must use ${REQUIRED_BASE_URL}`);
+  }
+
+  if (url.pathname.replace(/\/$/, "") !== "/gsd-dashboard") {
+    fail(`release workflow GSD_DASHBOARD_BASE_URL default must use ${REQUIRED_BASE_URL}`);
   }
 }
 
@@ -82,7 +105,8 @@ export function validateReleaseWorkflow(source) {
   requireRegex(source, /lipo\s+-archs|universal[\w.-]*\.dmg|\.dmg[\s\S]*universal/i, "universal DMG assertion");
   requireIncludes(source, "TAURI_SIGNING_PRIVATE_KEY", "updater signing secret gate");
   requireRegex(source, /unsigned[\s\S]{0,120}(artifact|installer|build|caveat)|artifact[\s\S]{0,120}unsigned/i, "unsigned artifact caveat text");
-  requireRegex(source, /GSD_DASHBOARD_BASE_URL[\s\S]{0,160}(smacdonald\.github\.io\/gsd-dashboard|github\.io|default)/, "GSD_DASHBOARD_BASE_URL defaulting behavior");
+  requireCanonicalBaseUrl(source);
+  requireRegex(source, /npm ci[\s\S]{0,160}npm run release:verify-tauri-config[\s\S]{0,160}npm run build[\s\S]{0,800}Generate updater manifest/, "release config install and smoke gate before updater manifest");
   requireIncludes(source, "actions/upload-pages-artifact", "Pages artifact upload action");
   requireIncludes(source, "actions/deploy-pages", "Pages deploy action");
 }
@@ -131,7 +155,14 @@ jobs:
       - name: Document unsigned artifact caveat
         run: echo "Unsigned installer artifacts are published only with explicit caveat text."
       - name: Set base URL default
-        run: echo "GSD_DASHBOARD_BASE_URL=\${GSD_DASHBOARD_BASE_URL:-https://smacdonald.github.io/gsd-dashboard}" >> "$GITHUB_ENV"
+        run: echo "GSD_DASHBOARD_BASE_URL=\${GSD_DASHBOARD_BASE_URL:-https://horknfbr.github.io/gsd-dashboard}" >> "$GITHUB_ENV"
+      - name: Verify release config and build smoke
+        run: |
+          npm ci
+          npm run release:verify-tauri-config
+          npm run build
+      - name: Generate updater manifest
+        run: node scripts/release/generate-updater-manifest.mjs
       - uses: actions/upload-pages-artifact@v4
       - uses: actions/deploy-pages@v4
 `;

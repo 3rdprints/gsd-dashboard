@@ -200,12 +200,21 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: scripts/release/assert-release-secrets.sh
 
+      - name: Verify release config and build smoke
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          npm ci
+          npm run release:verify-tauri-config
+          npm run build
+
       - name: Generate updater manifest
         env:
           GSD_DASHBOARD_BASE_URL: ${{ vars.GSD_DASHBOARD_BASE_URL }}
         shell: bash
         run: |
-          base_url="${GSD_DASHBOARD_BASE_URL:-https://smacdonald.github.io/gsd-dashboard/}"
+          base_url="${GSD_DASHBOARD_BASE_URL:-https://horknfbr.github.io/gsd-dashboard}"
           version="${GITHUB_REF_NAME#v}"
           node scripts/release/generate-updater-manifest.mjs \
             --version "${version}" \
