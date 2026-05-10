@@ -106,7 +106,7 @@ export function validateReleaseWorkflow(source) {
   requireIncludes(source, "TAURI_SIGNING_PRIVATE_KEY", "updater signing secret gate");
   requireRegex(source, /unsigned[\s\S]{0,120}(artifact|installer|build|caveat)|artifact[\s\S]{0,120}unsigned/i, "unsigned artifact caveat text");
   requireCanonicalBaseUrl(source);
-  requireRegex(source, /npm run release:verify-tauri-config[\s\S]{0,160}npm run build[\s\S]{0,800}Generate updater manifest/, "release config and smoke gate before updater manifest");
+  requireRegex(source, /npm ci[\s\S]{0,160}npm run release:verify-tauri-config[\s\S]{0,160}npm run build[\s\S]{0,800}Generate updater manifest/, "release config install and smoke gate before updater manifest");
   requireIncludes(source, "actions/upload-pages-artifact", "Pages artifact upload action");
   requireIncludes(source, "actions/deploy-pages", "Pages deploy action");
 }
@@ -158,6 +158,7 @@ jobs:
         run: echo "GSD_DASHBOARD_BASE_URL=\${GSD_DASHBOARD_BASE_URL:-https://horknfbr.github.io/gsd-dashboard}" >> "$GITHUB_ENV"
       - name: Verify release config and build smoke
         run: |
+          npm ci
           npm run release:verify-tauri-config
           npm run build
       - name: Generate updater manifest
