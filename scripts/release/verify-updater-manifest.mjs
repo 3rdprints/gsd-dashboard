@@ -105,7 +105,7 @@ function validManifestFixture() {
     pub_date: "2026-05-03T00:00:00Z",
     platforms: {
       "darwin-universal": {
-        url: "https://horknfbr.github.io/gsd-dashboard/downloads/GSD-Dashboard_0.1.1_universal.dmg",
+        url: "https://horknfbr.github.io/gsd-dashboard/downloads/GSD%20Dashboard.app.tar.gz",
         signature: "darwin-inline-signature"
       },
       "windows-x86_64": {
@@ -113,7 +113,7 @@ function validManifestFixture() {
         signature: "windows-inline-signature"
       },
       "linux-x86_64": {
-        url: "https://horknfbr.github.io/gsd-dashboard/downloads/gsd-dashboard_0.1.1_amd64.AppImage.tar.gz",
+        url: "https://horknfbr.github.io/gsd-dashboard/downloads/GSD%20Dashboard_0.1.1_amd64.AppImage",
         signature: "linux-inline-signature"
       }
     }

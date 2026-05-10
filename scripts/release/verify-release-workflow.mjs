@@ -101,7 +101,7 @@ export function validateReleaseWorkflow(source) {
   }
 
   requireIncludes(source, "rustup target add aarch64-apple-darwin x86_64-apple-darwin", "macOS universal Rust targets");
-  requireIncludes(source, "--target universal-apple-darwin --bundles dmg", "macOS universal DMG build command");
+  requireIncludes(source, "--target universal-apple-darwin --bundles app,dmg", "macOS universal app and DMG build command");
   requireRegex(source, /lipo\s+-archs|universal[\w.-]*\.dmg|\.dmg[\s\S]*universal/i, "universal DMG assertion");
   requireIncludes(source, "TAURI_SIGNING_PRIVATE_KEY", "updater signing secret gate");
   requireRegex(source, /unsigned[\s\S]{0,120}(artifact|installer|build|caveat)|artifact[\s\S]{0,120}unsigned/i, "unsigned artifact caveat text");
@@ -142,8 +142,8 @@ jobs:
       - uses: actions/checkout@v6
       - name: Configure macOS universal targets
         run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
-      - name: Build macOS universal DMG
-        run: npm run tauri build -- --target universal-apple-darwin --bundles dmg
+      - name: Build macOS universal app and DMG
+        run: npm run tauri build -- --target universal-apple-darwin --bundles app,dmg
       - name: Assert universal DMG
         run: |
           lipo -archs src-tauri/target/universal-apple-darwin/release/bundle/macos/GSD\\ Dashboard.app/Contents/MacOS/gsd-dashboard
