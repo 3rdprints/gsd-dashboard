@@ -7,7 +7,11 @@ import { join } from "node:path";
 
 const DEFAULT_WORKFLOW_PATH = ".github/workflows/release.yml";
 const REQUIRED_TAG_PATTERN = "v*.*.*";
-const REQUIRED_OS_VALUES = ["macos-latest", "windows-latest", "ubuntu-latest"];
+const REQUIRED_OS_VALUES = [
+  "blacksmith-6vcpu-macos-latest",
+  "blacksmith-2vcpu-windows-2025",
+  "blacksmith-2vcpu-ubuntu-2404"
+];
 const REQUIRED_PERMISSIONS = ["contents: write", "pages: write", "id-token: write"];
 const REQUIRED_BASE_URL = "https://3rdprints.github.io/gsd-dashboard";
 
@@ -134,9 +138,9 @@ jobs:
     strategy:
       matrix:
         os:
-          - macos-latest
-          - windows-latest
-          - ubuntu-latest
+          - blacksmith-6vcpu-macos-latest
+          - blacksmith-2vcpu-windows-2025
+          - blacksmith-2vcpu-ubuntu-2404
     runs-on: \${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
