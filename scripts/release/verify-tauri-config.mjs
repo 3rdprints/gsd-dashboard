@@ -123,9 +123,9 @@ export function validateTauriConfig(config, options) {
   }
 }
 
-async function validatePath(path) {
+async function validatePath(path, options) {
   const source = await readFile(path, "utf8");
-  validateTauriConfig(parseConfig(source, path));
+  validateTauriConfig(parseConfig(source, path), options);
 }
 
 function validConfigFixture() {
@@ -150,6 +150,7 @@ function validConfigFixture() {
 
 function invalidConfigFixture() {
   return {
+    version: "0.1.2",
     bundle: {
       active: true,
       targets: ["dmg"],
@@ -196,7 +197,14 @@ export async function runSelfTest() {
       }),
       /does not match release tag/
     );
-    await assert.rejects(() => validatePath(invalidPath), /requires|must/);
+    await assert.rejects(
+      () => validatePath(invalidPath, {
+        tagName: "v0.1.2",
+        packagePath,
+        cargoPath
+      }),
+      /requires|must/
+    );
   } finally {
     rmSync(tempDir, { force: true, recursive: true });
   }
