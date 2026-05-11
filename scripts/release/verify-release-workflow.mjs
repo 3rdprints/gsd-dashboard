@@ -111,6 +111,14 @@ export function validateReleaseWorkflow(source) {
   requireRegex(source, /unsigned[\s\S]{0,120}(artifact|installer|build|caveat)|artifact[\s\S]{0,120}unsigned/i, "unsigned artifact caveat text");
   requireCanonicalBaseUrl(source);
   requireRegex(source, /npm ci[\s\S]{0,160}npm run release:verify-tauri-config[\s\S]{0,160}npm run build[\s\S]{0,800}Generate updater manifest/, "release config install and smoke gate before updater manifest");
+  requireIncludes(source, "site-dist/releases/latest/download", "Pages latest-download compatibility directory");
+  requireIncludes(source, "GSD-Dashboard.dmg", "stable macOS DMG alias");
+  requireIncludes(source, "GSD-Dashboard.msi", "stable Windows MSI alias");
+  requireIncludes(source, "GSD-Dashboard.exe", "stable Windows EXE alias");
+  requireIncludes(source, "gsd-dashboard.deb", "stable Linux DEB alias");
+  requireIncludes(source, "gsd-dashboard.rpm", "stable Linux RPM alias");
+  requireIncludes(source, "gsd-dashboard.AppImage", "stable Linux AppImage alias");
+  requireIncludes(source, "site-dist/releases/latest/download/*", "generic release alias upload");
   requireIncludes(source, "actions/upload-pages-artifact", "Pages artifact upload action");
   requireIncludes(source, "actions/deploy-pages", "Pages deploy action");
 }
@@ -167,6 +175,17 @@ jobs:
           npm run build
       - name: Generate updater manifest
         run: node scripts/release/generate-updater-manifest.mjs
+      - name: Create stable Pages download aliases
+        run: |
+          mkdir -p site-dist/releases/latest/download
+          cp GSD.Dashboard_0.1.2_universal.dmg site-dist/downloads/GSD-Dashboard.dmg
+          cp GSD.Dashboard_0.1.2_x64_en-US.msi site-dist/downloads/GSD-Dashboard.msi
+          cp GSD.Dashboard_0.1.2_x64-setup.exe site-dist/downloads/GSD-Dashboard.exe
+          cp GSD.Dashboard_0.1.2_amd64.deb site-dist/downloads/gsd-dashboard.deb
+          cp GSD.Dashboard-0.1.2-1.x86_64.rpm site-dist/downloads/gsd-dashboard.rpm
+          cp GSD.Dashboard_0.1.2_amd64.AppImage site-dist/downloads/gsd-dashboard.AppImage
+          cp site-dist/downloads/GSD-Dashboard.dmg site-dist/releases/latest/download/GSD-Dashboard.dmg
+          gh release upload "$GITHUB_REF_NAME" site-dist/releases/latest/download/* --clobber
       - uses: actions/upload-pages-artifact@v4
       - uses: actions/deploy-pages@v4
 `;

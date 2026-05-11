@@ -167,16 +167,38 @@ jobs:
       - name: Assemble Pages site
         shell: bash
         run: |
-          rm -rf site-dist && mkdir -p site-dist/updates site-dist/downloads
+          rm -rf site-dist && mkdir -p site-dist/updates site-dist/downloads site-dist/releases/latest/download
           cp -R docs/public/. site-dist/
           cp downloaded-artifacts/* site-dist/downloads/
           (
             cd site-dist/downloads
+            copy_alias() {
+              source="$(find . -maxdepth 1 -type f -name "$1" -print -quit)"
+              if [ -z "${source}" ]; then
+                echo "Missing release artifact for alias ${2}: ${1}" >&2
+                exit 1
+              fi
+              cp "${source}" "${2}"
+            }
+            copy_alias "*_universal.dmg" "GSD-Dashboard.dmg"
+            copy_alias "*_x64_en-US.msi" "GSD-Dashboard.msi"
+            copy_alias "*_x64-setup.exe" "GSD-Dashboard.exe"
+            copy_alias "*_amd64.deb" "gsd-dashboard.deb"
+            copy_alias "*.x86_64.rpm" "gsd-dashboard.rpm"
+            copy_alias "*_amd64.AppImage" "gsd-dashboard.AppImage"
             for artifact in *; do
               if [ -f "${artifact}" ] && [[ "${artifact}" != *.sha256 ]]; then
                 shasum -a 256 "${artifact}" > "${artifact}.sha256"
               fi
             done
+            cp \
+              GSD-Dashboard.dmg GSD-Dashboard.dmg.sha256 \
+              GSD-Dashboard.msi GSD-Dashboard.msi.sha256 \
+              GSD-Dashboard.exe GSD-Dashboard.exe.sha256 \
+              gsd-dashboard.deb gsd-dashboard.deb.sha256 \
+              gsd-dashboard.rpm gsd-dashboard.rpm.sha256 \
+              gsd-dashboard.AppImage gsd-dashboard.AppImage.sha256 \
+              ../releases/latest/download/
           )
 
       - name: Prepare release notes
@@ -236,7 +258,7 @@ jobs:
         run: |
           tag="${GITHUB_REF_NAME}"
           gh release view "${tag}" >/dev/null 2>&1 || gh release create "${tag}" --title "${tag}" --notes-file release-notes.md
-          gh release upload "${tag}" downloaded-artifacts/* site-dist/downloads/*.sha256 site-dist/updates/latest.json dist-release/gsd-dashboard-source-*.tar.gz --clobber
+          gh release upload "${tag}" downloaded-artifacts/* site-dist/downloads/*.sha256 site-dist/releases/latest/download/* site-dist/updates/latest.json dist-release/gsd-dashboard-source-*.tar.gz --clobber
 
       - name: Configure Pages
         uses: actions/configure-pages@v6
