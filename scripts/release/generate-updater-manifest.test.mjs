@@ -38,7 +38,7 @@ describe("generate-updater-manifest.mjs", () => {
     await withFixture(async ({ artifactDir }) => {
       const manifest = await generateUpdaterManifest({
         version: "0.1.1",
-        releaseUrlBase: "https://horknfbr.github.io/gsd-dashboard/downloads/",
+        releaseUrlBase: "https://3rdprints.github.io/gsd-dashboard/downloads/",
         artifactDir
       });
 
@@ -59,7 +59,7 @@ describe("generate-updater-manifest.mjs", () => {
       await assert.rejects(
         () => generateUpdaterManifest({
           version: "0.1.1",
-          releaseUrlBase: "https://horknfbr.github.io/gsd-dashboard/downloads/",
+          releaseUrlBase: "https://3rdprints.github.io/gsd-dashboard/downloads/",
           artifactDir
         }),
         /missing signature file/
@@ -75,7 +75,7 @@ describe("generate-updater-manifest.mjs", () => {
         "--version",
         "0.1.1",
         "--release-url-base",
-        "https://horknfbr.github.io/gsd-dashboard/downloads/",
+        "https://3rdprints.github.io/gsd-dashboard/downloads/",
         "--artifact-dir",
         artifactDir,
         "--out",

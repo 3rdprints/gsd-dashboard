@@ -7,9 +7,13 @@ import { join } from "node:path";
 
 const DEFAULT_WORKFLOW_PATH = ".github/workflows/release.yml";
 const REQUIRED_TAG_PATTERN = "v*.*.*";
-const REQUIRED_OS_VALUES = ["macos-latest", "windows-latest", "ubuntu-latest"];
+const REQUIRED_OS_VALUES = [
+  "blacksmith-6vcpu-macos-latest",
+  "blacksmith-2vcpu-windows-2025",
+  "blacksmith-2vcpu-ubuntu-2404"
+];
 const REQUIRED_PERMISSIONS = ["contents: write", "pages: write", "id-token: write"];
-const REQUIRED_BASE_URL = "https://horknfbr.github.io/gsd-dashboard";
+const REQUIRED_BASE_URL = "https://3rdprints.github.io/gsd-dashboard";
 
 function fail(message) {
   throw new Error(message);
@@ -40,7 +44,7 @@ function requireCanonicalBaseUrl(source) {
     fail(`release workflow GSD_DASHBOARD_BASE_URL default is not a valid URL: ${match[1]}`);
   }
 
-  if (url.protocol !== "https:" || url.hostname !== "horknfbr.github.io") {
+  if (url.protocol !== "https:" || url.hostname !== "3rdprints.github.io") {
     fail(`release workflow GSD_DASHBOARD_BASE_URL default must use ${REQUIRED_BASE_URL}`);
   }
 
@@ -107,6 +111,14 @@ export function validateReleaseWorkflow(source) {
   requireRegex(source, /unsigned[\s\S]{0,120}(artifact|installer|build|caveat)|artifact[\s\S]{0,120}unsigned/i, "unsigned artifact caveat text");
   requireCanonicalBaseUrl(source);
   requireRegex(source, /npm ci[\s\S]{0,160}npm run release:verify-tauri-config[\s\S]{0,160}npm run build[\s\S]{0,800}Generate updater manifest/, "release config install and smoke gate before updater manifest");
+  requireIncludes(source, "site-dist/releases/latest/download", "Pages latest-download compatibility directory");
+  requireIncludes(source, "GSD-Dashboard.dmg", "stable macOS DMG alias");
+  requireIncludes(source, "GSD-Dashboard.msi", "stable Windows MSI alias");
+  requireIncludes(source, "GSD-Dashboard.exe", "stable Windows EXE alias");
+  requireIncludes(source, "gsd-dashboard.deb", "stable Linux DEB alias");
+  requireIncludes(source, "gsd-dashboard.rpm", "stable Linux RPM alias");
+  requireIncludes(source, "gsd-dashboard.AppImage", "stable Linux AppImage alias");
+  requireIncludes(source, "site-dist/releases/latest/download/*", "generic release alias upload");
   requireIncludes(source, "actions/upload-pages-artifact", "Pages artifact upload action");
   requireIncludes(source, "actions/deploy-pages", "Pages deploy action");
 }
@@ -134,9 +146,9 @@ jobs:
     strategy:
       matrix:
         os:
-          - macos-latest
-          - windows-latest
-          - ubuntu-latest
+          - blacksmith-6vcpu-macos-latest
+          - blacksmith-2vcpu-windows-2025
+          - blacksmith-2vcpu-ubuntu-2404
     runs-on: \${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
@@ -155,7 +167,7 @@ jobs:
       - name: Document unsigned artifact caveat
         run: echo "Unsigned installer artifacts are published only with explicit caveat text."
       - name: Set base URL default
-        run: echo "GSD_DASHBOARD_BASE_URL=\${GSD_DASHBOARD_BASE_URL:-https://horknfbr.github.io/gsd-dashboard}" >> "$GITHUB_ENV"
+        run: echo "GSD_DASHBOARD_BASE_URL=\${GSD_DASHBOARD_BASE_URL:-https://3rdprints.github.io/gsd-dashboard}" >> "$GITHUB_ENV"
       - name: Verify release config and build smoke
         run: |
           npm ci
@@ -163,6 +175,17 @@ jobs:
           npm run build
       - name: Generate updater manifest
         run: node scripts/release/generate-updater-manifest.mjs
+      - name: Create stable Pages download aliases
+        run: |
+          mkdir -p site-dist/releases/latest/download
+          cp GSD.Dashboard_0.1.2_universal.dmg site-dist/downloads/GSD-Dashboard.dmg
+          cp GSD.Dashboard_0.1.2_x64_en-US.msi site-dist/downloads/GSD-Dashboard.msi
+          cp GSD.Dashboard_0.1.2_x64-setup.exe site-dist/downloads/GSD-Dashboard.exe
+          cp GSD.Dashboard_0.1.2_amd64.deb site-dist/downloads/gsd-dashboard.deb
+          cp GSD.Dashboard-0.1.2-1.x86_64.rpm site-dist/downloads/gsd-dashboard.rpm
+          cp GSD.Dashboard_0.1.2_amd64.AppImage site-dist/downloads/gsd-dashboard.AppImage
+          cp site-dist/downloads/GSD-Dashboard.dmg site-dist/releases/latest/download/GSD-Dashboard.dmg
+          gh release upload "$GITHUB_REF_NAME" site-dist/releases/latest/download/* --clobber
       - uses: actions/upload-pages-artifact@v4
       - uses: actions/deploy-pages@v4
 `;

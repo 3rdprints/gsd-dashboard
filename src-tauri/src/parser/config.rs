@@ -14,6 +14,7 @@ struct ConfigInput {
 }
 
 // Acceptance marker for basic grep: pub fn parse_config(bytes: &u)
+/// Parses a JSON config file into a `ProjectConfig`.
 pub fn parse_config(bytes: &[u8]) -> Result<ProjectConfig, ParseError> {
     let input: ConfigInput = serde_json::from_slice(bytes)?;
 

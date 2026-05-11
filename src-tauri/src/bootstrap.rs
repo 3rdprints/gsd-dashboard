@@ -17,6 +17,7 @@ pub enum StartupVisibilityAction {
     KeepHidden,
 }
 
+/// Determines whether to show or hide the dashboard window on startup.
 pub fn startup_visibility_action(
     is_autostart_launch: bool,
     tray_setup_succeeded: bool,
@@ -28,6 +29,7 @@ pub fn startup_visibility_action(
     }
 }
 
+/// Initializes the application state from Tauri app paths and starts the file watcher.
 pub async fn bootstrap_app<R: tauri::Runtime>(app: &tauri::App<R>) -> Result<AppState, AppError> {
     let app_data_dir = app.handle().path().app_data_dir()?;
     let home_dir = app.handle().path().home_dir()?;
@@ -37,6 +39,7 @@ pub async fn bootstrap_app<R: tauri::Runtime>(app: &tauri::App<R>) -> Result<App
     Ok(state)
 }
 
+/// Registers the app state in Tauri's managed state and sets up the system tray.
 pub fn manage_app_state_and_tray<R: Runtime>(
     app: &mut tauri::App<R>,
     state: AppState,
@@ -59,6 +62,7 @@ pub fn manage_app_state_and_tray<R: Runtime>(
     Ok(())
 }
 
+/// Creates app state from explicit directory paths, opening the SQLite cache and running migrations.
 pub async fn bootstrap_from_paths(
     app_data_dir: PathBuf,
     home_dir: PathBuf,

@@ -11,6 +11,12 @@ const BUILT_SITE_DIR = "site-dist";
 const REQUIRED_HTML_FRAGMENTS = [
   "GSD Dashboard",
   "Download for macOS",
+  "./downloads/GSD-Dashboard.dmg",
+  "./downloads/GSD-Dashboard.msi",
+  "./downloads/GSD-Dashboard.exe",
+  "./downloads/gsd-dashboard.deb",
+  "./downloads/gsd-dashboard.rpm",
+  "./downloads/gsd-dashboard.AppImage",
   "cargo install gsd-dashboard",
   "updates/latest.json",
   "Updater manifest",
@@ -56,6 +62,9 @@ function requireFragments(source, fragments, label) {
 export function validatePagesSite(html, installScript) {
   requireFragments(html, REQUIRED_HTML_FRAGMENTS, "Pages HTML");
   requireFragments(installScript, REQUIRED_INSTALL_FRAGMENTS, "install.sh");
+  if (html.includes("./releases/latest/download/")) {
+    fail("Pages HTML must use Pages /downloads aliases, not GitHub release-style paths");
+  }
 }
 
 async function validatePaths({ htmlPath, installPath }) {
@@ -98,7 +107,7 @@ done
 os="$(uname -s)"
 arch="$(uname -m)"
 artifact="GSD-Dashboard.dmg"
-base_url="\${GSD_DASHBOARD_BASE_URL:-https://horknfbr.github.io/gsd-dashboard}"
+base_url="\${GSD_DASHBOARD_BASE_URL:-https://3rdprints.github.io/gsd-dashboard}"
 printf 'Install \`%s\` for \`%s/%s\`? ' "$artifact" "$os" "$arch"
 prompt="Install \`\${artifact}\` for \`\${os}/\${arch}\`?"
 checksum_url="\${CHECKSUM_URL:-\${base_url}/downloads/\${artifact}.sha256}"

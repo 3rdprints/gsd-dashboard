@@ -8,6 +8,7 @@ use crate::{
     tray::service::request_tray_refresh,
 };
 
+/// IPC command: scans all configured roots for projects and refreshes the tray.
 #[tauri::command]
 pub async fn scan_projects(
     app: AppHandle,
@@ -22,6 +23,7 @@ pub async fn scan_projects(
     Ok(summary)
 }
 
+/// IPC command: clears the project cache, rescans, and rematches sessions.
 #[tauri::command]
 pub async fn rebuild_cache(
     app: AppHandle,
@@ -36,6 +38,7 @@ pub async fn rebuild_cache(
     Ok(summary)
 }
 
+/// Clears the project cache, rescans all roots, and rematches sessions.
 pub async fn rebuild_cache_for_app(
     state: &AppState,
     on_event: impl Fn(ScanEvent) -> Result<(), AppError> + Send + Sync + 'static,
@@ -52,6 +55,7 @@ pub async fn rebuild_cache_for_app(
     Ok(summary)
 }
 
+/// Scans all configured roots for .planning directories and persists results.
 pub async fn scan_projects_for_app(
     state: &AppState,
     on_event: impl Fn(ScanEvent) -> Result<(), AppError> + Send + Sync + 'static,

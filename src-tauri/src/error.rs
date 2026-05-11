@@ -13,18 +13,21 @@ pub enum AppError {
 }
 
 impl AppError {
+    /// Creates a Store error variant from a displayable value.
     pub fn store(error: impl std::fmt::Display) -> Self {
         Self::Store {
             message: error.to_string(),
         }
     }
 
+    /// Creates a Settings error variant from a displayable value.
     pub fn settings(error: impl std::fmt::Display) -> Self {
         Self::Settings {
             message: error.to_string(),
         }
     }
 
+    /// Creates an Io error variant from a displayable value.
     pub fn io(error: impl std::fmt::Display) -> Self {
         Self::Io {
             message: error.to_string(),

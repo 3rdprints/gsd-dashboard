@@ -5,6 +5,7 @@ use crate::sessions::{
     SessionParseAccumulator,
 };
 
+/// Extracts session metadata from a single Codex JSONL record.
 pub fn parse_codex_record(value: &Value, accumulator: &mut SessionParseAccumulator) {
     let payload = value.get("payload");
     let session_meta = payload.and_then(|payload| payload.get("session_meta"));

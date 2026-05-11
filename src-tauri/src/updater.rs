@@ -1,3 +1,4 @@
+/// Registers the Tauri updater and process plugins on the app builder.
 pub fn register_updater_plugins<R: tauri::Runtime>(
     builder: tauri::Builder<R>,
 ) -> tauri::Builder<R> {

@@ -5,6 +5,7 @@ use crate::sessions::{
     SessionParseAccumulator,
 };
 
+/// Extracts session metadata from a single Claude JSONL record.
 pub fn parse_claude_record(value: &Value, accumulator: &mut SessionParseAccumulator) {
     if let Some(timestamp_ms) = value.get("timestamp").and_then(parse_timestamp_ms) {
         apply_record_timestamp(accumulator, timestamp_ms);

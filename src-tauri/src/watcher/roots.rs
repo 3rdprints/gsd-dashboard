@@ -9,6 +9,7 @@ use crate::{
     store::project_repo,
 };
 
+/// Builds the set of filesystem paths to watch from stored projects and session directories.
 pub async fn derive_watcher_roots(
     pool: &Pool,
     home_dir: &Path,
@@ -44,6 +45,7 @@ pub async fn derive_watcher_roots(
     Ok(roots)
 }
 
+/// Resolves and validates scan roots from user settings for polling-based discovery.
 pub fn derive_polling_scan_roots(
     home_dir: &Path,
     settings: &AppSettings,

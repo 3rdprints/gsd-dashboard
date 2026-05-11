@@ -113,6 +113,7 @@ export function hasTauriInternals() {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
 
+/** Exposed internals for testing Tauri listener registration. */
 export const appListenerInternals = {
   hasTauriInternals
 };

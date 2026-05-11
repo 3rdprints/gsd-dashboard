@@ -21,6 +21,7 @@ use crate::{
     },
 };
 
+/// Receives debounced watcher events and dispatches project or session refreshes.
 pub async fn process_watcher_events<R: Runtime>(
     app: AppHandle<R>,
     state: AppState,
@@ -68,6 +69,7 @@ pub async fn process_watcher_events<R: Runtime>(
     }
 }
 
+/// Periodically rescans roots that fell back to polling mode.
 pub async fn poll_degraded_roots<R: Runtime>(
     app: AppHandle<R>,
     state: AppState,
@@ -89,6 +91,7 @@ pub async fn poll_degraded_roots<R: Runtime>(
     }
 }
 
+/// Discovers and refreshes new projects found within configured scan roots.
 pub async fn poll_scan_roots_once_for_app<R: Runtime>(
     app: &AppHandle<R>,
     state: &AppState,

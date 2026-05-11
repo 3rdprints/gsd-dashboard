@@ -1,3 +1,4 @@
+/// Compares two milestone names using normalized case-insensitive matching.
 pub fn milestone_names_match(left: &str, right: &str) -> bool {
     let left = normalize_milestone_name(left);
     let right = normalize_milestone_name(right);

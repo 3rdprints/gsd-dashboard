@@ -19,6 +19,7 @@ pub(crate) struct SessionFileIndexOutcome {
     pub(crate) result: Result<IndexedFileResult, AppError>,
 }
 
+/// Indexes multiple session files with bounded concurrency.
 pub(crate) async fn index_session_files_bounded(
     pool: Pool,
     source: SessionSource,

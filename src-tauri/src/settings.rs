@@ -73,6 +73,7 @@ impl From<AppSettings> for SettingsInput {
     }
 }
 
+/// Loads settings from the database or initializes with defaults if none exist.
 pub async fn load_or_initialize(pool: &Pool, home_dir: &Path) -> Result<AppSettings, AppError> {
     let stored = {
         let connection = pool.get().await.map_err(AppError::store)?;
@@ -95,6 +96,7 @@ pub async fn load_or_initialize(pool: &Pool, home_dir: &Path) -> Result<AppSetti
     }
 }
 
+/// Validates and persists updated settings to the database.
 pub async fn save(
     pool: &Pool,
     home_dir: &Path,

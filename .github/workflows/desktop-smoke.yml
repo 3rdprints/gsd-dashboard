@@ -15,9 +15,9 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - macos-latest
-          - windows-latest
-          - ubuntu-latest
+          - blacksmith-6vcpu-macos-latest
+          - blacksmith-2vcpu-windows-2025
+          - blacksmith-2vcpu-ubuntu-2404
 
     steps:
       - name: Check out repository
@@ -33,7 +33,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install Ubuntu Tauri packages
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'blacksmith-2vcpu-ubuntu-2404'
         run: |
           sudo apt-get update
           sudo apt-get install -y \

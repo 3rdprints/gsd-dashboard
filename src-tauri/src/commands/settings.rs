@@ -12,21 +12,25 @@ use crate::{
 
 const SETTINGS_CHANGED_EVENT: &str = "settings-changed";
 
+/// IPC command: returns the app boot status.
 #[tauri::command]
 pub async fn get_boot_status(state: State<'_, AppState>) -> Result<BootStatus, AppError> {
     get_boot_status_from_state(&state)
 }
 
+/// IPC command: returns current app settings.
 #[tauri::command]
 pub async fn get_settings(state: State<'_, AppState>) -> Result<AppSettings, AppError> {
     get_settings_from_state(&state).await
 }
 
+/// IPC command: returns the filesystem watcher status.
 #[tauri::command]
 pub async fn get_watcher_status(state: State<'_, AppState>) -> Result<WatcherStatus, AppError> {
     get_watcher_status_from_state(&state).await
 }
 
+/// IPC command: validates and persists updated settings.
 #[tauri::command]
 pub async fn save_settings(
     app: AppHandle,
@@ -36,18 +40,22 @@ pub async fn save_settings(
     save_settings_for_app(&app, &state, input).await
 }
 
+/// Returns the boot status from app state.
 pub fn get_boot_status_from_state(state: &AppState) -> Result<BootStatus, AppError> {
     Ok(state.boot_status.clone())
 }
 
+/// Loads settings from the database via app state.
 pub async fn get_settings_from_state(state: &AppState) -> Result<AppSettings, AppError> {
     settings::load_or_initialize(&state.pool, &state.home_dir).await
 }
 
+/// Returns the current watcher status from the runtime.
 pub async fn get_watcher_status_from_state(state: &AppState) -> Result<WatcherStatus, AppError> {
     Ok(state.watcher_runtime.status())
 }
 
+/// Saves settings with Tauri autostart backend integration.
 pub async fn save_settings_for_app<R: Runtime>(
     app: &AppHandle<R>,
     state: &AppState,
@@ -57,6 +65,7 @@ pub async fn save_settings_for_app<R: Runtime>(
     save_settings_with_autostart_backend(app, state, input, backend).await
 }
 
+/// Saves settings with a pluggable autostart backend and transactional rollback.
 pub async fn save_settings_with_autostart_backend<
     R: Runtime,
     B: autostart::AutostartBackend + Send + 'static,

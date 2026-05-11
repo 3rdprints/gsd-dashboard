@@ -7,6 +7,7 @@ use crate::error::AppError;
 
 const BROAD_ROOT_REASON: &str = "This scan root is too broad. Choose a specific folder inside your home directory, such as ~/Documents or a project workspace.";
 
+/// Validates that a scan root is a proper subdirectory of the user's home directory.
 pub fn validate_scan_root(candidate: &Path, home: &Path) -> Result<(), AppError> {
     let normalized_candidate = normalize_scan_root(candidate, home);
     let normalized_home = normalize_path(home);
@@ -24,6 +25,7 @@ pub fn validate_scan_root(candidate: &Path, home: &Path) -> Result<(), AppError>
     Ok(())
 }
 
+/// Expands tilde and normalizes path components for a scan root.
 pub(crate) fn normalize_scan_root(candidate: &Path, home: &Path) -> PathBuf {
     let raw = candidate.to_string_lossy();
 

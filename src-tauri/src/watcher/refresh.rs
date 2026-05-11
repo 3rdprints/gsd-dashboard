@@ -14,6 +14,7 @@ use crate::{
     tray::service::record_tray_refresh_request,
 };
 
+/// Re-scans a project's `.planning/` directory and emits update events.
 pub async fn refresh_project_planning_dir_for_app(
     state: &AppState,
     planning_path: &Path,
@@ -37,6 +38,7 @@ pub async fn refresh_project_planning_dir_for_app(
     Ok(outcome)
 }
 
+/// Re-indexes a single session JSONL file and rebuilds daily activity if sessions changed.
 pub async fn refresh_session_file(
     state: &AppState,
     source: SessionSource,

@@ -16,6 +16,7 @@ pub enum TrayMenuAction {
 }
 
 impl TrayMenuAction {
+    /// Returns the frontend route for navigation actions, if applicable.
     pub fn navigation_route(&self) -> Option<String> {
         match self {
             Self::ShowDashboard => Some("/".to_string()),
@@ -26,6 +27,7 @@ impl TrayMenuAction {
     }
 }
 
+/// Formats the tray icon tooltip with project count and top progress values.
 pub fn format_tooltip(projects: &[TrayProjectBar]) -> String {
     let mut parts = vec![format!("{} active projects", projects.len())];
     parts.extend(projects.iter().take(3).map(|project| {
@@ -38,6 +40,7 @@ pub fn format_tooltip(projects: &[TrayProjectBar]) -> String {
     parts.join(" · ")
 }
 
+/// Formats a project's tray submenu label with name and progress percentage.
 pub fn project_menu_label(project: &TrayProjectBar) -> String {
     format!(
         "{} · {}%",
@@ -46,6 +49,7 @@ pub fn project_menu_label(project: &TrayProjectBar) -> String {
     )
 }
 
+/// Formats the portfolio overview menu item showing count and average progress.
 pub fn portfolio_summary_label(summary: TrayPortfolioSummary) -> String {
     format!(
         "{} active projects · avg {}%",
@@ -54,6 +58,7 @@ pub fn portfolio_summary_label(summary: TrayPortfolioSummary) -> String {
     )
 }
 
+/// Formats a project detail line with visual progress bar and activity status.
 pub fn project_detail_label(project: &TrayProjectBar) -> String {
     format!(
         "{} {}% · {}",
@@ -63,6 +68,7 @@ pub fn project_detail_label(project: &TrayProjectBar) -> String {
     )
 }
 
+/// Parses a menu item ID string into a typed tray menu action.
 pub fn parse_menu_action(id: &str) -> Option<TrayMenuAction> {
     match id {
         SHOW_DASHBOARD_ID => Some(TrayMenuAction::ShowDashboard),

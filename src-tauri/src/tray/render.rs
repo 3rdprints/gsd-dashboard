@@ -5,6 +5,7 @@ const BOTTOM_PADDING_PX: u32 = 4;
 const GAP_PX: u32 = 4;
 const MIN_VISIBLE_HEIGHT_PX: u32 = 2;
 
+/// Renders project progress bars as a PNG tray icon.
 pub fn render_tray_icon_png(
     projects: &[TrayProjectBar],
     spec: TrayRenderSpec,

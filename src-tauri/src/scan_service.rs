@@ -22,6 +22,7 @@ use crate::{
     scanner::{self, PlanningProjectCandidate, ScanSummary},
 };
 
+/// Scans all configured roots for `.planning/` directories and persists discovered projects.
 pub async fn scan_roots(
     pool: Pool,
     roots: Vec<PathBuf>,
@@ -106,6 +107,7 @@ pub(crate) struct ProjectScan {
     pub(crate) parse_issues: Vec<ParseIssue>,
 }
 
+/// Reads and parses all planning files for a single project candidate.
 pub(crate) async fn read_and_parse_candidate(
     candidate: PlanningProjectCandidate,
 ) -> Result<ProjectScan, AppError> {
@@ -436,6 +438,7 @@ fn summary_modified_at_ms(summary_path: &Path) -> Option<i64> {
         .map(|duration| duration.as_millis() as i64)
 }
 
+/// Derives a stable project ID and human-readable name from the candidate path.
 pub(crate) fn infer_project_identity(candidate: &PlanningProjectCandidate) -> ProjectIdentity {
     let fallback = "project";
     let raw_name = candidate

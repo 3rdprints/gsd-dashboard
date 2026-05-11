@@ -36,6 +36,7 @@ struct SessionRoot {
     path: PathBuf,
 }
 
+/// Discovers and indexes all session JSONL files from known roots.
 pub async fn index_session_roots(
     pool: Pool,
     home_dir: PathBuf,

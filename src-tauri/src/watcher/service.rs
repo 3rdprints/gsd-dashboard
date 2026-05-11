@@ -106,6 +106,7 @@ impl Default for WatcherRuntime {
 }
 
 impl WatcherRuntime {
+    /// Creates a new watcher runtime with empty status.
     pub fn new() -> Self {
         Self {
             status: Arc::new(RwLock::new(WatcherStatus { roots: Vec::new() })),
@@ -113,6 +114,7 @@ impl WatcherRuntime {
         }
     }
 
+    /// Returns a clone of the current watcher status.
     pub fn status(&self) -> WatcherStatus {
         self.status
             .read()
@@ -120,6 +122,7 @@ impl WatcherRuntime {
             .clone()
     }
 
+    /// Replaces all watcher root statuses, returns true if the set changed.
     pub fn set_roots(&self, roots: Vec<WatcherRootStatus>) -> bool {
         let mut status = self
             .status
@@ -133,6 +136,7 @@ impl WatcherRuntime {
         true
     }
 
+    /// Updates or inserts a single root's status, returns true if changed.
     pub fn set_root_status(&self, root_status: WatcherRootStatus) -> bool {
         let mut next_roots = self.status().roots;
         if let Some(existing) = next_roots
@@ -150,6 +154,7 @@ impl WatcherRuntime {
         self.set_roots(next_roots)
     }
 
+    /// Returns whether the watcher supervisor is currently active.
     pub fn is_running(&self) -> bool {
         self.supervisor
             .lock()
@@ -178,6 +183,7 @@ impl Drop for WatcherSupervisor {
 }
 
 impl ProjectDebouncer {
+    /// Creates a project debouncer with the given delay in milliseconds.
     pub fn new(debounce_ms: u64) -> Self {
         Self {
             debounce_ms,
@@ -185,6 +191,7 @@ impl ProjectDebouncer {
         }
     }
 
+    /// Records a filesystem event for a planning root at the given timestamp.
     pub fn record_event(
         &mut self,
         planning_root: &Path,
@@ -194,6 +201,7 @@ impl ProjectDebouncer {
         self.pending.insert(planning_root.to_path_buf(), now_ms);
     }
 
+    /// Returns and removes roots whose debounce window has elapsed.
     pub fn take_due(&mut self, now_ms: u64) -> Vec<PathBuf> {
         let due_roots = self
             .pending
@@ -215,6 +223,7 @@ impl ProjectDebouncer {
 }
 
 impl SessionFileDebouncer {
+    /// Creates a session file debouncer with the given delay in milliseconds.
     pub fn new(debounce_ms: u64) -> Self {
         Self {
             debounce_ms,
@@ -222,6 +231,7 @@ impl SessionFileDebouncer {
         }
     }
 
+    /// Records a filesystem event for a JSONL session file under the given root.
     pub fn record_event(
         &mut self,
         source: SessionSource,
@@ -248,6 +258,7 @@ impl SessionFileDebouncer {
         );
     }
 
+    /// Returns and removes session files whose debounce window has elapsed.
     pub fn take_due(&mut self, now_ms: u64) -> Vec<(SessionSource, PathBuf)> {
         let due_files = self
             .pending
@@ -269,6 +280,7 @@ impl SessionFileDebouncer {
     }
 }
 
+/// Re-indexes a single session file and emits update events.
 pub async fn refresh_session_file_for_app(
     state: &AppState,
     source: SessionSource,
@@ -280,11 +292,13 @@ pub async fn refresh_session_file_for_app(
         .map(|_| ())
 }
 
+/// Configures watcher roots without starting the event loop.
 pub async fn start_watcher_service(state: &AppState) -> Result<bool, AppError> {
     let changed = configure_watcher_roots(state).await?.changed;
     Ok(changed)
 }
 
+/// Starts the filesystem watcher with native watching and polling fallback.
 pub async fn start_watcher_service_for_app<R: Runtime>(
     app: AppHandle<R>,
     state: &AppState,
@@ -425,6 +439,7 @@ async fn configure_watcher_roots(state: &AppState) -> Result<WatcherConfig, AppE
 }
 
 impl WatcherRootStatus {
+    /// Creates a root status representing native filesystem watching.
     pub fn native(root: String) -> Self {
         Self {
             root,
@@ -437,6 +452,7 @@ impl WatcherRootStatus {
         }
     }
 
+    /// Creates a root status representing polling-based watching with a reason.
     pub fn polling(root: String, reason_category: WatcherReasonCategory) -> Self {
         Self {
             root,
@@ -451,6 +467,7 @@ impl WatcherRootStatus {
 }
 
 impl WatcherReasonCategory {
+    /// Classifies a watch error message into a reason category.
     pub fn from_error_message(message: &str) -> Self {
         let normalized = message.to_ascii_lowercase();
         if normalized.contains("permission") || normalized.contains("denied") {
@@ -469,6 +486,7 @@ impl WatcherReasonCategory {
         }
     }
 
+    /// Returns a human-readable description of the failure reason.
     pub fn reason(self) -> &'static str {
         match self {
             Self::Permission => "Permission denied",
@@ -478,6 +496,7 @@ impl WatcherReasonCategory {
         }
     }
 
+    /// Returns a user-facing remediation hint for this failure category.
     pub fn fix_hint(self) -> &'static str {
         match self {
             Self::Permission => {

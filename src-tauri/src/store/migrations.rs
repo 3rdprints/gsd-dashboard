@@ -149,6 +149,7 @@ const MIGRATION_SLICE: &[M<'_>] = &[
 pub const MIGRATION_COUNT: u32 = MIGRATION_SLICE.len() as u32;
 const MIGRATIONS: Migrations<'_> = Migrations::from_slice(MIGRATION_SLICE);
 
+/// Applies all pending schema migrations to the database.
 pub fn run(connection: &mut Connection) -> Result<(), rusqlite_migration::Error> {
     MIGRATIONS.to_latest(connection)
 }

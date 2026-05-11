@@ -42,6 +42,7 @@ pub struct ProjectMilestoneVelocityDto {
     pub completed_plans: i64,
 }
 
+/// Loads daily session, token, duration, and velocity chart data for a project.
 pub fn load_project_chart_data(
     connection: &mut rusqlite::Connection,
     project_id: &str,

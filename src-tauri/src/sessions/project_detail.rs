@@ -86,6 +86,7 @@ pub struct ProjectSessionRowDto {
     pub model: Option<String>,
 }
 
+/// Loads milestone phases with completion progress for a project.
 pub fn load_project_milestones(
     connection: &mut rusqlite::Connection,
     project_id: &str,
@@ -229,6 +230,7 @@ fn milestone_group_names_match(left: Option<&str>, right: Option<&str>) -> bool 
     }
 }
 
+/// Loads the current phase's plan items and state excerpt.
 pub fn load_project_phase_panel(
     connection: &mut rusqlite::Connection,
     project_id: &str,
@@ -305,6 +307,7 @@ pub fn load_project_phase_panel(
     })
 }
 
+/// Returns a paginated, sortable list of sessions for a project.
 pub fn list_project_sessions(
     connection: &mut rusqlite::Connection,
     project_id: &str,
