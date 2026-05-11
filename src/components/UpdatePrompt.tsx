@@ -1,9 +1,10 @@
 import { AlertTriangle, CheckCircle2, Download, Loader2, RefreshCw, ShieldAlert } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "./ui/button";
 import {
   checkForUpdate,
+  getCurrentVersion,
   installAndRestart,
   UPDATE_CHECK_FAILED_MESSAGE,
   UPDATE_INSTALL_FAILED_MESSAGE,
@@ -22,6 +23,11 @@ type UpdatePanelState =
  */
 export function UpdatePrompt() {
   const [panelState, setPanelState] = useState<UpdatePanelState>({ state: "up_to_date" });
+  const [currentVersion, setCurrentVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    void getCurrentVersion().then(setCurrentVersion);
+  }, []);
 
   async function handleCheckForUpdates() {
     setPanelState({ state: "checking" });
@@ -76,6 +82,7 @@ export function UpdatePrompt() {
         <div>
           <p className="label-text">Updates</p>
           <h2 id="update-panel-title">{getHeading(panelState)}</h2>
+          <p className="update-version">Current version: {currentVersion ?? "Unavailable"}</p>
         </div>
       </div>
 
@@ -84,7 +91,7 @@ export function UpdatePrompt() {
         role={isFailure ? "status" : undefined}
         aria-live={isFailure || isChecking || isInstalling ? "polite" : undefined}
       >
-        <p>{getBody(panelState)}</p>
+        <p>{getBody(panelState, currentVersion)}</p>
       </div>
 
       <div className="update-actions">
@@ -133,23 +140,31 @@ function getHeading(panelState: UpdatePanelState) {
     case "available":
       return "Update available";
     case "checking":
+      return "Checking for updates";
     case "installing":
+      return "Installing update";
     case "restart_ready":
+      return "Restart to finish update";
     case "error":
+      return "Update check failed";
     case "signature_error":
+      return "Update verification failed";
     case "unsupported":
+      return "Updates unavailable";
     case "up_to_date":
     default:
       return "GSD Dashboard is up to date";
   }
 }
 
-function getBody(panelState: UpdatePanelState) {
+function getBody(panelState: UpdatePanelState, currentVersion: string | null) {
   switch (panelState.state) {
     case "checking":
       return "Checking for updates";
     case "available":
-      return `Version ${panelState.version} is ready. Install it now or keep using this version.`;
+      return currentVersion
+        ? `Version ${currentVersion} -> ${panelState.version} is ready. Install it now or keep using this version.`
+        : `Version ${panelState.version} is ready. Install it now or keep using this version.`;
     case "installing":
       return "Installing update";
     case "restart_ready":

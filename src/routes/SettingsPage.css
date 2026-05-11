@@ -88,6 +88,12 @@
   margin: 0;
 }
 
+.update-version {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin: 4px 0 0;
+}
+
 .update-status.neutral {
   background: #ffffff;
   color: #374151;

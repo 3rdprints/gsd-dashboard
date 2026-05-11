@@ -15,6 +15,22 @@ export type UpdateCheckState =
   | { state: "signature_error"; message: string };
 
 /**
+ * Reads the current desktop app version from Tauri when running inside the app.
+ */
+export async function getCurrentVersion() {
+  if (!hasTauriInternals()) {
+    return null;
+  }
+
+  try {
+    const { getVersion } = await import("@tauri-apps/api/app");
+    return await getVersion();
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Checks the Tauri updater for an available release and normalizes the UI state.
  */
 export async function checkForUpdate(): Promise<UpdateCheckState> {
