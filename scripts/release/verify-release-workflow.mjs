@@ -118,7 +118,8 @@ export function validateReleaseWorkflow(source) {
   requireIncludes(source, "gsd-dashboard.deb", "stable Linux DEB alias");
   requireIncludes(source, "gsd-dashboard.rpm", "stable Linux RPM alias");
   requireIncludes(source, "gsd-dashboard.AppImage", "stable Linux AppImage alias");
-  requireIncludes(source, "site-dist/releases/latest/download/*", "generic release alias upload");
+  requireIncludes(source, "site-dist/releases/latest/download/GSD-Dashboard.dmg", "macOS release alias upload");
+  requireIncludes(source, "site-dist/releases/latest/download/gsd-dashboard.AppImage", "Linux release alias upload");
   requireIncludes(source, "actions/upload-pages-artifact", "Pages artifact upload action");
   requireIncludes(source, "actions/deploy-pages", "Pages deploy action");
 }
