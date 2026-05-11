@@ -38,6 +38,7 @@ struct StateFrontmatter {
 }
 
 // Acceptance marker for basic grep: pub fn parse_state(bytes: &u)
+/// Parses a STATE.md file into current milestone, phase, and next command.
 pub fn parse_state(bytes: &[u8]) -> Result<StateDocument, ParseError> {
     let source = std::str::from_utf8(bytes)?;
     let matter = Matter::<YAML>::new();
@@ -63,6 +64,7 @@ pub fn parse_state(bytes: &[u8]) -> Result<StateDocument, ParseError> {
     })
 }
 
+/// Extracts the Current Position section as a truncated excerpt.
 pub fn extract_state_excerpt(
     body: &str,
     max_lines: usize,

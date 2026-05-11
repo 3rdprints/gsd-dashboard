@@ -52,6 +52,7 @@ pub struct NativeTrayUpdate {
     pub icon_as_template: bool,
 }
 
+/// Builds a native tray update payload from the current tray state.
 pub fn native_tray_update(tray_state: &TrayServiceState) -> NativeTrayUpdate {
     NativeTrayUpdate {
         icon_png: tray_state.icon_png.clone(),
@@ -60,6 +61,7 @@ pub fn native_tray_update(tray_state: &TrayServiceState) -> NativeTrayUpdate {
     }
 }
 
+/// Creates the initial tray icon update with empty project bars.
 pub fn startup_tray_update() -> Result<NativeTrayUpdate, AppError> {
     Ok(NativeTrayUpdate {
         icon_png: render_tray_icon_png(&[], TrayRenderSpec::default()).map_err(AppError::store)?,
@@ -72,6 +74,7 @@ fn macos_template_icon_enabled() -> bool {
     cfg!(target_os = "macos")
 }
 
+/// Loads projects and settings from the database to build the full tray state.
 pub async fn build_tray_state_for_app(state: &AppState) -> Result<TrayServiceState, AppError> {
     let app_settings = settings::load_or_initialize(&state.pool, &state.home_dir).await?;
     let connection = state.pool.get().await.map_err(AppError::store)?;
@@ -89,6 +92,7 @@ pub async fn build_tray_state_for_app(state: &AppState) -> Result<TrayServiceSta
     )
 }
 
+/// Constructs tray state from pre-loaded snapshots and settings values.
 pub fn build_tray_state_from_parts(
     snapshots: Vec<StoredProjectSnapshot>,
     hidden_project_ids: &[String],
@@ -148,6 +152,7 @@ fn tray_summary(projects: &[TrayProjectBar]) -> TrayPortfolioSummary {
     }
 }
 
+/// Validates a menu item ID against the current tray state and returns the action.
 pub fn resolve_menu_action(id: &str, tray_state: &TrayServiceState) -> Option<TrayMenuAction> {
     match parse_menu_action(id)? {
         action @ (TrayMenuAction::ShowDashboard
@@ -164,6 +169,7 @@ pub fn resolve_menu_action(id: &str, tray_state: &TrayServiceState) -> Option<Tr
     }
 }
 
+/// Debounces and schedules an asynchronous tray icon refresh.
 pub fn request_tray_refresh<R: Runtime>(app: &AppHandle<R>) {
     if TRAY_REFRESH_PENDING
         .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
@@ -182,11 +188,13 @@ pub fn request_tray_refresh<R: Runtime>(app: &AppHandle<R>) {
     });
 }
 
+/// Records that a tray refresh is needed via the app state counter.
 pub async fn record_tray_refresh_request(state: &AppState) -> Result<(), AppError> {
     state.request_tray_refresh();
     Ok(())
 }
 
+/// Creates the system tray icon, menu, and event handlers.
 pub fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> Result<(), AppError> {
     let update = startup_tray_update()?;
     let icon = Image::from_bytes(&update.icon_png).map_err(AppError::from)?;
@@ -374,6 +382,7 @@ fn toggle_dashboard_window<R: Runtime>(app: &AppHandle<R>) {
     }
 }
 
+/// Shows or creates the main dashboard window, optionally navigating to a route.
 pub fn show_dashboard_window<R: Runtime>(
     app: &AppHandle<R>,
     route: Option<&str>,

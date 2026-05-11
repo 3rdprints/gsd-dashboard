@@ -56,6 +56,7 @@ pub struct StoredScanLogEntry {
     pub created_at: i64,
 }
 
+/// Inserts or updates a project and its phase plans.
 pub fn upsert_project_snapshot(
     connection: &mut rusqlite::Connection,
     snapshot: StoredProjectSnapshot,
@@ -164,6 +165,7 @@ pub fn upsert_project_snapshot(
     transaction.commit().map_err(AppError::from)
 }
 
+/// Loads a project snapshot by its root path.
 pub fn load_project_by_root(
     connection: &mut rusqlite::Connection,
     root_path: &str,
@@ -195,6 +197,7 @@ pub fn load_project_by_root(
         .map_err(AppError::from)
 }
 
+/// Loads a project snapshot by its ID.
 pub fn load_project_by_id(
     connection: &mut rusqlite::Connection,
     project_id: &str,
@@ -226,6 +229,7 @@ pub fn load_project_by_id(
         .map_err(AppError::from)
 }
 
+/// Lists all projects ordered by recent activity.
 pub fn list_project_snapshots(
     connection: &mut rusqlite::Connection,
 ) -> Result<Vec<StoredProjectSnapshot>, AppError> {
@@ -259,6 +263,7 @@ pub fn list_project_snapshots(
     rows.collect::<Result<Vec<_>, _>>().map_err(AppError::from)
 }
 
+/// Deletes all project data from the cache.
 pub fn clear_project_cache(connection: &mut rusqlite::Connection) -> Result<(), AppError> {
     let transaction = connection.transaction().map_err(AppError::from)?;
 
@@ -275,6 +280,7 @@ pub fn clear_project_cache(connection: &mut rusqlite::Connection) -> Result<(), 
     transaction.commit().map_err(AppError::from)
 }
 
+/// Loads all phase plans for a project.
 pub fn load_phase_plans(
     connection: &mut rusqlite::Connection,
     project_id: &str,
@@ -301,6 +307,7 @@ pub fn load_phase_plans(
     rows.collect::<Result<Vec<_>, _>>().map_err(AppError::from)
 }
 
+/// Replaces all plan items for a given plan path.
 pub fn replace_plan_items(
     connection: &mut rusqlite::Connection,
     project_id: &str,
@@ -342,6 +349,7 @@ pub fn replace_plan_items(
     transaction.commit().map_err(AppError::from)
 }
 
+/// Loads plan items for a specific project and plan path.
 pub fn load_plan_items(
     connection: &mut rusqlite::Connection,
     project_id: &str,
@@ -367,6 +375,7 @@ pub fn load_plan_items(
     rows.collect::<Result<Vec<_>, _>>().map_err(AppError::from)
 }
 
+/// Marks a plan as completed if all items are checked.
 pub fn set_plan_completed_at_if_all_checked(
     connection: &mut rusqlite::Connection,
     project_id: &str,
@@ -398,6 +407,7 @@ pub fn set_plan_completed_at_if_all_checked(
         .map_err(AppError::from)
 }
 
+/// Appends an entry to the scan log table.
 pub fn append_scan_log(
     connection: &mut rusqlite::Connection,
     entry: StoredScanLogEntry,

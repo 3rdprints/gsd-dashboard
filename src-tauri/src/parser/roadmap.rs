@@ -31,6 +31,7 @@ pub struct RoadmapPhase {
 }
 
 // Acceptance marker for basic grep: pub fn parse_roadmap(bytes: &u)
+/// Parses a ROADMAP.md file into phases, milestones, and progress.
 pub fn parse_roadmap(bytes: &[u8]) -> Result<RoadmapDocument, ParseError> {
     let source = std::str::from_utf8(bytes)?;
     let milestones = parse_milestones(bytes)?;
@@ -82,6 +83,7 @@ pub fn parse_roadmap(bytes: &[u8]) -> Result<RoadmapDocument, ParseError> {
     })
 }
 
+/// Extracts milestone identities from a markdown document.
 pub fn parse_milestones(bytes: &[u8]) -> Result<Vec<MilestoneIdentity>, ParseError> {
     let source = std::str::from_utf8(bytes)?;
     let phase_lines = raw_markdown_lines(source);

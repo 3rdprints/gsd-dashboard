@@ -22,6 +22,7 @@ pub struct ScanSummary {
     pub error_count: usize,
 }
 
+/// Walks a root directory to discover all `.planning/` project candidates.
 pub fn discover_planning_dirs(
     root: &Path,
     home_dir: &Path,

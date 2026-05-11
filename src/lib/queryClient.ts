@@ -11,12 +11,15 @@ import type {
   SortDirection
 } from "./types";
 
+/** Query key for the boot status cache entry. */
 export const bootStatusQueryKey = ["bootStatus"] as const;
+/** Query key for the settings cache entry. */
 export const settingsQueryKey = ["settings"] as const;
 /**
  * Builds the watcher status query key for TanStack Query cache entries.
  */
 export const watcherStatusQueryKey = () => ["watcherStatus"] as const;
+/** Query key for the portfolio cache entry. */
 export const portfolioQueryKey = ["portfolio"] as const;
 /**
  * Builds the portfolio heatmap query key for TanStack Query cache entries.
@@ -42,6 +45,7 @@ export const projectSessionsQueryKey = (id: string, sort: ProjectSessionSortKey,
  * Builds the project charts query key for TanStack Query cache entries.
  */
 export const projectChartsQueryKey = (id: string, range: ProjectChartRange) => ["project", id, "charts", range] as const;
+/** Builds the global sessions query key for TanStack Query cache entries. */
 export const globalSessionsQueryKey = (
   filters: GlobalSessionFilters,
   sort: ProjectSessionSortKey,
@@ -54,6 +58,7 @@ export const globalSessionsQueryKey = (
  */
 export const globalChartsQueryKey = (filters: GlobalSessionFilters) => ["globalCharts", filters] as const;
 
+/** Shared TanStack Query client instance for the application. */
 export const queryClient = new TanStackQueryClient();
 
 /**

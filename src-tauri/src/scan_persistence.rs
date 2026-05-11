@@ -13,6 +13,7 @@ use crate::{
     store::project_repo::{self, StoredPhasePlan, StoredPlanItem, StoredProjectSnapshot},
 };
 
+/// Persists a parsed project scan result to the SQLite cache.
 pub(crate) async fn persist_project_scan(
     pool: &Pool,
     candidate: &PlanningProjectCandidate,

@@ -14,6 +14,7 @@ use crate::{
 
 pub use crate::sessions::global::GlobalSessionFilters;
 
+/// IPC command: indexes all session JSONL files and reports progress via channel.
 #[tauri::command]
 pub async fn index_sessions(
     state: State<'_, AppState>,
@@ -25,6 +26,7 @@ pub async fn index_sessions(
     .await
 }
 
+/// Indexes all session roots with a custom event callback.
 pub async fn index_sessions_for_app(
     state: &AppState,
     on_event: impl Fn(SessionIndexEvent) -> Result<(), AppError> + Send + Sync + 'static,
@@ -32,6 +34,7 @@ pub async fn index_sessions_for_app(
     indexer::index_session_roots(state.pool.clone(), state.home_dir.clone(), on_event).await
 }
 
+/// IPC command: clears all indexed sessions and rebuilds daily activity.
 #[tauri::command]
 pub async fn clear_session_index(
     state: State<'_, AppState>,
@@ -39,6 +42,7 @@ pub async fn clear_session_index(
     clear_session_index_for_app(&state).await
 }
 
+/// Clears the session index and rebuilds daily activity.
 pub async fn clear_session_index_for_app(
     state: &AppState,
 ) -> Result<SessionIndexClearSummary, AppError> {
@@ -61,6 +65,7 @@ pub async fn clear_session_index_for_app(
     Ok(summary)
 }
 
+/// IPC command: returns a paginated, filtered list of all sessions.
 #[tauri::command]
 pub async fn list_global_sessions(
     state: State<'_, AppState>,
@@ -81,6 +86,7 @@ pub async fn list_global_sessions(
     .await
 }
 
+/// IPC command: returns global chart data (by source, by project, histograms).
 #[tauri::command]
 pub async fn get_global_chart_data(
     state: State<'_, AppState>,
@@ -89,6 +95,7 @@ pub async fn get_global_chart_data(
     get_global_chart_data_for_app(&state, filters).await
 }
 
+/// Lists global sessions with filters, sorting, and pagination.
 pub async fn list_global_sessions_for_app(
     state: &AppState,
     filters: GlobalSessionFilters,
@@ -115,6 +122,7 @@ pub async fn list_global_sessions_for_app(
         .map_err(AppError::store)?
 }
 
+/// Loads global chart data with the given filters.
 pub async fn get_global_chart_data_for_app(
     state: &AppState,
     filters: GlobalSessionFilters,

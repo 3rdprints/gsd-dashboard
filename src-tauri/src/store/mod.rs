@@ -10,6 +10,7 @@ pub mod migrations;
 pub mod project_repo;
 pub mod settings_repo;
 
+/// Opens a deadpool SQLite connection pool with WAL mode.
 pub async fn open_pool(db_path: &Path) -> Result<Pool, AppError> {
     let mut config = Config::new(db_path);
     config.pool = Some(PoolConfig::new(4));
@@ -31,6 +32,7 @@ pub async fn open_pool(db_path: &Path) -> Result<Pool, AppError> {
     Ok(pool)
 }
 
+/// Applies pending schema migrations to the database.
 pub async fn run_migrations(pool: &Pool) -> Result<(), AppError> {
     let connection = pool.get().await.map_err(AppError::store)?;
     connection
@@ -40,6 +42,7 @@ pub async fn run_migrations(pool: &Pool) -> Result<(), AppError> {
         .map_err(AppError::from)
 }
 
+/// Returns the current migration version number.
 pub async fn migration_version(pool: &Pool) -> Result<u32, AppError> {
     let connection = pool.get().await.map_err(AppError::store)?;
     let version = connection
@@ -52,6 +55,7 @@ pub async fn migration_version(pool: &Pool) -> Result<u32, AppError> {
     Ok(version)
 }
 
+/// Checks whether WAL journal mode is active.
 pub async fn wal_enabled(pool: &Pool) -> Result<bool, AppError> {
     let connection = pool.get().await.map_err(AppError::store)?;
     let journal_mode = connection

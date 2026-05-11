@@ -5,6 +5,7 @@ use crate::error::AppError;
 
 pub const AUTOSTART_ARG: &str = "--autostart";
 
+/// Returns true if the CLI arguments contain the autostart flag.
 pub fn is_autostart_launch<I, S>(args: I) -> bool
 where
     I: IntoIterator<Item = S>,
@@ -14,6 +15,7 @@ where
         .any(|argument| argument.as_ref() == AUTOSTART_ARG)
 }
 
+/// Registers the Tauri autostart plugin configured with macOS LaunchAgent.
 pub fn register_autostart_plugin<R: tauri::Runtime>(
     builder: tauri::Builder<R>,
 ) -> tauri::Builder<R> {
@@ -44,6 +46,7 @@ pub struct TauriAutostartBackend<R: tauri::Runtime> {
 }
 
 impl<R: tauri::Runtime> TauriAutostartBackend<R> {
+    /// Creates a new autostart backend wrapping the given Tauri app handle.
     pub fn new(app: &AppHandle<R>) -> Self {
         Self { app: app.clone() }
     }

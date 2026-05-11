@@ -46,6 +46,7 @@ impl Default for TrayRenderSpec {
     }
 }
 
+/// Computes the tray icon render spec based on visible project count.
 pub fn tray_render_spec_for_projects(project_count: usize, max_projects: u8) -> TrayRenderSpec {
     let visible_count = project_count.min(max_projects.max(1) as usize);
     let width_px = if visible_count == 0 {
@@ -64,6 +65,7 @@ pub fn tray_render_spec_for_projects(project_count: usize, max_projects: u8) -> 
     }
 }
 
+/// Filters and sorts projects for tray display, excluding hidden ones.
 pub fn visible_tray_projects(
     projects: &[TrayProject],
     hidden_project_ids: &[String],
@@ -93,6 +95,7 @@ pub fn visible_tray_projects(
     visible
 }
 
+/// Returns the maximum number of bars that fit within the icon width.
 pub fn adaptive_bar_count(project_count: usize, spec: TrayRenderSpec) -> usize {
     let capped_count = project_count.min(spec.max_projects.max(1) as usize);
     (1..=capped_count)

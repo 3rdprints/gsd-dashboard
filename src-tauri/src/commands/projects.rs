@@ -20,6 +20,7 @@ use crate::{
     },
 };
 
+/// Triggers a debounced tray icon refresh after project cache changes.
 pub fn request_project_cache_tray_refresh<R: Runtime>(app: &AppHandle<R>) {
     crate::tray::service::request_tray_refresh(app);
 }
@@ -125,11 +126,13 @@ pub struct PortfolioHeatmapDayDto {
     pub top_project_name: Option<String>,
 }
 
+/// IPC command: returns the full portfolio with stats and project cards.
 #[tauri::command]
 pub async fn get_portfolio(state: State<'_, AppState>) -> Result<PortfolioDto, AppError> {
     get_portfolio_for_app(&state).await
 }
 
+/// IPC command: returns detail for a single project by ID.
 #[tauri::command]
 pub async fn get_project(
     state: State<'_, AppState>,
@@ -138,6 +141,7 @@ pub async fn get_project(
     get_project_for_app(&state, &project_id).await
 }
 
+/// IPC command: returns milestone progress for a project.
 #[tauri::command]
 pub async fn get_project_milestones(
     state: State<'_, AppState>,
@@ -146,6 +150,7 @@ pub async fn get_project_milestones(
     get_project_milestones_for_app(&state, &project_id).await
 }
 
+/// IPC command: returns the current phase panel with plan items.
 #[tauri::command]
 pub async fn get_project_phase_panel(
     state: State<'_, AppState>,
@@ -154,6 +159,7 @@ pub async fn get_project_phase_panel(
     get_project_phase_panel_for_app(&state, &project_id).await
 }
 
+/// IPC command: returns a paginated list of sessions for a project.
 #[tauri::command]
 pub async fn list_project_sessions(
     state: State<'_, AppState>,
@@ -174,6 +180,7 @@ pub async fn list_project_sessions(
     .await
 }
 
+/// IPC command: returns chart data (sessions, tokens, velocity) for a project.
 #[tauri::command]
 pub async fn get_project_chart_data(
     state: State<'_, AppState>,
@@ -183,6 +190,7 @@ pub async fn get_project_chart_data(
     get_project_chart_data_for_app(&state, &project_id, range.as_deref()).await
 }
 
+/// IPC command: returns daily activity heatmap data.
 #[tauri::command]
 pub async fn get_portfolio_heatmap(
     state: State<'_, AppState>,
@@ -191,10 +199,12 @@ pub async fn get_portfolio_heatmap(
     load_portfolio_heatmap_for_app(&state, days).await
 }
 
+/// Loads the portfolio using the current timestamp.
 pub async fn get_portfolio_for_app(state: &AppState) -> Result<PortfolioDto, AppError> {
     get_portfolio_for_app_at(state, current_epoch_ms()).await
 }
 
+/// Loads the portfolio with session sparklines relative to a given timestamp.
 pub async fn get_portfolio_for_app_at(
     state: &AppState,
     now_ms: i64,
@@ -289,6 +299,7 @@ pub async fn get_portfolio_for_app_at(
     })
 }
 
+/// Loads a single project's detail DTO by ID.
 pub async fn get_project_for_app(
     state: &AppState,
     project_id: &str,
@@ -304,6 +315,7 @@ pub async fn get_project_for_app(
     Ok(ProjectDetailDto::from(snapshot))
 }
 
+/// Loads milestone progress data for a project.
 pub async fn get_project_milestones_for_app(
     state: &AppState,
     project_id: &str,
@@ -318,6 +330,7 @@ pub async fn get_project_milestones_for_app(
         .map_err(AppError::store)?
 }
 
+/// Loads the current phase panel with checklist items for a project.
 pub async fn get_project_phase_panel_for_app(
     state: &AppState,
     project_id: &str,
@@ -332,6 +345,7 @@ pub async fn get_project_phase_panel_for_app(
         .map_err(AppError::store)?
 }
 
+/// Lists paginated sessions for a project with sorting.
 pub async fn list_project_sessions_for_app(
     state: &AppState,
     project_id: &str,
@@ -359,6 +373,7 @@ pub async fn list_project_sessions_for_app(
         .map_err(AppError::store)?
 }
 
+/// Loads chart data for a project over a time range.
 pub async fn get_project_chart_data_for_app(
     state: &AppState,
     project_id: &str,
@@ -379,6 +394,7 @@ pub async fn get_project_chart_data_for_app(
         .map_err(AppError::store)?
 }
 
+/// Loads the portfolio-wide daily activity heatmap.
 pub async fn load_portfolio_heatmap_for_app(
     state: &AppState,
     days: Option<i64>,

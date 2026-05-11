@@ -36,6 +36,7 @@ pub struct IndexedSessionChange {
     pub(crate) project_id: Option<String>,
 }
 
+/// Streams a JSONL session file from the last committed offset.
 pub fn stream_session_file(
     source: SessionSource,
     path: &Path,
@@ -118,6 +119,7 @@ pub fn stream_session_file(
     ))
 }
 
+/// Indexes a single session file with incremental offset tracking.
 pub(crate) async fn index_session_file(
     pool: &Pool,
     source: SessionSource,
@@ -214,6 +216,7 @@ pub(crate) async fn index_session_file(
     })
 }
 
+/// Loads all known project root paths from the database.
 pub(crate) async fn load_known_project_roots(pool: &Pool) -> Result<Vec<ProjectRoot>, AppError> {
     let connection = pool.get().await.map_err(AppError::store)?;
     connection

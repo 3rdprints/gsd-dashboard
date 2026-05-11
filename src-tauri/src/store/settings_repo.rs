@@ -13,6 +13,7 @@ pub struct StoredSettings {
     pub global_sessions_default_range: String,
 }
 
+/// Loads the stored settings row from the database.
 pub fn load_settings(
     connection: &mut rusqlite::Connection,
 ) -> Result<Option<StoredSettings>, AppError> {
@@ -45,6 +46,7 @@ pub fn load_settings(
         .map_err(AppError::from)
 }
 
+/// Persists the settings row via upsert.
 pub fn save_settings(
     connection: &mut rusqlite::Connection,
     settings: StoredSettings,

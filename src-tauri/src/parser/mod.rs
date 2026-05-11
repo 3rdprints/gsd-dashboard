@@ -170,6 +170,7 @@ pub enum ParseError {
 }
 
 impl ParseError {
+    /// Converts this parse error into a `ParseIssue` with the given file path.
     pub fn issue(&self, file_path: impl Into<String>) -> ParseIssue {
         ParseIssue {
             file_path: file_path.into(),
@@ -203,6 +204,7 @@ impl From<serde_json::Error> for ParseError {
     }
 }
 
+/// Computes milestone progress from roadmap checkboxes or plan completion.
 pub fn derive_progress(
     roadmap: &roadmap::RoadmapDocument,
     plans: &[PlanDocument],

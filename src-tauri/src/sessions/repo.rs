@@ -33,6 +33,7 @@ pub struct UnmatchedSessionSummary {
     pub index_error: Option<String>,
 }
 
+/// Inserts or updates a session record in the database.
 pub fn upsert_indexed_session(
     transaction: &rusqlite::Transaction<'_>,
     session: &IndexedSession,
@@ -99,6 +100,7 @@ pub fn upsert_indexed_session(
         .map_err(AppError::from)
 }
 
+/// Loads the index state for a previously processed file.
 pub fn load_index_state(
     connection: &mut rusqlite::Connection,
     source_path: &str,
@@ -121,6 +123,7 @@ pub fn load_index_state(
         .map_err(AppError::from)
 }
 
+/// Loads a session record by ID.
 pub fn load_indexed_session(
     connection: &mut rusqlite::Connection,
     session_id: &str,
@@ -151,6 +154,7 @@ pub fn load_indexed_session(
         .map_err(AppError::from)
 }
 
+/// Persists the current index state for a session file.
 pub fn save_index_state(
     transaction: &rusqlite::Transaction<'_>,
     state: &SessionIndexState,
@@ -192,6 +196,7 @@ pub fn save_index_state(
         .map_err(AppError::from)
 }
 
+/// Replaces all sessions for a file and saves index state.
 pub fn persist_indexed_file_result(
     connection: &mut rusqlite::Connection,
     sessions: &[IndexedSession],
@@ -221,6 +226,7 @@ pub struct SessionIndexClearSummary {
     pub index_states_cleared: i64,
 }
 
+/// Removes all sessions and index states from the database.
 pub fn clear_session_index(
     connection: &mut rusqlite::Connection,
 ) -> Result<SessionIndexClearSummary, AppError> {
@@ -231,6 +237,7 @@ pub fn clear_session_index(
     Ok(summary)
 }
 
+/// Clears sessions and index states within a transaction.
 pub fn clear_session_index_in_transaction(
     transaction: &rusqlite::Transaction<'_>,
 ) -> Result<SessionIndexClearSummary, AppError> {
@@ -247,6 +254,7 @@ pub fn clear_session_index_in_transaction(
     })
 }
 
+/// Deletes all sessions without a project attribution.
 pub fn prune_unmatched_sessions(connection: &mut rusqlite::Connection) -> Result<i64, AppError> {
     connection
         .execute("DELETE FROM sessions WHERE project_id IS NULL", [])
@@ -254,6 +262,7 @@ pub fn prune_unmatched_sessions(connection: &mut rusqlite::Connection) -> Result
         .map_err(AppError::from)
 }
 
+/// Removes index states with no corresponding sessions.
 pub fn prune_orphan_index_states(connection: &mut rusqlite::Connection) -> Result<i64, AppError> {
     connection
         .execute(
@@ -269,6 +278,7 @@ pub fn prune_orphan_index_states(connection: &mut rusqlite::Connection) -> Resul
         .map_err(AppError::from)
 }
 
+/// Removes index states for Codex sessions lacking token data.
 pub fn prune_tokenless_codex_index_states(
     connection: &mut rusqlite::Connection,
 ) -> Result<i64, AppError> {
@@ -291,6 +301,7 @@ pub fn prune_tokenless_codex_index_states(
         .map_err(AppError::from)
 }
 
+/// Deletes sessions and index states under a path prefix.
 pub fn prune_indexed_paths_under(
     connection: &mut rusqlite::Connection,
     path_prefix: &str,
@@ -320,6 +331,7 @@ pub fn prune_indexed_paths_under(
     Ok(pruned_sessions as i64)
 }
 
+/// Re-attributes unmatched sessions to known projects.
 pub fn rematch_unmatched_sessions_against_projects(
     connection: &mut rusqlite::Connection,
     known_projects: &[ProjectRoot],
@@ -349,6 +361,7 @@ pub fn rematch_unmatched_sessions_against_projects(
     Ok(rematched_count)
 }
 
+/// Loads today's session counts, tokens, and 7-day sparklines.
 pub fn load_portfolio_session_summary(
     connection: &mut rusqlite::Connection,
     visible_project_ids: &[String],

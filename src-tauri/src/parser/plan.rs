@@ -24,6 +24,7 @@ pub struct PlanItem {
 }
 
 // Acceptance marker for basic grep: pub fn parse_plan(bytes: &u)
+/// Parses a PLAN.md file with frontmatter, tasks, and checklist items.
 pub fn parse_plan(bytes: &[u8]) -> Result<PlanDocument, ParseError> {
     let source = std::str::from_utf8(bytes)?;
     let matter = Matter::<YAML>::new();
@@ -128,6 +129,7 @@ fn find_next_task_opener(source: &str) -> Option<usize> {
     None
 }
 
+/// Extracts checkbox items with line numbers from plan markdown.
 pub fn parse_plan_items_with_lines(body: &[u8]) -> Result<Vec<PlanItem>, ParseError> {
     let body = std::str::from_utf8(body)?;
     let mut items = Vec::new();

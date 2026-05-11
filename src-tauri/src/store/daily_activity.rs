@@ -15,6 +15,7 @@ pub struct DailyActivityRow {
     pub top_project_name: Option<String>,
 }
 
+/// Rebuilds the daily_activity table for a sliding window of days.
 pub fn rebuild_window(
     connection: &mut rusqlite::Connection,
     days: i64,
@@ -25,6 +26,7 @@ pub fn rebuild_window(
     transaction.commit().map_err(AppError::from)
 }
 
+/// Rebuilds daily activity within an existing transaction.
 pub fn rebuild_window_in_transaction(
     transaction: &rusqlite::Transaction<'_>,
     days: i64,
@@ -108,6 +110,7 @@ fn local_date_for_ms_in_transaction(
     parse_date_key(&date)
 }
 
+/// Loads daily activity rows for the given number of days.
 pub fn load_window(
     connection: &mut rusqlite::Connection,
     days: i64,

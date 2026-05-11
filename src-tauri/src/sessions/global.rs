@@ -89,6 +89,7 @@ pub struct GlobalDayOfWeekBucketDto {
     pub count: i64,
 }
 
+/// Returns a paginated, filterable list of all sessions across projects.
 pub fn list_global_sessions(
     connection: &mut rusqlite::Connection,
     filters: &GlobalSessionFilters,
@@ -176,6 +177,7 @@ pub fn list_global_sessions(
     })
 }
 
+/// Loads aggregate chart data (by source, project, time of day, day of week).
 pub fn load_global_chart_data(
     connection: &mut rusqlite::Connection,
     filters: &GlobalSessionFilters,

@@ -14,6 +14,7 @@ pub struct ProjectRefreshOutcome {
     pub had_parse_errors: bool,
 }
 
+/// Re-scans and persists a single project from its planning candidate path.
 pub async fn scan_single_project_candidate(
     pool: &Pool,
     candidate: PlanningProjectCandidate,

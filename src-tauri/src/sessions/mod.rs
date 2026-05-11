@@ -19,6 +19,7 @@ pub enum SessionSource {
 }
 
 impl SessionSource {
+    /// Returns the string identifier for this session source.
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Claude => "claude",
@@ -95,6 +96,7 @@ pub struct SessionParseAccumulator {
     pub live_partial_message: Option<String>,
 }
 
+/// Parses an RFC3339 string or numeric value into a millisecond timestamp.
 pub fn parse_timestamp_ms(value: &Value) -> Option<i64> {
     if let Some(timestamp) = value.as_str() {
         return OffsetDateTime::parse(timestamp, &Rfc3339)
@@ -114,6 +116,7 @@ pub fn parse_timestamp_ms(value: &Value) -> Option<i64> {
     }
 }
 
+/// Updates session start/end/duration from a record's timestamp.
 pub fn apply_record_timestamp(accumulator: &mut SessionParseAccumulator, timestamp_ms: i64) {
     if accumulator.session.started_at.is_none() {
         accumulator.session.started_at = Some(timestamp_ms);
@@ -127,16 +130,19 @@ pub fn apply_record_timestamp(accumulator: &mut SessionParseAccumulator, timesta
     }
 }
 
+/// Adds a token value to an optional accumulator.
 pub fn add_token_count(target: &mut Option<i64>, value: Option<i64>) {
     if let Some(value) = value {
         *target = Some(target.unwrap_or(0) + value);
     }
 }
 
+/// Extracts an i64 from a JSON value.
 pub fn json_i64(value: Option<&Value>) -> Option<i64> {
     value.and_then(|value| value.as_i64().or_else(|| value.as_u64()?.try_into().ok()))
 }
 
+/// Extracts a non-empty string from a JSON value.
 pub fn json_string(value: Option<&Value>) -> Option<String> {
     value
         .and_then(Value::as_str)

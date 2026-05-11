@@ -36,6 +36,7 @@ pub struct BootStatus {
 }
 
 impl AppState {
+    /// Creates a new app state with the given pool, paths, and boot status.
     pub fn new(
         pool: Pool,
         home_dir: PathBuf,
@@ -55,10 +56,12 @@ impl AppState {
         }
     }
 
+    /// Atomically increments and returns the tray refresh request counter.
     pub fn request_tray_refresh(&self) -> u64 {
         self.tray_refresh_requests.fetch_add(1, Ordering::SeqCst) + 1
     }
 
+    /// Returns the current tray refresh request count.
     pub fn tray_refresh_request_count(&self) -> u64 {
         self.tray_refresh_requests.load(Ordering::SeqCst)
     }
