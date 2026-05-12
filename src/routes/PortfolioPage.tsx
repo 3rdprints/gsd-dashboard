@@ -184,7 +184,15 @@ export function PortfolioPage() {
             className="chart-card activity-heatmap-card"
             aria-label="Loading activity heatmap"
           >
-            <div className="heatmap-skeleton" />
+            <div className="chart-card-header">
+              <div>
+                <h2 className="chart-card-title">Activity heatmap</h2>
+                <p className="chart-card-subtitle">Loading 90 days of session activity</p>
+              </div>
+            </div>
+            <div className="heatmap-skeleton labeled-skeleton">
+              <span>Activity loading</span>
+            </div>
           </div>
         ) : (
           <ActivityHeatmap days={portfolioHeatmap.data ?? []} />
@@ -195,8 +203,18 @@ export function PortfolioPage() {
         <section className="project-grid" aria-label="Projects">
           {portfolio.isLoading ? (
             <>
-              <div className="project-card-skeleton" />
-              <div className="project-card-skeleton" />
+              <div className="project-card-skeleton" aria-label="Loading project">
+                <p className="label-text">Project</p>
+                <h2>Loading project status</h2>
+                <p>Current milestone, phase, and activity will appear here.</p>
+                <div className="skeleton-line" />
+              </div>
+              <div className="project-card-skeleton" aria-label="Loading project">
+                <p className="label-text">Project</p>
+                <h2>Loading project status</h2>
+                <p>Session trend and next action will appear here.</p>
+                <div className="skeleton-line" />
+              </div>
             </>
           ) : portfolio.data && portfolio.data.projects.length > 0 ? (
             portfolio.data.projects.map((project) => (
@@ -214,6 +232,16 @@ export function PortfolioPage() {
                 Add a scan root or rebuild the cache to discover projects with `.planning/`
                 directories.
               </p>
+              <div className="empty-state-actions">
+                <Button type="button" onClick={runScan} disabled={isScanning}>
+                  {isScanning ? (
+                    <Loader2 aria-hidden="true" size={16} strokeWidth={2} />
+                  ) : (
+                    <Search aria-hidden="true" size={16} strokeWidth={2} />
+                  )}
+                  Scan Projects
+                </Button>
+              </div>
             </div>
           )}
         </section>

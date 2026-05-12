@@ -48,7 +48,7 @@ const portfolio: PortfolioDto = {
 };
 
 describe("SettingsPage live update watcher status", () => {
-  it("renders degraded watcher status between scan roots and hidden projects", async () => {
+  it("groups live status with support panels before maintenance controls", async () => {
     vi.spyOn(ipc, "getSettings").mockResolvedValue({
       scanRoots: [],
       hiddenProjectIds: [],
@@ -75,8 +75,10 @@ describe("SettingsPage live update watcher status", () => {
     const sectionHeadings = screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent);
     expect(sectionHeadings.indexOf("Watcher Status")).toBeGreaterThan(sectionHeadings.indexOf("Scan roots"));
     expect(sectionHeadings.indexOf("Watcher Status")).toBeLessThan(sectionHeadings.indexOf("Hidden projects"));
-    expect(sectionHeadings.indexOf("GSD Dashboard is up to date")).toBeGreaterThan(sectionHeadings.indexOf("Rebuild Cache"));
-    expect(sectionHeadings.indexOf("GSD Dashboard is up to date")).toBeLessThan(sectionHeadings.indexOf("Indexing"));
+    expect(sectionHeadings.indexOf("GSD Dashboard is up to date")).toBeGreaterThan(sectionHeadings.indexOf("Hidden projects"));
+    expect(sectionHeadings.indexOf("GSD Dashboard is up to date")).toBeLessThan(sectionHeadings.indexOf("Rebuild Cache"));
+    expect(sectionHeadings.indexOf("Scan status")).toBeLessThan(sectionHeadings.indexOf("Rebuild Cache"));
+    expect(sectionHeadings.indexOf("Rebuild Cache")).toBeLessThan(sectionHeadings.indexOf("Indexing"));
   });
 });
 

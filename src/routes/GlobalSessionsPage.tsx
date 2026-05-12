@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Loader2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 
@@ -90,9 +91,24 @@ export function GlobalSessionsPage() {
         <div className="app-header">
           <header>
             <h1>Sessions</h1>
-            <p>Loading settings</p>
+            <p>Preparing filters</p>
           </header>
         </div>
+        <section className="chart-card sessions-loading-panel" aria-busy="true">
+          <div className="panel-heading">
+            <Loader2 aria-hidden="true" size={20} strokeWidth={2} />
+            <div>
+              <p className="label-text">Session index</p>
+              <h2 className="chart-card-title">Preparing session view</h2>
+            </div>
+          </div>
+          <p className="chart-card-subtitle">
+            Loading saved filters before querying the local session cache.
+          </p>
+          <div className="table-skeleton labeled-skeleton" aria-label="Loading sessions table">
+            <span>Session table loading</span>
+          </div>
+        </section>
       </div>
     );
   }

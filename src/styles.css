@@ -350,7 +350,28 @@ input:not([data-slot]):focus-visible {
 }
 
 .project-card-skeleton {
-  background: #E5E7EB;
+  background: color-mix(in oklch, var(--app-border-soft) 28%, var(--app-surface));
+  border-style: dashed;
+}
+
+.project-card-skeleton h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.project-card-skeleton p {
+  margin: 0;
+  color: #4B5563;
+}
+
+.skeleton-line {
+  width: 72%;
+  height: 8px;
+  border-radius: 8px;
+  background: var(--app-border-soft);
 }
 
 .project-card-header {
@@ -513,8 +534,16 @@ input:not([data-slot]):focus-visible {
 
 .heatmap-skeleton {
   height: 84px;
+  display: grid;
+  place-items: center;
   border-radius: 8px;
   background: #E5E7EB;
+}
+
+.labeled-skeleton {
+  color: #4B5563;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .sr-only {
@@ -568,6 +597,18 @@ input:not([data-slot]):focus-visible {
 .empty-state p {
   margin: 0;
   color: #4B5563;
+}
+
+.empty-state {
+  align-content: center;
+  min-height: 184px;
+}
+
+.empty-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
 }
 
 .unmatched-source-mix {
@@ -736,6 +777,33 @@ input:disabled {
   color: #6B7280;
 }
 
+.settings-page {
+  gap: 28px;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 24px;
+  align-items: start;
+}
+
+.settings-primary,
+.settings-support,
+.settings-maintenance-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.settings-maintenance-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+}
+
+.settings-page .confirmation-copy {
+  max-width: 72ch;
+}
+
 .scan-status {
   margin-top: 0;
 }
@@ -764,7 +832,8 @@ input:disabled {
   height: 100%;
   border-radius: 8px;
   background: #2563EB;
-  transition: width 160ms ease;
+  transform-origin: left center;
+  transition: transform 160ms ease-out;
 }
 
 .parse-error-alert,
@@ -792,7 +861,9 @@ input:disabled {
 @media (max-width: 900px) {
   .portfolio-activity-row,
   .portfolio-layout,
-  .detail-summary {
+  .detail-summary,
+  .settings-grid,
+  .settings-maintenance-grid {
     grid-template-columns: 1fr;
   }
 
@@ -867,6 +938,18 @@ input:disabled {
 :root[data-color-scheme="dark"] .rail-section-body p,
 :root[data-color-scheme="dark"] .empty-state p {
   color: var(--app-muted);
+}
+
+:root[data-color-scheme="dark"] .project-card-skeleton h2 {
+  color: var(--app-text);
+}
+
+:root[data-color-scheme="dark"] .project-card-skeleton p,
+:root[data-color-scheme="dark"] .labeled-skeleton,
+:root[data-color-scheme="dark"] .disabled-row,
+:root[data-color-scheme="dark"] button:disabled,
+:root[data-color-scheme="dark"] input:disabled {
+  color: #A8B6CA;
 }
 
 :root[data-color-scheme="dark"] button:not([data-slot]):not(.secondary-button):not(.rail-toggle):not(.theme-toggle button),
@@ -1011,8 +1094,12 @@ input:disabled {
 :root[data-color-scheme="dark"] .timeline-track,
 :root[data-color-scheme="dark"] .timeline-segment,
 :root[data-color-scheme="dark"] .table-skeleton {
-  background: var(--app-border-soft);
+  background: #263241;
   fill: var(--app-border-soft);
+}
+
+:root[data-color-scheme="dark"] .skeleton-line {
+  background: #334155;
 }
 
 @media (max-width: 640px) {

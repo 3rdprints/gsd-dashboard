@@ -110,118 +110,126 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="page-stack">
+    <div className="page-stack settings-page">
       <div className="app-header">
         <header>
           <h1>Settings</h1>
-          <p>Scan roots and cache controls</p>
+          <p>Routine controls first; destructive maintenance stays separated.</p>
         </header>
       </div>
 
-      <ScanRootsEditor title="Scan roots" />
-
-      <WatcherStatusPanel
-        status={watcherStatus.data}
-        isLoading={watcherStatus.isLoading}
-        isError={watcherStatus.isError}
-      />
-
-      <section className="settings-panel" aria-labelledby="hidden-projects-title">
-        <div className="panel-heading">
-          <Eye aria-hidden="true" size={20} strokeWidth={2} />
-          <div>
-            <p className="label-text">Portfolio visibility</p>
-            <h2 id="hidden-projects-title">Hidden projects</h2>
-          </div>
+      <div className="settings-grid">
+        <div className="settings-primary">
+          <ScanRootsEditor title="Scan roots" />
         </div>
 
-        {portfolio.data && portfolio.data.hiddenProjects.length > 0 ? (
-          <ul className="settings-list">
-            {portfolio.data.hiddenProjects.map((project) => (
-              <li key={project.id}>
-                <span>{project.name}</span>
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => handleUnhide(project.id)}
-                  disabled={saveSettings.isPending}
-                >
-                  Unhide Project
-                </Button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="muted-copy">No hidden projects</p>
-        )}
-      </section>
-
-      <section className="settings-panel" aria-labelledby="rebuild-cache-title">
-        <div className="panel-heading">
-          <Database aria-hidden="true" size={20} strokeWidth={2} />
-          <div>
-            <p className="label-text">Derived cache</p>
-            <h2 id="rebuild-cache-title">Rebuild Cache</h2>
-          </div>
-        </div>
-        <p className="confirmation-copy">{REBUILD_CONFIRMATION}</p>
-        <label className="checkbox-row">
-          <Checkbox
-            checked={confirmedRebuild}
-            onCheckedChange={(checked) => setConfirmedRebuild(Boolean(checked))}
+        <aside className="settings-support" aria-label="Status and visibility settings">
+          <WatcherStatusPanel
+            status={watcherStatus.data}
+            isLoading={watcherStatus.isLoading}
+            isError={watcherStatus.isError}
           />
-          Confirm rebuild cache
-        </label>
-        <Button type="button" onClick={handleRebuild} disabled={!confirmedRebuild || isRebuilding}>
-          {isRebuilding ? (
-            <Loader2 aria-hidden="true" size={16} strokeWidth={2} />
-          ) : (
-            <Database aria-hidden="true" size={16} strokeWidth={2} />
-          )}
-          Rebuild Cache
-        </Button>
-      </section>
 
-      <ScanProgressPanel state={scanState} />
+          <section className="settings-panel" aria-labelledby="hidden-projects-title">
+            <div className="panel-heading">
+              <Eye aria-hidden="true" size={20} strokeWidth={2} />
+              <div>
+                <p className="label-text">Portfolio visibility</p>
+                <h2 id="hidden-projects-title">Hidden projects</h2>
+              </div>
+            </div>
 
-      <UpdatePrompt />
+            {portfolio.data && portfolio.data.hiddenProjects.length > 0 ? (
+              <ul className="settings-list">
+                {portfolio.data.hiddenProjects.map((project) => (
+                  <li key={project.id}>
+                    <span>{project.name}</span>
+                    <Button
+                      variant="outline"
+                      type="button"
+                      onClick={() => handleUnhide(project.id)}
+                      disabled={saveSettings.isPending}
+                    >
+                      Unhide Project
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="muted-copy">No hidden projects</p>
+            )}
+          </section>
 
-      <section className="settings-panel" aria-labelledby="indexing-title">
-        <h2 id="indexing-title">Indexing</h2>
-        <p className="confirmation-copy">{CLEAR_SESSION_INDEX_CONFIRMATION}</p>
-        <label className="checkbox-row">
-          <Checkbox
-            checked={confirmedClearSessionIndex}
-            onCheckedChange={(checked) => setConfirmedClearSessionIndex(Boolean(checked))}
-          />
-          Confirm clear session index
-        </label>
-        <Button
-          type="button"
-          onClick={handleClearSessionIndex}
-          disabled={!confirmedClearSessionIndex || clearSessionIndexMutation.isPending}
-        >
-          {clearSessionIndexMutation.isPending ? (
-            <Loader2 aria-hidden="true" size={16} strokeWidth={2} />
-          ) : (
-            <Trash2 aria-hidden="true" size={16} strokeWidth={2} />
-          )}
-          Clear Session Index
-        </Button>
-        {clearSessionIndexError ? (
-          <div className="parse-error-alert" role="alert">
-            <p>{clearSessionIndexError}</p>
+          <UpdatePrompt />
+        </aside>
+      </div>
+
+      <div className="settings-maintenance-grid">
+        <ScanProgressPanel state={scanState} />
+
+        <section className="settings-panel" aria-labelledby="rebuild-cache-title">
+          <div className="panel-heading">
+            <Database aria-hidden="true" size={20} strokeWidth={2} />
+            <div>
+              <p className="label-text">Derived cache</p>
+              <h2 id="rebuild-cache-title">Rebuild Cache</h2>
+            </div>
           </div>
-        ) : null}
-        <label className="checkbox-row disabled-row">
-          <Checkbox disabled />
-          Index tool usage
-        </label>
-        <label className="checkbox-row disabled-row">
-          <Checkbox disabled />
-          Index message content
-        </label>
-      </section>
+          <p className="confirmation-copy">{REBUILD_CONFIRMATION}</p>
+          <label className="checkbox-row">
+            <Checkbox
+              checked={confirmedRebuild}
+              onCheckedChange={(checked) => setConfirmedRebuild(Boolean(checked))}
+            />
+            Confirm rebuild cache
+          </label>
+          <Button type="button" onClick={handleRebuild} disabled={!confirmedRebuild || isRebuilding}>
+            {isRebuilding ? (
+              <Loader2 aria-hidden="true" size={16} strokeWidth={2} />
+            ) : (
+              <Database aria-hidden="true" size={16} strokeWidth={2} />
+            )}
+            Rebuild Cache
+          </Button>
+        </section>
+
+        <section className="settings-panel" aria-labelledby="indexing-title">
+          <h2 id="indexing-title">Indexing</h2>
+          <p className="confirmation-copy">{CLEAR_SESSION_INDEX_CONFIRMATION}</p>
+          <label className="checkbox-row">
+            <Checkbox
+              checked={confirmedClearSessionIndex}
+              onCheckedChange={(checked) => setConfirmedClearSessionIndex(Boolean(checked))}
+            />
+            Confirm clear session index
+          </label>
+          <Button
+            type="button"
+            onClick={handleClearSessionIndex}
+            disabled={!confirmedClearSessionIndex || clearSessionIndexMutation.isPending}
+          >
+            {clearSessionIndexMutation.isPending ? (
+              <Loader2 aria-hidden="true" size={16} strokeWidth={2} />
+            ) : (
+              <Trash2 aria-hidden="true" size={16} strokeWidth={2} />
+            )}
+            Clear Session Index
+          </Button>
+          {clearSessionIndexError ? (
+            <div className="parse-error-alert" role="alert">
+              <p>{clearSessionIndexError}</p>
+            </div>
+          ) : null}
+          <label className="checkbox-row disabled-row">
+            <Checkbox disabled />
+            Index tool usage
+          </label>
+          <label className="checkbox-row disabled-row">
+            <Checkbox disabled />
+            Index message content
+          </label>
+        </section>
+      </div>
     </div>
   );
 }

@@ -115,6 +115,23 @@
   text-align: center;
 }
 
+.sessions-loading-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.sessions-loading-panel .chart-card-subtitle {
+  max-width: 64ch;
+}
+
+.table-skeleton.labeled-skeleton {
+  display: grid;
+  place-items: center;
+  color: #4B5563;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .charts-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

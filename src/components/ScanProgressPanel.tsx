@@ -75,7 +75,7 @@ export function ScanProgressPanel({ state }: ScanProgressPanelProps) {
         >
           <div
             className="scan-progress-fill"
-            style={{ width: `${progressPercent}%` }}
+            style={{ transform: `scaleX(${progressPercent / 100})` }}
           />
         </div>
         <p aria-live="polite">{state.progressText}</p>
