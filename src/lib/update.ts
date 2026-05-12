@@ -14,10 +14,20 @@ export type UpdateCheckState =
   | { state: "error"; message: string }
   | { state: "signature_error"; message: string };
 
+const hasTauriInternals = () => {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+};
+
+const isSignatureError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+
+  return /signature|verif/i.test(message);
+};
+
 /**
  * Reads the current desktop app version from Tauri when running inside the app.
  */
-export async function getCurrentVersion() {
+export const getCurrentVersion = async () => {
   if (!hasTauriInternals()) {
     return null;
   }
@@ -28,12 +38,12 @@ export async function getCurrentVersion() {
   } catch {
     return null;
   }
-}
+};
 
 /**
  * Checks the Tauri updater for an available release and normalizes the UI state.
  */
-export async function checkForUpdate(): Promise<UpdateCheckState> {
+export const checkForUpdate = async (): Promise<UpdateCheckState> => {
   if (!hasTauriInternals()) {
     return { state: "unsupported" };
   }
@@ -65,12 +75,12 @@ export async function checkForUpdate(): Promise<UpdateCheckState> {
       message: UPDATE_CHECK_FAILED_MESSAGE
     };
   }
-}
+};
 
 /**
  * Installs a downloaded update and restarts the desktop app through Tauri.
  */
-export async function installAndRestart(update: Pick<Update, "downloadAndInstall"> | null) {
+export const installAndRestart = async (update: Pick<Update, "downloadAndInstall"> | null) => {
   if (!update) {
     return;
   }
@@ -78,14 +88,4 @@ export async function installAndRestart(update: Pick<Update, "downloadAndInstall
   await update.downloadAndInstall();
   const { relaunch } = await import("@tauri-apps/plugin-process");
   await relaunch();
-}
-
-function hasTauriInternals() {
-  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
-}
-
-function isSignatureError(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error);
-
-  return /signature|verif/i.test(message);
-}
+};
