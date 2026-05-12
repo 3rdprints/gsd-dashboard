@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -14,6 +15,22 @@ vi.mock("../lib/update", () => ({
   installAndRestart: vi.fn()
 }));
 
+function renderUpdatePrompt() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false
+      }
+    }
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <UpdatePrompt />
+    </QueryClientProvider>
+  );
+}
+
 describe("UpdatePrompt", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -24,7 +41,7 @@ describe("UpdatePrompt", () => {
   });
 
   it("renders the quiet up-to-date state by default", async () => {
-    render(<UpdatePrompt />);
+    renderUpdatePrompt();
 
     expect(screen.getByText("GSD Dashboard is up to date")).toBeInTheDocument();
     expect(await screen.findByText("Current version: 0.1.5")).toBeInTheDocument();
@@ -41,7 +58,7 @@ describe("UpdatePrompt", () => {
       version: "1.2.3",
       update: { downloadAndInstall: vi.fn() } as never
     });
-    render(<UpdatePrompt />);
+    renderUpdatePrompt();
 
     fireEvent.click(screen.getByRole("button", { name: "Check for Updates" }));
 
@@ -59,7 +76,7 @@ describe("UpdatePrompt", () => {
       message:
         "Update check failed. The dashboard will keep running on this version; check your network or try again later."
     });
-    render(<UpdatePrompt />);
+    renderUpdatePrompt();
 
     fireEvent.click(screen.getByRole("button", { name: "Check for Updates" }));
 
@@ -73,7 +90,7 @@ describe("UpdatePrompt", () => {
   it("recovers when update checks reject unexpectedly", async () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     vi.mocked(checkForUpdate).mockRejectedValue(new Error("network down"));
-    render(<UpdatePrompt />);
+    renderUpdatePrompt();
 
     fireEvent.click(screen.getByRole("button", { name: "Check for Updates" }));
 
@@ -93,7 +110,7 @@ describe("UpdatePrompt", () => {
       update
     });
     vi.mocked(installAndRestart).mockRejectedValue(new Error("install failed"));
-    render(<UpdatePrompt />);
+    renderUpdatePrompt();
 
     fireEvent.click(screen.getByRole("button", { name: "Check for Updates" }));
     fireEvent.click(await screen.findByRole("button", { name: "Install Update" }));
@@ -101,6 +118,7 @@ describe("UpdatePrompt", () => {
     expect(await screen.findByRole("status")).toHaveTextContent(
       "Update install failed. The dashboard will keep running on this version; try again later."
     );
+    expect(screen.getByText("Installation failed")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Try Again" })).toBeInTheDocument();
   });
 });

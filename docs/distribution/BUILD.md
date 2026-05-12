@@ -58,8 +58,8 @@ Evidence to record before v1.0:
 
 - `old_tag`: pending
 - `new_tag`: v0.1.2
-- `artifact_url`: https://github.com/3rdprints/gsd-dashboard/releases/latest/download/GSD.Dashboard_0.1.2_universal.dmg
-- `manifest_url`: https://3rdprints.github.io/gsd-dashboard/updates/latest.json
+- `artifact_url`: https://github.com/3rdprints/gsd-dashboard/releases/download/v0.1.2/GSD.Dashboard_0.1.2_universal.dmg
+- `manifest_url`: https://3rdprints.github.io/gsd-dashboard/updates/v0.1.2.json
 - `old_version`: pending
 - `new_version`: 0.1.2
 - `verified_at`: 2026-05-11T10:39:42.102Z

@@ -13,6 +13,8 @@ import type {
 
 /** Query key for the boot status cache entry. */
 export const bootStatusQueryKey = ["bootStatus"] as const;
+/** Query key for the current desktop app version cache entry. */
+export const currentVersionQueryKey = ["currentVersion"] as const;
 /** Query key for the settings cache entry. */
 export const settingsQueryKey = ["settings"] as const;
 /**

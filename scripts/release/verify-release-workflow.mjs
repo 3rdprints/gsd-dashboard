@@ -119,6 +119,10 @@ export function validateReleaseWorkflow(source) {
   requireIncludes(source, "gsd-dashboard.rpm", "stable Linux RPM alias");
   requireIncludes(source, "gsd-dashboard.AppImage", "stable Linux AppImage alias");
   requireIncludes(source, "site-dist/releases/latest/download/GSD-Dashboard.dmg", "macOS release alias upload");
+  requireIncludes(source, "site-dist/releases/latest/download/GSD-Dashboard.msi", "Windows MSI release alias upload");
+  requireIncludes(source, "site-dist/releases/latest/download/GSD-Dashboard.exe", "Windows EXE release alias upload");
+  requireIncludes(source, "site-dist/releases/latest/download/gsd-dashboard.deb", "Linux DEB release alias upload");
+  requireIncludes(source, "site-dist/releases/latest/download/gsd-dashboard.rpm", "Linux RPM release alias upload");
   requireIncludes(source, "site-dist/releases/latest/download/gsd-dashboard.AppImage", "Linux release alias upload");
   requireIncludes(source, "actions/upload-pages-artifact", "Pages artifact upload action");
   requireIncludes(source, "actions/deploy-pages", "Pages deploy action");
@@ -186,7 +190,14 @@ jobs:
           cp GSD.Dashboard-0.1.2-1.x86_64.rpm site-dist/downloads/gsd-dashboard.rpm
           cp GSD.Dashboard_0.1.2_amd64.AppImage site-dist/downloads/gsd-dashboard.AppImage
           cp site-dist/downloads/GSD-Dashboard.dmg site-dist/releases/latest/download/GSD-Dashboard.dmg
-          gh release upload "$GITHUB_REF_NAME" site-dist/releases/latest/download/* --clobber
+          gh release upload "$GITHUB_REF_NAME" \
+            site-dist/releases/latest/download/GSD-Dashboard.dmg \
+            site-dist/releases/latest/download/GSD-Dashboard.msi \
+            site-dist/releases/latest/download/GSD-Dashboard.exe \
+            site-dist/releases/latest/download/gsd-dashboard.deb \
+            site-dist/releases/latest/download/gsd-dashboard.rpm \
+            site-dist/releases/latest/download/gsd-dashboard.AppImage \
+            --clobber
       - uses: actions/upload-pages-artifact@v4
       - uses: actions/deploy-pages@v4
 `;

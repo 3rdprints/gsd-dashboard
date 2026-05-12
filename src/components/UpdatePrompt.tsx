@@ -1,7 +1,9 @@
 import { AlertTriangle, CheckCircle2, Download, Loader2, RefreshCw, ShieldAlert } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 
 import { Button } from "./ui/button";
+import { currentVersionQueryKey } from "../lib/queryClient";
 import {
   checkForUpdate,
   getCurrentVersion,
@@ -80,7 +82,13 @@ const updateIconByState = {
 const failureStates = new Set<UpdatePanelState["state"]>(["error", "signature_error"]);
 const pendingStates = new Set<UpdatePanelState["state"]>(["checking", "installing"]);
 
-const getHeading = (panelState: UpdatePanelState) => updateHeadingByState[panelState.state];
+const getHeading = (panelState: UpdatePanelState) => {
+  if (panelState.state === "error" && panelState.source === "install") {
+    return "Installation failed";
+  }
+
+  return updateHeadingByState[panelState.state];
+};
 const getBody = (panelState: UpdatePanelState, currentVersion: string | null) =>
   updateBodyByState[panelState.state](panelState, currentVersion);
 const getStatusClass = (panelState: UpdatePanelState) => updateStatusClassByState[panelState.state] ?? "neutral";
@@ -89,11 +97,11 @@ const normalizeUpdateState = (updateState: UpdateCheckState): UpdateCheckState =
 
 const useUpdatePanelState = () => {
   const [panelState, setPanelState] = useState<UpdatePanelState>({ state: "up_to_date" });
-  const [currentVersion, setCurrentVersion] = useState<string | null>(null);
-
-  useEffect(() => {
-    getCurrentVersion().then(setCurrentVersion).catch(() => setCurrentVersion(null));
-  }, []);
+  const currentVersion = useQuery({
+    queryKey: currentVersionQueryKey,
+    queryFn: getCurrentVersion,
+    retry: false
+  });
 
   const handleCheckForUpdates = async () => {
     setPanelState({ state: "checking" });
@@ -104,7 +112,8 @@ const useUpdatePanelState = () => {
       console.error("Update check failed", error);
       setPanelState({
         state: "error",
-        message: UPDATE_CHECK_FAILED_MESSAGE
+        message: UPDATE_CHECK_FAILED_MESSAGE,
+        source: "check"
       });
     }
   };
@@ -118,7 +127,8 @@ const useUpdatePanelState = () => {
       console.error("Update install failed", error);
       setPanelState({
         state: "error",
-        message: UPDATE_INSTALL_FAILED_MESSAGE
+        message: UPDATE_INSTALL_FAILED_MESSAGE,
+        source: "install"
       });
     }
   };
@@ -128,7 +138,7 @@ const useUpdatePanelState = () => {
   };
 
   return {
-    currentVersion,
+    currentVersion: currentVersion.data ?? null,
     handleCheckForUpdates,
     handleInstall,
     handleLater,

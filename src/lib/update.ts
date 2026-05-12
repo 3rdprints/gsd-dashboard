@@ -11,7 +11,7 @@ export type UpdateCheckState =
   | { state: "unsupported" }
   | { state: "up_to_date" }
   | { state: "available"; update: Update; version: string; body?: string }
-  | { state: "error"; message: string }
+  | { state: "error"; message: string; source?: "check" | "install" }
   | { state: "signature_error"; message: string };
 
 const hasTauriInternals = () => {
