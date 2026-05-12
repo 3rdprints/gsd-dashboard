@@ -3,16 +3,21 @@ name: GSD Dashboard
 description: Local command-center UI for GSD project state and Codex session telemetry.
 colors:
   app-bg: "#F7F8FA"
-  app-surface: "#FFFFFF"
+  app-surface: "#FBFCFE"
   app-surface-muted: "#F9FAFB"
+  app-surface-raised: "#F3F6FA"
   app-text: "#111827"
   app-muted: "#4B5563"
   app-subtle: "#6B7280"
   app-border: "#D1D5DB"
   app-border-soft: "#E5E7EB"
   app-control: "#2563EB"
-  app-control-text: "#FFFFFF"
+  app-control-text: "#F8FBFF"
   app-danger: "#DC2626"
+  app-danger-bg: "#FEF2F2"
+  app-warning-bg: "#FFFBEB"
+  app-warning-border: "#F59E0B"
+  app-warning-text: "#92400E"
   dark-bg: "#0E1116"
   dark-surface: "#171B22"
   dark-surface-muted: "#11151C"
@@ -112,7 +117,7 @@ The palette is a restrained operational neutral system with a single blue contro
 ### Neutral
 
 - **App Background** (`#F7F8FA`, dark `#0E1116`): Whole-window backdrop.
-- **Surface** (`#FFFFFF`, dark `#171B22`): Panels, cards, tables, and controls.
+- **Surface** (`#FBFCFE`, dark `#171B22`): Panels, cards, tables, and controls.
 - **Muted Surface** (`#F9FAFB`, dark `#11151C`): Nested modules, skeletons, chips, tracks, and low-emphasis regions.
 - **Primary Text** (`#111827`, dark `#F3F4F6`): Headings and core values.
 - **Muted Text** (`#4B5563`, dark `#CBD5E1`): Labels, metadata, and helper copy.
@@ -144,7 +149,7 @@ Keep type compact. Do not scale text with viewport width. Use hierarchy through 
 
 The current system is mostly flat. Hierarchy comes from surface layering, borders, spacing, and grid placement rather than shadows.
 
-- Panels use `background: #FFFFFF`, `border: 1px solid #D1D5DB`, `border-radius: 8px`, and `padding: 24px`.
+- Panels use `background: #FBFCFE`, `border: 1px solid #D1D5DB`, `border-radius: 8px`, and `padding: 24px`.
 - Nested modules use muted backgrounds such as `#F9FAFB` or tighter padding.
 - Interactive controls use borders and focus outlines instead of drop shadows.
 - Skeletons and tracks use soft neutral fills such as `#E5E7EB`.
@@ -207,4 +212,3 @@ Buttons copy commands, open Finder, open VS Code, rescan, refresh, or save setti
 - **Don't** hide critical scan, parse, watcher, or session-indexing errors behind vague status badges.
 - **Don't** use side-stripe borders as card, list, callout, or alert accents.
 - **Don't** add a modal when inline disclosure, routed detail, or a persistent panel would work.
-

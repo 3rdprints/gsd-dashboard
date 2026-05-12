@@ -12,8 +12,10 @@
       :root {
         color-scheme: light dark;
         --bg: #F7F8FA;
-        --surface: #FFFFFF;
+        --surface: #FBFCFE;
+        --surface-muted: #F2F5F9;
         --accent: #2563EB;
+        --accent-text: #F8FBFF;
         --text: #0E1116;
         --muted: #4B5563;
         --line: #D8DEE8;
@@ -25,12 +27,18 @@
         :root {
           --bg: #0E1116;
           --surface: #171B22;
+          --surface-muted: #11151C;
           --accent: #60A5FA;
+          --accent-text: #07111F;
           --text: #F7F8FA;
           --muted: #A8B0BD;
           --line: #2D3440;
           --warning-bg: #2A2215;
           --warning-text: #F4C983;
+        }
+
+        .hero::before {
+          background: linear-gradient(90deg, var(--bg) 0%, var(--bg) 42%, rgb(14 17 22 / 72%) 62%, rgb(14 17 22 / 0%) 100%);
         }
       }
 
@@ -52,17 +60,42 @@
       }
 
       .page {
-        width: min(1120px, calc(100% - 32px));
+        width: min(1160px, calc(100% - 32px));
         margin: 0 auto;
       }
 
       .hero {
-        min-height: 88vh;
+        min-height: 86vh;
+        position: relative;
         display: grid;
-        grid-template-columns: minmax(0, 0.92fr) minmax(360px, 1.08fr);
-        gap: 32px;
         align-items: center;
-        padding: 48px 0 32px;
+        overflow: hidden;
+        padding: 56px 0 64px;
+      }
+
+      .hero-content {
+        width: min(560px, 100%);
+        position: relative;
+        z-index: 1;
+      }
+
+      .hero-shot {
+        width: min(820px, 64vw);
+        position: absolute;
+        right: 0;
+        bottom: 42px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--surface);
+        box-shadow: 0 24px 70px rgb(14 17 22 / 16%);
+      }
+
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, var(--bg) 0%, var(--bg) 42%, rgb(247 248 250 / 72%) 62%, rgb(247 248 250 / 0%) 100%);
+        pointer-events: none;
       }
 
       .eyebrow,
@@ -83,9 +116,10 @@
 
       h1 {
         margin-bottom: 16px;
-        font-size: 28px;
+        max-width: 720px;
+        font-size: clamp(42px, 8vw, 78px);
         font-weight: 600;
-        line-height: 1.2;
+        line-height: 0.96;
       }
 
       h2 {
@@ -130,20 +164,20 @@
       .button.primary {
         border-color: var(--accent);
         background: var(--accent);
-        color: #FFFFFF;
+        color: var(--accent-text);
       }
 
       .command {
         display: block;
         width: 100%;
-        overflow-x: auto;
         border: 1px solid var(--line);
         border-radius: 8px;
         padding: 12px 16px;
         background: var(--surface);
         color: var(--text);
         font: 600 14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-        white-space: nowrap;
+        overflow-wrap: anywhere;
+        white-space: normal;
       }
 
       .note {
@@ -209,8 +243,19 @@
       @media (max-width: 860px) {
         .hero {
           min-height: auto;
-          grid-template-columns: 1fr;
           padding-top: 32px;
+        }
+
+        .hero-shot {
+          width: 100%;
+          position: relative;
+          right: auto;
+          bottom: auto;
+          margin-top: 24px;
+        }
+
+        .hero::before {
+          display: none;
         }
 
         .grid {
@@ -222,7 +267,15 @@
   <body>
     <main class="page">
       <section class="hero" aria-label="GSD Dashboard">
-        <div>
+        <img
+          class="hero-shot"
+          src="./assets/gsd-dashboard-screenshot-v2.png"
+          width="1280"
+          height="800"
+          alt=""
+          aria-hidden="true"
+        >
+        <div class="hero-content">
           <p class="eyebrow">Local-first project operations</p>
           <h1>GSD Dashboard</h1>
           <p class="lede">
@@ -239,14 +292,6 @@
           <code class="command">curl -fsSL https://3rdprints.github.io/gsd-dashboard/install.sh | sh</code>
           <p class="note">The script detects OS and architecture, shows the selected artifact, and prompts before downloading.</p>
         </div>
-
-        <img
-          class="screenshot"
-          src="./assets/gsd-dashboard-screenshot-v2.png"
-          width="1280"
-          height="800"
-          alt="GSD Dashboard showing project cards, progress bars, and session activity."
-        >
       </section>
 
       <section id="platform-downloads" class="section downloads" aria-labelledby="downloads-title">

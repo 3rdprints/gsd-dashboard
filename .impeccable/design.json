@@ -14,7 +14,7 @@
         "role": "neutral",
         "displayName": "Operational Neutral",
         "canonical": "#F7F8FA",
-        "tonalRamp": ["#FFFFFF", "#F9FAFB", "#F7F8FA", "#E5E7EB", "#D1D5DB", "#6B7280", "#111827"]
+        "tonalRamp": ["#FBFCFE", "#F9FAFB", "#F7F8FA", "#E5E7EB", "#D1D5DB", "#6B7280", "#111827"]
       },
       "app-danger": {
         "role": "status",
@@ -59,7 +59,7 @@
     "componentMeta": {
       "panel": {
         "purpose": "Settings, status summaries, detail groups, right rail sections, and empty states.",
-        "css": "background: #FFFFFF; border: 1px solid #D1D5DB; border-radius: 8px; padding: 24px;"
+        "css": "background: #FBFCFE; border: 1px solid #D1D5DB; border-radius: 8px; padding: 24px;"
       },
       "project-card": {
         "purpose": "Portfolio unit showing project state, progress, phase, parse status, and activity.",

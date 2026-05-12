@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
+import { BarChart3, FolderKanban, Settings } from "lucide-react";
+import { BrowserRouter, NavLink, Route, Routes } from "react-router-dom";
 
 import { ThemeToggle } from "./components/ThemeToggle";
 import { registerAppListeners } from "./lib/appListeners";
@@ -22,9 +23,28 @@ export function App() {
       <main className="app-shell">
         <div className="app-layout">
           <nav className="app-nav" aria-label="Main">
-            <Link to="/">Portfolio</Link>
-            <Link to="/sessions">Sessions</Link>
-            <Link to="/settings">Settings</Link>
+            <div className="app-brand" aria-label="GSD Dashboard">
+              <span aria-hidden="true" className="app-brand-mark" />
+              <span>GSD</span>
+            </div>
+            <NavLink to="/" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
+              <FolderKanban aria-hidden="true" size={15} strokeWidth={2.2} />
+              Portfolio
+            </NavLink>
+            <NavLink
+              to="/sessions"
+              className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+            >
+              <BarChart3 aria-hidden="true" size={15} strokeWidth={2.2} />
+              Sessions
+            </NavLink>
+            <NavLink
+              to="/settings"
+              className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+            >
+              <Settings aria-hidden="true" size={15} strokeWidth={2.2} />
+              Settings
+            </NavLink>
             <ThemeToggle themeMode={themeMode} onThemeModeChange={setThemeMode} />
           </nav>
           <Routes>

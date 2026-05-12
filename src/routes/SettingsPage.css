@@ -1,8 +1,8 @@
 .watcher-status-banner {
-  border: 1px solid #b45309;
+  border: 1px solid var(--app-warning-border);
   border-radius: 8px;
-  background: #fffbeb;
-  color: #92400e;
+  background: var(--app-warning-bg);
+  color: var(--app-warning-text);
   padding: 16px;
 }
 
@@ -19,9 +19,9 @@
 }
 
 .watcher-root-row {
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--app-border);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--app-surface);
   padding: 16px;
 }
 
@@ -55,18 +55,18 @@
 }
 
 .watcher-status-pill.polling {
-  background: #fffbeb;
-  color: #b45309;
+  background: var(--app-warning-bg);
+  color: var(--app-warning-text);
 }
 
 .watcher-fix-hint {
-  color: #92400e;
+  color: var(--app-warning-text);
   margin: 8px 0 0;
 }
 
 .watcher-status-skeleton {
   align-items: center;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--app-border);
   border-radius: 8px;
   color: #6b7280;
   display: flex;
@@ -79,7 +79,7 @@
 }
 
 .update-status {
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--app-border);
   border-radius: 8px;
   padding: 12px 16px;
 }
@@ -95,7 +95,7 @@
 }
 
 .update-status.neutral {
-  background: #ffffff;
+  background: var(--app-surface);
   color: #374151;
 }
 
@@ -106,13 +106,13 @@
 }
 
 .update-status.warning {
-  background: #fffbeb;
-  border-color: #f59e0b;
-  color: #92400e;
+  background: var(--app-warning-bg);
+  border-color: var(--app-warning-border);
+  color: var(--app-warning-text);
 }
 
 .update-status.danger {
-  background: #fef2f2;
+  background: var(--app-danger-bg);
   border-color: #ef4444;
   color: #991b1b;
 }

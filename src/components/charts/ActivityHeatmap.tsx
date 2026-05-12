@@ -60,7 +60,7 @@ export function ActivityHeatmap({ days, endDate = new Date() }: ActivityHeatmapP
     >
       <div className="chart-card-header">
         <div>
-          <h2 className="chart-card-title">Activity — last 90 days</h2>
+          <h2 className="chart-card-title">Activity: last 90 days</h2>
           <p className="chart-card-subtitle">Sessions started per day</p>
         </div>
       </div>
