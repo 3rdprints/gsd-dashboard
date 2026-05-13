@@ -158,7 +158,7 @@ const IndexingPanel = ({
 /**
  * Renders the settings route.
  */
-export function SettingsPage() {
+export const SettingsPage = function SettingsPage() {
   const queryClient = useQueryClient();
   const settings = useQuery({ queryKey: settingsQueryKey, queryFn: getSettings });
   const portfolio = useQuery({ queryKey: portfolioQueryKey, queryFn: getPortfolio });
@@ -296,4 +296,4 @@ export function SettingsPage() {
       </div>
     </div>
   );
-}
+};

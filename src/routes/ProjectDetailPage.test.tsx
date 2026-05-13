@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@testing-library/jest-dom/vitest";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -101,25 +101,16 @@ describe("ProjectDetailPage tab shell", () => {
     renderProjectDetail();
 
     const overviewTab = await screen.findByRole("tab", { name: "Overview" });
-    await act(async () => {
-      overviewTab.focus();
-      fireEvent.keyDown(overviewTab, { key: "ArrowRight" });
-      await Promise.resolve();
-    });
+    fireEvent.focus(overviewTab);
+    fireEvent.keyDown(overviewTab, { key: "ArrowRight" });
     await waitFor(() => {
       expect(screen.getByRole("tab", { name: "Sessions" })).toHaveAttribute("aria-selected", "true");
     });
-    await act(async () => {
-      fireEvent.keyDown(screen.getByRole("tab", { name: "Sessions" }), { key: "End" });
-      await Promise.resolve();
-    });
+    fireEvent.keyDown(screen.getByRole("tab", { name: "Sessions" }), { key: "End" });
     await waitFor(() => {
       expect(screen.getByRole("tab", { name: "Charts" })).toHaveAttribute("aria-selected", "true");
     });
-    await act(async () => {
-      fireEvent.keyDown(screen.getByRole("tab", { name: "Charts" }), { key: "Home" });
-      await Promise.resolve();
-    });
+    fireEvent.keyDown(screen.getByRole("tab", { name: "Charts" }), { key: "Home" });
     await waitFor(() => {
       expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute("aria-selected", "true");
     });

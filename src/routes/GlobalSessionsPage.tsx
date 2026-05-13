@@ -36,7 +36,21 @@ import "./GlobalSessionsPage.css";
 
 const pageSize = 100;
 
+const EMPTY_GLOBAL_CHART_DATA: GlobalChartData = {
+  sessionsPerDayBySource: [],
+  tokensPerDayByProject: [],
+  timeOfDayHistogram: [],
+  dayOfWeekDistribution: []
+};
+
 const formatTotal = (total: number) => `${new Intl.NumberFormat().format(total)} sessions`;
+
+const LoadingSessionsHeading = () => (
+  <>
+    <p className="label-text">Session index</p>
+    <h2 className="chart-card-title">Preparing session view</h2>
+  </>
+);
 
 const LoadingSessionsView = () => (
   <div className="page-stack global-sessions-page">
@@ -49,10 +63,7 @@ const LoadingSessionsView = () => (
     <section className="chart-card sessions-loading-panel" aria-busy="true">
       <div className="panel-heading">
         <Loader2 aria-hidden="true" size={20} strokeWidth={2} />
-        <div>
-          <p className="label-text">Session index</p>
-          <h2 className="chart-card-title">Preparing session view</h2>
-        </div>
+        <div><LoadingSessionsHeading /></div>
       </div>
       <p className="chart-card-subtitle">
         Loading saved filters before querying the local session cache.
@@ -64,59 +75,66 @@ const LoadingSessionsView = () => (
   </div>
 );
 
+const GlobalChartsError = () => (
+  <section className="chart-card" role="alert">
+    <h2 className="chart-card-title">Charts could not be loaded</h2>
+    <p className="chart-card-subtitle">Rebuild the cache or re-index sessions and try again.</p>
+  </section>
+);
+
 type GlobalChartsPanelProps = {
   chartData: GlobalChartData | undefined;
   isError: boolean;
   isLoading: boolean;
 };
 
-const GlobalChartsPanel = ({ chartData, isError, isLoading }: GlobalChartsPanelProps) => {
-  if (isError) {
-    return (
-      <section className="chart-card" role="alert">
-        <h2 className="chart-card-title">Charts could not be loaded</h2>
-        <p className="chart-card-subtitle">Rebuild the cache or re-index sessions and try again.</p>
-      </section>
-    );
-  }
+const hasRows = (rows: readonly unknown[] | undefined) => Boolean(rows?.length);
 
+const hasPositiveCounts = (rows: readonly { count: number }[] | undefined) =>
+  Boolean(rows?.some((bucket) => bucket.count > 0));
+
+const GlobalChartsGrid = ({ chartData, isLoading }: Omit<GlobalChartsPanelProps, "isError">) => {
+  const data = chartData ?? EMPTY_GLOBAL_CHART_DATA;
   return (
     <div className="charts-grid" aria-label="Global session charts">
       <ChartCard
         title="Sessions by source"
         subtitle="Daily Claude and Codex session volume"
         loading={isLoading}
-        empty={!chartData?.sessionsPerDayBySource?.length}
+        empty={!hasRows(data.sessionsPerDayBySource)}
       >
-        <StackedSourcesChart data={chartData?.sessionsPerDayBySource ?? []} />
+        <StackedSourcesChart data={data.sessionsPerDayBySource} />
       </ChartCard>
       <ChartCard
         title="Tokens by project"
         subtitle="Daily tokens for top projects"
         loading={isLoading}
-        empty={!chartData?.tokensPerDayByProject?.length}
+        empty={!hasRows(data.tokensPerDayByProject)}
       >
-        <StackedProjectsChart data={chartData?.tokensPerDayByProject ?? []} />
+        <StackedProjectsChart data={data.tokensPerDayByProject} />
       </ChartCard>
       <ChartCard
         title="Time of day"
         subtitle="Sessions by local start hour"
         loading={isLoading}
-        empty={!chartData?.timeOfDayHistogram?.some((bucket) => bucket.count > 0)}
+        empty={!hasPositiveCounts(data.timeOfDayHistogram)}
       >
-        <TimeOfDayHistogram data={chartData?.timeOfDayHistogram ?? []} />
+        <TimeOfDayHistogram data={data.timeOfDayHistogram} />
       </ChartCard>
       <ChartCard
         title="Day of week"
         subtitle="Sessions by local weekday"
         loading={isLoading}
-        empty={!chartData?.dayOfWeekDistribution?.some((bucket) => bucket.count > 0)}
+        empty={!hasPositiveCounts(data.dayOfWeekDistribution)}
       >
-        <DayOfWeekChart data={chartData?.dayOfWeekDistribution ?? []} />
+        <DayOfWeekChart data={data.dayOfWeekDistribution} />
       </ChartCard>
     </div>
   );
 };
+
+const GlobalChartsPanel = ({ chartData, isError, isLoading }: GlobalChartsPanelProps) =>
+  isError ? <GlobalChartsError /> : <GlobalChartsGrid chartData={chartData} isLoading={isLoading} />;
 
 type GlobalSessionsPanelProps = {
   direction: SessionFilters["direction"];
@@ -179,25 +197,35 @@ const getDefaultFilters = (settings: AppSettings | undefined, isError: boolean) 
   return isError ? DEFAULT_FILTERS({ globalSessionsDefaultRange: "7d" }) : undefined;
 };
 
-/**
- * Renders the global sessions route.
- */
-export const GlobalSessionsPage = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const queryClient = useQueryClient();
-  const settings = useQuery({ queryKey: settingsQueryKey, queryFn: getSettings });
-  const portfolio = useQuery({ queryKey: portfolioQueryKey, queryFn: getPortfolio });
-  const saveSettings = useMutation(createSaveSettingsMutationOptions(queryClient));
+const getNextDefaultRangeSettings = (settings: AppSettings | undefined, range: GlobalSessionsDefaultRange) => {
+  if (!settings || settings.globalSessionsDefaultRange === range) {
+    return undefined;
+  }
+
+  return { ...settings, globalSessionsDefaultRange: range };
+};
+
+const useParsedFilters = (
+  searchParams: URLSearchParams,
+  settings: AppSettings | undefined,
+  isSettingsError: boolean
+) => {
   const defaultFilters = useMemo(
-    () => getDefaultFilters(settings.data, settings.isError),
-    [settings.data, settings.isError]
+    () => getDefaultFilters(settings, isSettingsError),
+    [settings, isSettingsError]
   );
-  const filters = useMemo(
+
+  return useMemo(
     () => (defaultFilters ? parseFiltersFromUrl(searchParams, defaultFilters) : undefined),
     [searchParams, defaultFilters]
   );
-  const ipcFilters = useMemo(() => (filters ? filtersToGlobalSessionFilters(filters) : undefined), [filters]);
-  const sessions = useQuery({
+};
+
+const useGlobalSessionsQuery = (
+  filters: SessionFilters | undefined,
+  ipcFilters: ReturnType<typeof filtersToGlobalSessionFilters> | undefined
+) =>
+  useQuery({
     queryKey: globalSessionsQueryKey(
       ipcFilters ?? {},
       filters?.sort ?? "startedAt",
@@ -208,11 +236,27 @@ export const GlobalSessionsPage = () => {
     queryFn: () => listGlobalSessions(ipcFilters!, filters!.sort, filters!.direction, filters!.page, pageSize),
     enabled: !!ipcFilters && !!filters
   });
-  const charts = useQuery({
+
+const useGlobalChartsQuery = (ipcFilters: ReturnType<typeof filtersToGlobalSessionFilters> | undefined) =>
+  useQuery({
     queryKey: globalChartsQueryKey(ipcFilters ?? {}),
     queryFn: () => getGlobalChartData(ipcFilters!),
     enabled: !!ipcFilters
   });
+
+/**
+ * Renders the global sessions route.
+ */
+export const GlobalSessionsPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryClient = useQueryClient();
+  const settings = useQuery({ queryKey: settingsQueryKey, queryFn: getSettings });
+  const portfolio = useQuery({ queryKey: portfolioQueryKey, queryFn: getPortfolio });
+  const saveSettings = useMutation(createSaveSettingsMutationOptions(queryClient));
+  const filters = useParsedFilters(searchParams, settings.data, settings.isError);
+  const ipcFilters = useMemo(() => (filters ? filtersToGlobalSessionFilters(filters) : undefined), [filters]);
+  const sessions = useGlobalSessionsQuery(filters, ipcFilters);
+  const charts = useGlobalChartsQuery(ipcFilters);
   const projects = portfolio.data?.projects ?? [];
 
   const setFilters = (nextFilters: SessionFilters) => {
@@ -224,8 +268,8 @@ export const GlobalSessionsPage = () => {
   };
 
   const persistDefaultRange = (range: GlobalSessionsDefaultRange) => {
-    if (!settings.data || settings.data.globalSessionsDefaultRange === range) return;
-    saveSettings.mutate({ ...settings.data, globalSessionsDefaultRange: range });
+    const nextSettings = getNextDefaultRangeSettings(settings.data, range);
+    if (nextSettings) saveSettings.mutate(nextSettings);
   };
 
   if (!filters) {

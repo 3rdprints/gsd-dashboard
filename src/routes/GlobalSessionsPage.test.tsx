@@ -172,25 +172,31 @@ describe("GlobalSessionsPage", () => {
     }));
     const { GlobalSessionsPage } = await import("./GlobalSessionsPage");
 
+    const originalHref = window.location.href;
+    const originalState = window.history.state;
     window.history.replaceState(null, "", "/sessions?source=claude");
-    render(
-      <QueryClientProvider client={new QueryClient()}>
-        <BrowserRouter>
-          <GlobalSessionsPage />
-        </BrowserRouter>
-      </QueryClientProvider>
-    );
+    try {
+      render(
+        <QueryClientProvider client={new QueryClient()}>
+          <BrowserRouter>
+            <GlobalSessionsPage />
+          </BrowserRouter>
+        </QueryClientProvider>
+      );
 
-    expect(await screen.findByText("Source: Claude")).toBeInTheDocument();
-    expect(window.location.search).toContain("source=claude");
+      expect(await screen.findByText("Source: Claude")).toBeInTheDocument();
+      expect(window.location.search).toContain("source=claude");
 
-    fireEvent.change(screen.getByLabelText("Minimum duration"), { target: { value: "5" } });
-    expect(window.location.search).not.toContain("dmin=5");
-    await waitFor(() => expect(window.location.search).toContain("dmin=5"));
+      fireEvent.change(screen.getByLabelText("Minimum duration"), { target: { value: "5" } });
+      expect(window.location.search).not.toContain("dmin=5");
+      await waitFor(() => expect(window.location.search).toContain("dmin=5"));
 
-    fireEvent.click(screen.getByLabelText("Remove source filter"));
-    await waitFor(() => expect(screen.queryByText("Source: Claude")).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
-    await waitFor(() => expect(window.location.search).not.toContain("dmin=5"));
+      fireEvent.click(screen.getByLabelText("Remove source filter"));
+      await waitFor(() => expect(screen.queryByText("Source: Claude")).not.toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+      await waitFor(() => expect(window.location.search).not.toContain("dmin=5"));
+    } finally {
+      window.history.replaceState(originalState, "", originalHref);
+    }
   });
 });

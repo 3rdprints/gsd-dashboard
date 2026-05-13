@@ -68,6 +68,27 @@ type PortfolioActivityRowProps = {
   sessionIndexState: typeof initialSessionIndexState;
 };
 
+type ScanState = typeof initialScanState;
+type SessionIndexState = typeof initialSessionIndexState;
+type SetScanState = (value: ScanState | ((current: ScanState) => ScanState)) => void;
+type SetSessionIndexState = (
+  value: SessionIndexState | ((current: SessionIndexState) => SessionIndexState)
+) => void;
+
+const PortfolioHeatmapLoading = () => (
+  <div className="chart-card activity-heatmap-card" aria-label="Loading activity heatmap">
+    <div className="chart-card-header">
+      <div>
+        <h2 className="chart-card-title">Activity heatmap</h2>
+        <p className="chart-card-subtitle">Loading 90 days of session activity</p>
+      </div>
+    </div>
+    <div className="heatmap-skeleton labeled-skeleton">
+      <span>Activity loading</span>
+    </div>
+  </div>
+);
+
 const PortfolioHeader = ({
   isIndexingSessions,
   isScanning,
@@ -121,20 +142,6 @@ const PortfolioActivityRow = ({
     </div>
 
     {isHeatmapLoading ? <PortfolioHeatmapLoading /> : <ActivityHeatmap days={heatmapDays ?? []} />}
-  </div>
-);
-
-const PortfolioHeatmapLoading = () => (
-  <div className="chart-card activity-heatmap-card" aria-label="Loading activity heatmap">
-    <div className="chart-card-header">
-      <div>
-        <h2 className="chart-card-title">Activity heatmap</h2>
-        <p className="chart-card-subtitle">Loading 90 days of session activity</p>
-      </div>
-    </div>
-    <div className="heatmap-skeleton labeled-skeleton">
-      <span>Activity loading</span>
-    </div>
   </div>
 );
 
@@ -203,25 +210,16 @@ const getNextHiddenProjectIds = (settings: SettingsInput, projectId: string) =>
     ? settings.hiddenProjectIds
     : [...settings.hiddenProjectIds, projectId];
 
-/**
- * Renders the portfolio route.
- */
-export const PortfolioPage = () => {
-  const queryClient = useQueryClient();
-  const [scanState, setScanState] = useState(initialScanState);
-  const [sessionIndexState, setSessionIndexState] = useState(initialSessionIndexState);
-  const initialScanStarted = useRef(false);
-  const isScanning = scanState.status === "scanning";
-  const isIndexingSessions = sessionIndexState.status === "indexing";
-  const bootStatus = useQuery({ queryKey: bootStatusQueryKey, queryFn: getBootStatus });
-  const settings = useQuery({ queryKey: settingsQueryKey, queryFn: getSettings });
-  const portfolio = useQuery({ queryKey: portfolioQueryKey, queryFn: getPortfolio });
-  const portfolioHeatmap = useQuery({
-    queryKey: portfolioHeatmapQueryKey(90),
-    queryFn: () => getPortfolioHeatmap(90)
-  });
-  const saveSettings = useMutation(createSaveSettingsMutationOptions(queryClient));
-  const scanProjectsMutation = useMutation({
+const getHideProjectSettings = (settings: SettingsInput | undefined, projectId: string) =>
+  settings
+    ? {
+        ...settings,
+        hiddenProjectIds: getNextHiddenProjectIds(settings, projectId)
+      }
+    : undefined;
+
+const useScanProjectsMutation = (queryClient: ReturnType<typeof useQueryClient>, setScanState: SetScanState) =>
+  useMutation({
     mutationFn: () =>
       scanProjects((event) => {
         setScanState((current) => reduceScanEvent(current, event));
@@ -245,7 +243,12 @@ export const PortfolioPage = () => {
       }));
     }
   });
-  const indexSessionsMutation = useMutation({
+
+const useIndexSessionsMutation = (
+  queryClient: ReturnType<typeof useQueryClient>,
+  setSessionIndexState: SetSessionIndexState
+) =>
+  useMutation({
     mutationFn: () =>
       indexSessions((event) => {
         setSessionIndexState((current) => reduceSessionIndexEvent(current, event));
@@ -273,26 +276,48 @@ export const PortfolioPage = () => {
     }
   });
 
+const useInitialScan = (bootReady: boolean, settingsReady: boolean, runScan: () => void) => {
+  const initialScanStarted = useRef(false);
+
   useEffect(() => {
-    if (initialScanStarted.current || !bootStatus.data || !settings.data) {
+    if (initialScanStarted.current || !bootReady || !settingsReady) {
       return;
     }
 
     initialScanStarted.current = true;
     void runScan();
-  }, [bootStatus.data, settings.data]);
+  }, [bootReady, runScan, settingsReady]);
+};
+
+/**
+ * Renders the portfolio route.
+ */
+export const PortfolioPage = () => {
+  const queryClient = useQueryClient();
+  const [scanState, setScanState] = useState(initialScanState);
+  const [sessionIndexState, setSessionIndexState] = useState(initialSessionIndexState);
+  const isScanning = scanState.status === "scanning";
+  const isIndexingSessions = sessionIndexState.status === "indexing";
+  const bootStatus = useQuery({ queryKey: bootStatusQueryKey, queryFn: getBootStatus });
+  const settings = useQuery({ queryKey: settingsQueryKey, queryFn: getSettings });
+  const portfolio = useQuery({ queryKey: portfolioQueryKey, queryFn: getPortfolio });
+  const portfolioHeatmap = useQuery({
+    queryKey: portfolioHeatmapQueryKey(90),
+    queryFn: () => getPortfolioHeatmap(90)
+  });
+  const saveSettings = useMutation(createSaveSettingsMutationOptions(queryClient));
+  const scanProjectsMutation = useScanProjectsMutation(queryClient, setScanState);
+  const indexSessionsMutation = useIndexSessionsMutation(queryClient, setSessionIndexState);
 
   function runScan() {
     scanProjectsMutation.mutate();
   }
 
-  async function handleHideProject(projectId: string) {
-    if (!settings.data) return;
+  useInitialScan(Boolean(bootStatus.data), Boolean(settings.data), runScan);
 
-    await saveSettings.mutateAsync({
-      ...settings.data,
-      hiddenProjectIds: getNextHiddenProjectIds(settings.data, projectId)
-    });
+  async function handleHideProject(projectId: string) {
+    const nextSettings = getHideProjectSettings(settings.data, projectId);
+    if (nextSettings) await saveSettings.mutateAsync(nextSettings);
   }
 
   function runSessionIndex() {
