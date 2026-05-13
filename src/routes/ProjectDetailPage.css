@@ -3,8 +3,8 @@
 }
 
 .chart-card {
-  background: #FFFFFF;
-  border: 1px solid #D1D5DB;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
   border-radius: 8px;
   padding: 24px;
 }
@@ -38,7 +38,7 @@
 .chart-skeleton {
   height: 200px;
   border-radius: 8px;
-  background: #E5E7EB;
+  background: var(--app-border-soft);
 }
 
 .chart-empty-state {
@@ -65,16 +65,16 @@
   width: max-content;
   display: inline-flex;
   overflow: hidden;
-  border: 1px solid #D1D5DB;
+  border: 1px solid var(--app-border);
   border-radius: 8px;
 }
 
 .chart-tooltip {
-  border: 1px solid #D1D5DB;
+  border: 1px solid var(--app-border);
   border-radius: 8px;
   padding: 8px;
   color: #111827;
-  background: #FFFFFF;
+  background: var(--app-surface);
   font-size: 14px;
 }
 
@@ -120,11 +120,11 @@
   min-height: 28px;
   display: inline-flex;
   align-items: center;
-  border: 1px solid #D1D5DB;
+  border: 1px solid var(--app-border);
   border-radius: 8px;
   padding: 0 8px;
   color: #4B5563;
-  background: #F3F4F6;
+  background: var(--app-surface-raised);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
@@ -142,8 +142,8 @@
   align-items: center;
   gap: 8px;
   color: #111827;
-  background: #FFFFFF;
-  border: 1px solid #D1D5DB;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
   border-radius: 8px;
   cursor: pointer;
   text-align: left;
@@ -161,12 +161,12 @@
   display: flex;
   overflow: hidden;
   border-radius: 8px;
-  background: #E5E7EB;
+  background: var(--app-border-soft);
 }
 
 .timeline-segment {
   flex: 1 1 0;
-  background: #E5E7EB;
+  background: var(--app-border-soft);
 }
 
 .timeline-segment.completed {
@@ -224,8 +224,8 @@
   position: relative;
   max-height: 360px;
   overflow-y: auto;
-  background: #FFFFFF;
-  border: 1px solid #D1D5DB;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
   border-radius: 8px;
   padding: 16px;
   color: #111827;
@@ -251,7 +251,7 @@
   display: flex;
   justify-content: flex-end;
   padding-top: 40px;
-  background: linear-gradient(rgba(255, 255, 255, 0), #FFFFFF 40px);
+  background: linear-gradient(rgb(251 252 254 / 0%), var(--app-surface) 40px);
 }
 
 .secondary-link {
@@ -278,7 +278,7 @@
 }
 
 .sessions-table th {
-  border-bottom: 1px solid #D1D5DB;
+  border-bottom: 1px solid var(--app-border);
   padding: 8px 12px;
   color: #4B5563;
   font-size: 12px;
@@ -289,14 +289,14 @@
 }
 
 .sessions-table td {
-  border-bottom: 1px solid #E5E7EB;
+  border-bottom: 1px solid var(--app-border-soft);
   padding: 8px 12px;
   color: #111827;
   font-size: 14px;
 }
 
 .sessions-table tr:hover td {
-  background: #F9FAFB;
+  background: var(--app-surface-muted);
 }
 
 .sessions-table .sortable {
@@ -341,11 +341,11 @@
   min-height: 24px;
   display: inline-flex;
   align-items: center;
-  border: 1px solid #D1D5DB;
+  border: 1px solid var(--app-border);
   border-radius: 8px;
   padding: 0 8px;
   color: #4B5563;
-  background: #F3F4F6;
+  background: var(--app-surface-raised);
   font-size: 12px;
   font-weight: 600;
 }
@@ -403,7 +403,7 @@
 .table-skeleton {
   height: 240px;
   border-radius: 8px;
-  background: #E5E7EB;
+  background: var(--app-border-soft);
 }
 
 @media (max-width: 900px) {

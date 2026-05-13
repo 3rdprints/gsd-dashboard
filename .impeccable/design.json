@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-12T00:00:00-04:00",
+  "title": "Design System: GSD Dashboard",
+  "extensions": {
+    "colorMeta": {
+      "app-control": {
+        "role": "primary",
+        "displayName": "Control Blue",
+        "canonical": "#2563EB",
+        "tonalRamp": ["#EFF6FF", "#BFDBFE", "#60A5FA", "#2563EB", "#1D4ED8"]
+      },
+      "app-neutral": {
+        "role": "neutral",
+        "displayName": "Operational Neutral",
+        "canonical": "#F7F8FA",
+        "tonalRamp": ["#FBFCFE", "#F9FAFB", "#F7F8FA", "#E5E7EB", "#D1D5DB", "#6B7280", "#111827"]
+      },
+      "app-danger": {
+        "role": "status",
+        "displayName": "Failure Red",
+        "canonical": "#DC2626",
+        "tonalRamp": ["#FEF2F2", "#F87171", "#DC2626", "#991B1B"]
+      },
+      "app-warning": {
+        "role": "status",
+        "displayName": "Polling Amber",
+        "canonical": "#92400E",
+        "tonalRamp": ["#FFFBEB", "#F59E0B", "#B45309", "#92400E"]
+      }
+    },
+    "typographyMeta": {
+      "title": {
+        "displayName": "Route Title",
+        "purpose": "Top-level page and project names."
+      },
+      "section-title": {
+        "displayName": "Panel Title",
+        "purpose": "Chart, panel, and section headings."
+      },
+      "body": {
+        "displayName": "Operational Body",
+        "purpose": "Dense dashboard text and table cells."
+      },
+      "label": {
+        "displayName": "Control Label",
+        "purpose": "Nav, badges, field labels, table headings, and metadata."
+      }
+    },
+    "elevationMeta": {
+      "flat-panel": {
+        "displayName": "Flat Panel",
+        "border": "1px solid #D1D5DB",
+        "radius": "8px",
+        "shadow": "none",
+        "purpose": "Default container for dashboard information."
+      }
+    },
+    "componentMeta": {
+      "panel": {
+        "purpose": "Settings, status summaries, detail groups, right rail sections, and empty states.",
+        "css": "background: #FBFCFE; border: 1px solid #D1D5DB; border-radius: 8px; padding: 24px;"
+      },
+      "project-card": {
+        "purpose": "Portfolio unit showing project state, progress, phase, parse status, and activity.",
+        "rules": ["compact", "scan-first", "not a marketing card"]
+      },
+      "status-badge": {
+        "purpose": "Short operational state label.",
+        "rules": ["specific labels", "restrained fills", "no decorative chips"]
+      },
+      "chart-card": {
+        "purpose": "Framed chart with compact heading, legend, and empty state.",
+        "rules": ["stable dimensions", "clear empty state", "do not rely on hue alone"]
+      }
+    },
+    "northStar": "Local Ops Console",
+    "register": "product",
+    "antiReferences": [
+      "generic hero metrics",
+      "gradient text",
+      "decorative glassmorphism",
+      "identical icon-card grids",
+      "oversized marketing sections",
+      "vague productivity copy",
+      "neon-on-black AI dashboard tropes",
+      "floating orbs",
+      "decorative workflow diagrams",
+      "side-stripe borders"
+    ]
+  }
+}

@@ -56,11 +56,11 @@ Deferred to Phase 9.1 because the proof requires the Phase 9 release workflow to
 
 Evidence to record before v1.0:
 
-- `old_tag`:
-- `new_tag`:
-- `artifact_url`:
-- `manifest_url`:
-- `old_version`:
-- `new_version`:
-- `verified_at`:
-- `result`:
+- `old_tag`: pending
+- `new_tag`: v0.1.2
+- `artifact_url`: https://github.com/3rdprints/gsd-dashboard/releases/download/v0.1.2/GSD.Dashboard_0.1.2_universal.dmg
+- `manifest_url`: https://3rdprints.github.io/gsd-dashboard/updates/v0.1.2.json
+- `old_version`: pending
+- `new_version`: 0.1.2
+- `verified_at`: 2026-05-11T10:39:42.102Z
+- `result`: v0.1.2 DMG downloaded and installed successfully; updater install/restart proof remains pending.

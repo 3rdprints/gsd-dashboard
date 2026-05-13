@@ -3,7 +3,7 @@ import "@testing-library/jest-dom/vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProjectDetailPage } from "./ProjectDetailPage";
 import type { ProjectDetail } from "../lib/types";
@@ -52,6 +52,36 @@ const projectDetail: ProjectDetail = {
 };
 
 describe("ProjectDetailPage tab shell", () => {
+  beforeEach(() => {
+    invokeMock.mockImplementation((command: string) => {
+      if (command === "get_project_milestones") return Promise.resolve([]);
+      if (command === "get_project_phase_panel") {
+        return Promise.resolve({
+          phaseNumber: "05",
+          phaseName: "Project Detail",
+          planPath: null,
+          statePath: "/Users/smacdonald/homegit/gsd-dashboard/.planning/STATE.md",
+          stateExcerpt: null,
+          completedItemCount: 0,
+          totalItemCount: 0,
+          items: []
+        });
+      }
+      if (command === "list_project_sessions") {
+        return Promise.resolve({ rows: [], total: 0, page: 1, pageSize: 50 });
+      }
+      if (command === "get_project_chart_data") {
+        return Promise.resolve({
+          sessionsPerDay: [],
+          tokensPerDay: [],
+          averageDurationPerDay: [],
+          milestoneVelocity: []
+        });
+      }
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+  });
+
   it("keeps the shared header above accessible in-page tabs", async () => {
     getProjectMock.mockResolvedValue(projectDetail);
 
@@ -71,7 +101,7 @@ describe("ProjectDetailPage tab shell", () => {
     renderProjectDetail();
 
     const overviewTab = await screen.findByRole("tab", { name: "Overview" });
-    overviewTab.focus();
+    fireEvent.focus(overviewTab);
     fireEvent.keyDown(overviewTab, { key: "ArrowRight" });
     await waitFor(() => {
       expect(screen.getByRole("tab", { name: "Sessions" })).toHaveAttribute("aria-selected", "true");

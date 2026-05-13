@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { checkForUpdate, installAndRestart } from "./update";
+import { checkForUpdate, getCurrentVersion, installAndRestart } from "./update";
 
 const checkMock = vi.fn();
+const getVersionMock = vi.fn();
 const relaunchMock = vi.fn();
 
 vi.mock("@tauri-apps/plugin-updater", () => ({
@@ -13,16 +14,33 @@ vi.mock("@tauri-apps/plugin-process", () => ({
   relaunch: relaunchMock
 }));
 
+vi.mock("@tauri-apps/api/app", () => ({
+  getVersion: getVersionMock
+}));
+
 describe("update wrapper", () => {
   beforeEach(() => {
     delete (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
     checkMock.mockReset();
+    getVersionMock.mockReset();
     relaunchMock.mockReset();
   });
 
   it("returns unsupported when Tauri internals are absent", async () => {
     await expect(checkForUpdate()).resolves.toEqual({ state: "unsupported" });
+    await expect(getCurrentVersion()).resolves.toBeNull();
     expect(checkMock).not.toHaveBeenCalled();
+    expect(getVersionMock).not.toHaveBeenCalled();
+  });
+
+  it("reads the current app version from Tauri internals", async () => {
+    Object.defineProperty(window, "__TAURI_INTERNALS__", {
+      configurable: true,
+      value: {}
+    });
+    getVersionMock.mockResolvedValue("0.1.5");
+
+    await expect(getCurrentVersion()).resolves.toBe("0.1.5");
   });
 
   it("returns a nonblocking error state when update checks fail", async () => {

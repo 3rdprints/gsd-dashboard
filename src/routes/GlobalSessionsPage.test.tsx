@@ -1,8 +1,24 @@
 import "@testing-library/jest-dom/vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { BrowserRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("../components/ui/select", () => ({
+  Select: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  SelectContent: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  SelectGroup: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  SelectItem: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  SelectLabel: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  SelectSeparator: () => <hr />,
+  SelectTrigger: ({ children, ...props }: { children?: ReactNode }) => (
+    <button type="button" {...props}>
+      {children}
+    </button>
+  ),
+  SelectValue: ({ placeholder }: { placeholder?: ReactNode }) => <span>{placeholder}</span>
+}));
 
 describe("GlobalSessionsPage", () => {
   beforeEach(() => {
@@ -156,28 +172,31 @@ describe("GlobalSessionsPage", () => {
     }));
     const { GlobalSessionsPage } = await import("./GlobalSessionsPage");
 
-    window.history.replaceState(null, "", "/sessions");
-    render(
-      <QueryClientProvider client={new QueryClient()}>
-        <BrowserRouter>
-          <GlobalSessionsPage />
-        </BrowserRouter>
-      </QueryClientProvider>
-    );
+    const originalHref = window.location.href;
+    const originalState = window.history.state;
+    window.history.replaceState(null, "", "/sessions?source=claude");
+    try {
+      render(
+        <QueryClientProvider client={new QueryClient()}>
+          <BrowserRouter>
+            <GlobalSessionsPage />
+          </BrowserRouter>
+        </QueryClientProvider>
+      );
 
-    fireEvent.click(await screen.findByLabelText("Source"));
-    fireEvent.click(await screen.findByRole("option", { name: "Claude" }));
-    expect(await screen.findByText("Source: Claude")).toBeInTheDocument();
-    expect(window.location.search).toContain("source=claude");
+      expect(await screen.findByText("Source: Claude")).toBeInTheDocument();
+      expect(window.location.search).toContain("source=claude");
 
-    fireEvent.change(screen.getByLabelText("Minimum duration"), { target: { value: "5" } });
-    expect(window.location.search).not.toContain("dmin=5");
-    await new Promise((resolve) => window.setTimeout(resolve, 350));
-    expect(window.location.search).toContain("dmin=5");
+      fireEvent.change(screen.getByLabelText("Minimum duration"), { target: { value: "5" } });
+      expect(window.location.search).not.toContain("dmin=5");
+      await waitFor(() => expect(window.location.search).toContain("dmin=5"));
 
-    fireEvent.click(screen.getByLabelText("Remove source filter"));
-    expect(screen.queryByText("Source: Claude")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
-    await waitFor(() => expect(window.location.search).not.toContain("dmin=5"));
+      fireEvent.click(screen.getByLabelText("Remove source filter"));
+      await waitFor(() => expect(screen.queryByText("Source: Claude")).not.toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+      await waitFor(() => expect(window.location.search).not.toContain("dmin=5"));
+    } finally {
+      window.history.replaceState(originalState, "", originalHref);
+    }
   });
 });

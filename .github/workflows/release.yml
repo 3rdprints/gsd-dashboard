@@ -258,7 +258,18 @@ jobs:
         run: |
           tag="${GITHUB_REF_NAME}"
           gh release view "${tag}" >/dev/null 2>&1 || gh release create "${tag}" --title "${tag}" --notes-file release-notes.md
-          gh release upload "${tag}" downloaded-artifacts/* site-dist/downloads/*.sha256 site-dist/releases/latest/download/* site-dist/updates/latest.json dist-release/gsd-dashboard-source-*.tar.gz --clobber
+          gh release upload "${tag}" \
+            downloaded-artifacts/* \
+            site-dist/downloads/*.sha256 \
+            site-dist/releases/latest/download/GSD-Dashboard.dmg \
+            site-dist/releases/latest/download/GSD-Dashboard.msi \
+            site-dist/releases/latest/download/GSD-Dashboard.exe \
+            site-dist/releases/latest/download/gsd-dashboard.deb \
+            site-dist/releases/latest/download/gsd-dashboard.rpm \
+            site-dist/releases/latest/download/gsd-dashboard.AppImage \
+            site-dist/updates/latest.json \
+            dist-release/gsd-dashboard-source-*.tar.gz \
+            --clobber
 
       - name: Configure Pages
         uses: actions/configure-pages@v6
