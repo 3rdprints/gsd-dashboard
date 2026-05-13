@@ -18,28 +18,13 @@ type AppFrameProps = {
   themeMode: ReturnType<typeof useThemeMode>["themeMode"];
 };
 
-/**
- * Renders the application shell with routing and shared query state.
- */
-export const App = () => {
-  const { setThemeMode, themeMode } = useThemeMode();
-
-  useEffect(() => registerAppListeners(), []);
-
-  return (
-    <BrowserRouter>
-      <AppFrame themeMode={themeMode} onThemeModeChange={setThemeMode} />
-    </BrowserRouter>
-  );
-};
-
-const AppFrame = ({ onThemeModeChange, themeMode }: AppFrameProps) => (
-  <main className="app-shell">
-    <div className="app-layout">
-      <AppNavigation themeMode={themeMode} onThemeModeChange={onThemeModeChange} />
-      <AppRoutes />
-    </div>
-  </main>
+const AppRoutes = () => (
+  <Routes>
+    <Route path="/" element={<PortfolioPage />} />
+    <Route path="/project/:id" element={<ProjectDetailPage />} />
+    <Route path="/sessions" element={<GlobalSessionsPage />} />
+    <Route path="/settings" element={<SettingsPage />} />
+  </Routes>
 );
 
 const AppNavigation = ({ onThemeModeChange, themeMode }: AppFrameProps) => (
@@ -64,11 +49,26 @@ const AppNavigation = ({ onThemeModeChange, themeMode }: AppFrameProps) => (
   </nav>
 );
 
-const AppRoutes = () => (
-  <Routes>
-    <Route path="/" element={<PortfolioPage />} />
-    <Route path="/project/:id" element={<ProjectDetailPage />} />
-    <Route path="/sessions" element={<GlobalSessionsPage />} />
-    <Route path="/settings" element={<SettingsPage />} />
-  </Routes>
+const AppFrame = ({ onThemeModeChange, themeMode }: AppFrameProps) => (
+  <main className="app-shell">
+    <div className="app-layout">
+      <AppNavigation themeMode={themeMode} onThemeModeChange={onThemeModeChange} />
+      <AppRoutes />
+    </div>
+  </main>
 );
+
+/**
+ * Renders the application shell with routing and shared query state.
+ */
+export const App = () => {
+  const { setThemeMode, themeMode } = useThemeMode();
+
+  useEffect(() => registerAppListeners(), []);
+
+  return (
+    <BrowserRouter>
+      <AppFrame themeMode={themeMode} onThemeModeChange={setThemeMode} />
+    </BrowserRouter>
+  );
+};

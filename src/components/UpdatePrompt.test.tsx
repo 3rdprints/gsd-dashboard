@@ -15,7 +15,7 @@ vi.mock("../lib/update", () => ({
   installAndRestart: vi.fn()
 }));
 
-function renderUpdatePrompt() {
+const renderUpdatePrompt = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -29,7 +29,7 @@ function renderUpdatePrompt() {
       <UpdatePrompt />
     </QueryClientProvider>
   );
-}
+};
 
 describe("UpdatePrompt", () => {
   beforeEach(() => {

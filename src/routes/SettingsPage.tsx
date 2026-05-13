@@ -20,6 +20,7 @@ import {
   settingsQueryKey,
   watcherStatusQueryKey
 } from "../lib/queryClient";
+import type { PortfolioDto } from "../lib/types";
 import "./SettingsPage.css";
 
 const REBUILD_CONFIRMATION =
@@ -27,10 +28,131 @@ const REBUILD_CONFIRMATION =
 const CLEAR_SESSION_INDEX_CONFIRMATION =
   "Clear session index: This removes derived Claude/Codex session rows and index offsets. Source session files will not be changed.";
 
+type HiddenProjectsPanelProps = {
+  hiddenProjects: PortfolioDto["hiddenProjects"];
+  onUnhide: (projectId: string) => void;
+  savePending: boolean;
+};
+
+type RebuildCachePanelProps = {
+  confirmed: boolean;
+  isRebuilding: boolean;
+  onConfirmChange: (checked: boolean) => void;
+  onRebuild: () => void;
+};
+
+type IndexingPanelProps = {
+  clearError: string | null;
+  confirmed: boolean;
+  isClearing: boolean;
+  onClear: () => void;
+  onConfirmChange: (checked: boolean) => void;
+};
+
+const HiddenProjectsPanel = ({ hiddenProjects, onUnhide, savePending }: HiddenProjectsPanelProps) => (
+  <section className="settings-panel" aria-labelledby="hidden-projects-title">
+    <div className="panel-heading">
+      <Eye aria-hidden="true" size={20} strokeWidth={2} />
+      <div>
+        <p className="label-text">Portfolio visibility</p>
+        <h2 id="hidden-projects-title">Hidden projects</h2>
+      </div>
+    </div>
+
+    {hiddenProjects.length > 0 ? (
+      <ul className="settings-list">
+        {hiddenProjects.map((project) => (
+          <li key={project.id}>
+            <span>{project.name}</span>
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => onUnhide(project.id)}
+              disabled={savePending}
+            >
+              Unhide Project
+            </Button>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p className="muted-copy">No hidden projects</p>
+    )}
+  </section>
+);
+
+const RebuildCachePanel = ({
+  confirmed,
+  isRebuilding,
+  onConfirmChange,
+  onRebuild
+}: RebuildCachePanelProps) => (
+  <section className="settings-panel" aria-labelledby="rebuild-cache-title">
+    <div className="panel-heading">
+      <Database aria-hidden="true" size={20} strokeWidth={2} />
+      <div>
+        <p className="label-text">Derived cache</p>
+        <h2 id="rebuild-cache-title">Rebuild Cache</h2>
+      </div>
+    </div>
+    <p className="confirmation-copy">{REBUILD_CONFIRMATION}</p>
+    <label className="checkbox-row">
+      <Checkbox checked={confirmed} onCheckedChange={(checked) => onConfirmChange(Boolean(checked))} />
+      Confirm rebuild cache
+    </label>
+    <Button type="button" onClick={onRebuild} disabled={!confirmed || isRebuilding}>
+      {isRebuilding ? (
+        <Loader2 aria-hidden="true" size={16} strokeWidth={2} />
+      ) : (
+        <Database aria-hidden="true" size={16} strokeWidth={2} />
+      )}
+      Rebuild Cache
+    </Button>
+  </section>
+);
+
+const IndexingPanel = ({
+  clearError,
+  confirmed,
+  isClearing,
+  onClear,
+  onConfirmChange
+}: IndexingPanelProps) => (
+  <section className="settings-panel" aria-labelledby="indexing-title">
+    <h2 id="indexing-title">Indexing</h2>
+    <p className="confirmation-copy">{CLEAR_SESSION_INDEX_CONFIRMATION}</p>
+    <label className="checkbox-row">
+      <Checkbox checked={confirmed} onCheckedChange={(checked) => onConfirmChange(Boolean(checked))} />
+      Confirm clear session index
+    </label>
+    <Button type="button" onClick={onClear} disabled={!confirmed || isClearing}>
+      {isClearing ? (
+        <Loader2 aria-hidden="true" size={16} strokeWidth={2} />
+      ) : (
+        <Trash2 aria-hidden="true" size={16} strokeWidth={2} />
+      )}
+      Clear Session Index
+    </Button>
+    {clearError ? (
+      <div className="parse-error-alert" role="alert">
+        <p>{clearError}</p>
+      </div>
+    ) : null}
+    <label className="checkbox-row disabled-row">
+      <Checkbox disabled />
+      Index tool usage
+    </label>
+    <label className="checkbox-row disabled-row">
+      <Checkbox disabled />
+      Index message content
+    </label>
+  </section>
+);
+
 /**
  * Renders the settings route.
  */
-export function SettingsPage() {
+export const SettingsPage = () => {
   const queryClient = useQueryClient();
   const settings = useQuery({ queryKey: settingsQueryKey, queryFn: getSettings });
   const portfolio = useQuery({ queryKey: portfolioQueryKey, queryFn: getPortfolio });
@@ -88,26 +210,26 @@ export function SettingsPage() {
     }
   });
 
-  async function handleUnhide(projectId: string) {
+  const handleUnhide = async (projectId: string) => {
     if (!settings.data) return;
 
     await saveSettings.mutateAsync({
       ...settings.data,
       hiddenProjectIds: settings.data.hiddenProjectIds.filter((id) => id !== projectId)
     });
-  }
+  };
 
-  function handleRebuild() {
+  const handleRebuild = () => {
     if (!confirmedRebuild || isRebuilding) return;
 
     rebuildCacheMutation.mutate();
-  }
+  };
 
-  function handleClearSessionIndex() {
+  const handleClearSessionIndex = () => {
     if (!confirmedClearSessionIndex || clearSessionIndexMutation.isPending) return;
 
     clearSessionIndexMutation.mutate();
-  }
+  };
 
   return (
     <div className="page-stack settings-page">
@@ -130,35 +252,11 @@ export function SettingsPage() {
             isError={watcherStatus.isError}
           />
 
-          <section className="settings-panel" aria-labelledby="hidden-projects-title">
-            <div className="panel-heading">
-              <Eye aria-hidden="true" size={20} strokeWidth={2} />
-              <div>
-                <p className="label-text">Portfolio visibility</p>
-                <h2 id="hidden-projects-title">Hidden projects</h2>
-              </div>
-            </div>
-
-            {portfolio.data && portfolio.data.hiddenProjects.length > 0 ? (
-              <ul className="settings-list">
-                {portfolio.data.hiddenProjects.map((project) => (
-                  <li key={project.id}>
-                    <span>{project.name}</span>
-                    <Button
-                      variant="outline"
-                      type="button"
-                      onClick={() => handleUnhide(project.id)}
-                      disabled={saveSettings.isPending}
-                    >
-                      Unhide Project
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="muted-copy">No hidden projects</p>
-            )}
-          </section>
+          <HiddenProjectsPanel
+            hiddenProjects={portfolio.data?.hiddenProjects ?? []}
+            onUnhide={handleUnhide}
+            savePending={saveSettings.isPending}
+          />
 
           <UpdatePrompt />
         </aside>
@@ -167,69 +265,21 @@ export function SettingsPage() {
       <div className="settings-maintenance-grid">
         <ScanProgressPanel state={scanState} />
 
-        <section className="settings-panel" aria-labelledby="rebuild-cache-title">
-          <div className="panel-heading">
-            <Database aria-hidden="true" size={20} strokeWidth={2} />
-            <div>
-              <p className="label-text">Derived cache</p>
-              <h2 id="rebuild-cache-title">Rebuild Cache</h2>
-            </div>
-          </div>
-          <p className="confirmation-copy">{REBUILD_CONFIRMATION}</p>
-          <label className="checkbox-row">
-            <Checkbox
-              checked={confirmedRebuild}
-              onCheckedChange={(checked) => setConfirmedRebuild(Boolean(checked))}
-            />
-            Confirm rebuild cache
-          </label>
-          <Button type="button" onClick={handleRebuild} disabled={!confirmedRebuild || isRebuilding}>
-            {isRebuilding ? (
-              <Loader2 aria-hidden="true" size={16} strokeWidth={2} />
-            ) : (
-              <Database aria-hidden="true" size={16} strokeWidth={2} />
-            )}
-            Rebuild Cache
-          </Button>
-        </section>
+        <RebuildCachePanel
+          confirmed={confirmedRebuild}
+          isRebuilding={isRebuilding}
+          onConfirmChange={setConfirmedRebuild}
+          onRebuild={handleRebuild}
+        />
 
-        <section className="settings-panel" aria-labelledby="indexing-title">
-          <h2 id="indexing-title">Indexing</h2>
-          <p className="confirmation-copy">{CLEAR_SESSION_INDEX_CONFIRMATION}</p>
-          <label className="checkbox-row">
-            <Checkbox
-              checked={confirmedClearSessionIndex}
-              onCheckedChange={(checked) => setConfirmedClearSessionIndex(Boolean(checked))}
-            />
-            Confirm clear session index
-          </label>
-          <Button
-            type="button"
-            onClick={handleClearSessionIndex}
-            disabled={!confirmedClearSessionIndex || clearSessionIndexMutation.isPending}
-          >
-            {clearSessionIndexMutation.isPending ? (
-              <Loader2 aria-hidden="true" size={16} strokeWidth={2} />
-            ) : (
-              <Trash2 aria-hidden="true" size={16} strokeWidth={2} />
-            )}
-            Clear Session Index
-          </Button>
-          {clearSessionIndexError ? (
-            <div className="parse-error-alert" role="alert">
-              <p>{clearSessionIndexError}</p>
-            </div>
-          ) : null}
-          <label className="checkbox-row disabled-row">
-            <Checkbox disabled />
-            Index tool usage
-          </label>
-          <label className="checkbox-row disabled-row">
-            <Checkbox disabled />
-            Index message content
-          </label>
-        </section>
+        <IndexingPanel
+          clearError={clearSessionIndexError}
+          confirmed={confirmedClearSessionIndex}
+          isClearing={clearSessionIndexMutation.isPending}
+          onClear={handleClearSessionIndex}
+          onConfirmChange={setConfirmedClearSessionIndex}
+        />
       </div>
     </div>
   );
-}
+};

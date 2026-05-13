@@ -31,10 +31,36 @@ import "./GlobalSessionsPage.css";
 
 const pageSize = 100;
 
+const LoadingSessionsView = () => (
+  <div className="page-stack global-sessions-page">
+    <div className="app-header">
+      <header>
+        <h1>Sessions</h1>
+        <p>Preparing filters</p>
+      </header>
+    </div>
+    <section className="chart-card sessions-loading-panel" aria-busy="true">
+      <div className="panel-heading">
+        <Loader2 aria-hidden="true" size={20} strokeWidth={2} />
+        <div>
+          <p className="label-text">Session index</p>
+          <h2 className="chart-card-title">Preparing session view</h2>
+        </div>
+      </div>
+      <p className="chart-card-subtitle">
+        Loading saved filters before querying the local session cache.
+      </p>
+      <div className="table-skeleton labeled-skeleton" aria-label="Loading sessions table">
+        <span>Session table loading</span>
+      </div>
+    </section>
+  </div>
+);
+
 /**
  * Renders the global sessions route.
  */
-export function GlobalSessionsPage() {
+export const GlobalSessionsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const settings = useQuery({ queryKey: settingsQueryKey, queryFn: getSettings });
@@ -72,45 +98,21 @@ export function GlobalSessionsPage() {
   });
   const projects = portfolio.data?.projects ?? [];
 
-  function setFilters(nextFilters: SessionFilters) {
+  const setFilters = (nextFilters: SessionFilters) => {
     setSearchParams(serializeFiltersToUrl(nextFilters));
-  }
+  };
 
-  function clearFilters() {
+  const clearFilters = () => {
     setSearchParams(new URLSearchParams());
-  }
+  };
 
-  function persistDefaultRange(range: GlobalSessionsDefaultRange) {
+  const persistDefaultRange = (range: GlobalSessionsDefaultRange) => {
     if (!settings.data || settings.data.globalSessionsDefaultRange === range) return;
     saveSettings.mutate({ ...settings.data, globalSessionsDefaultRange: range });
-  }
+  };
 
   if (!filters) {
-    return (
-      <div className="page-stack global-sessions-page">
-        <div className="app-header">
-          <header>
-            <h1>Sessions</h1>
-            <p>Preparing filters</p>
-          </header>
-        </div>
-        <section className="chart-card sessions-loading-panel" aria-busy="true">
-          <div className="panel-heading">
-            <Loader2 aria-hidden="true" size={20} strokeWidth={2} />
-            <div>
-              <p className="label-text">Session index</p>
-              <h2 className="chart-card-title">Preparing session view</h2>
-            </div>
-          </div>
-          <p className="chart-card-subtitle">
-            Loading saved filters before querying the local session cache.
-          </p>
-          <div className="table-skeleton labeled-skeleton" aria-label="Loading sessions table">
-            <span>Session table loading</span>
-          </div>
-        </section>
-      </div>
-    );
+    return <LoadingSessionsView />;
   }
 
   const pageData = sessions.data ?? { rows: [], total: 0, page: filters.page, pageSize };
@@ -200,8 +202,6 @@ export function GlobalSessionsPage() {
       ) : null}
     </div>
   );
-}
+};
 
-function formatTotal(total: number) {
-  return `${new Intl.NumberFormat().format(total)} sessions`;
-}
+const formatTotal = (total: number) => `${new Intl.NumberFormat().format(total)} sessions`;
