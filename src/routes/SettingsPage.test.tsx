@@ -1,8 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@testing-library/jest-dom/vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SettingsPage } from "./SettingsPage";
 import * as ipc from "../lib/ipc";
@@ -47,6 +47,10 @@ const portfolio: PortfolioDto = {
   }
 };
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe("SettingsPage live update watcher status", () => {
   it("groups live status with support panels before maintenance controls", async () => {
     vi.spyOn(ipc, "getSettings").mockResolvedValue({
@@ -79,6 +83,38 @@ describe("SettingsPage live update watcher status", () => {
     expect(sectionHeadings.indexOf("GSD Dashboard is up to date")).toBeLessThan(sectionHeadings.indexOf("Rebuild Cache"));
     expect(sectionHeadings.indexOf("Scan status")).toBeLessThan(sectionHeadings.indexOf("Rebuild Cache"));
     expect(sectionHeadings.indexOf("Rebuild Cache")).toBeLessThan(sectionHeadings.indexOf("Indexing"));
+  });
+
+  it("surfaces an unhide failure without changing the save payload shape", async () => {
+    const settings = {
+      scanRoots: [],
+      hiddenProjectIds: ["hidden-project"],
+      trayHiddenProjectIds: [],
+      autostartEnabled: false,
+      trayBarMaxProjects: 4,
+      trayBarSort: "name" as const,
+      globalSessionsDefaultRange: "7d" as const
+    };
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const saveSettings = vi.spyOn(ipc, "saveSettings").mockRejectedValue(new Error("save failed"));
+
+    vi.spyOn(ipc, "getSettings").mockResolvedValue(settings);
+    vi.spyOn(ipc, "getPortfolio").mockResolvedValue({
+      ...portfolio,
+      hiddenProjects: [{ id: "hidden-project", name: "Hidden Project", rootPath: "/tmp/hidden" }]
+    });
+    vi.spyOn(ipc, "getWatcherStatus").mockResolvedValue(watcherStatus);
+
+    renderWithClient(<SettingsPage />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Unhide Project" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Project could not be unhidden");
+    expect(consoleError).toHaveBeenCalledWith("Unhide project failed", expect.any(Error));
+    expect(saveSettings).toHaveBeenCalledWith({
+      ...settings,
+      hiddenProjectIds: []
+    });
   });
 });
 

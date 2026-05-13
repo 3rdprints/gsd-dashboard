@@ -26,10 +26,17 @@ import {
   serializeFiltersToUrl,
   type SessionFilters
 } from "../lib/sessionFilters";
-import type { GlobalSessionsDefaultRange } from "../lib/types";
+import type {
+  AppSettings,
+  GlobalChartData,
+  GlobalSessionsDefaultRange,
+  GlobalSessionsPage as GlobalSessionsPageDto
+} from "../lib/types";
 import "./GlobalSessionsPage.css";
 
 const pageSize = 100;
+
+const formatTotal = (total: number) => `${new Intl.NumberFormat().format(total)} sessions`;
 
 const LoadingSessionsView = () => (
   <div className="page-stack global-sessions-page">
@@ -57,6 +64,121 @@ const LoadingSessionsView = () => (
   </div>
 );
 
+type GlobalChartsPanelProps = {
+  chartData: GlobalChartData | undefined;
+  isError: boolean;
+  isLoading: boolean;
+};
+
+const GlobalChartsPanel = ({ chartData, isError, isLoading }: GlobalChartsPanelProps) => {
+  if (isError) {
+    return (
+      <section className="chart-card" role="alert">
+        <h2 className="chart-card-title">Charts could not be loaded</h2>
+        <p className="chart-card-subtitle">Rebuild the cache or re-index sessions and try again.</p>
+      </section>
+    );
+  }
+
+  return (
+    <div className="charts-grid" aria-label="Global session charts">
+      <ChartCard
+        title="Sessions by source"
+        subtitle="Daily Claude and Codex session volume"
+        loading={isLoading}
+        empty={!chartData?.sessionsPerDayBySource?.length}
+      >
+        <StackedSourcesChart data={chartData?.sessionsPerDayBySource ?? []} />
+      </ChartCard>
+      <ChartCard
+        title="Tokens by project"
+        subtitle="Daily tokens for top projects"
+        loading={isLoading}
+        empty={!chartData?.tokensPerDayByProject?.length}
+      >
+        <StackedProjectsChart data={chartData?.tokensPerDayByProject ?? []} />
+      </ChartCard>
+      <ChartCard
+        title="Time of day"
+        subtitle="Sessions by local start hour"
+        loading={isLoading}
+        empty={!chartData?.timeOfDayHistogram?.some((bucket) => bucket.count > 0)}
+      >
+        <TimeOfDayHistogram data={chartData?.timeOfDayHistogram ?? []} />
+      </ChartCard>
+      <ChartCard
+        title="Day of week"
+        subtitle="Sessions by local weekday"
+        loading={isLoading}
+        empty={!chartData?.dayOfWeekDistribution?.some((bucket) => bucket.count > 0)}
+      >
+        <DayOfWeekChart data={chartData?.dayOfWeekDistribution ?? []} />
+      </ChartCard>
+    </div>
+  );
+};
+
+type GlobalSessionsPanelProps = {
+  direction: SessionFilters["direction"];
+  isError: boolean;
+  isLoading: boolean;
+  onPageChange: (page: number) => void;
+  onSortChange: (sort: SessionFilters["sort"], direction: SessionFilters["direction"]) => void;
+  pageData: GlobalSessionsPageDto;
+  sort: SessionFilters["sort"];
+};
+
+const GlobalSessionsPanel = ({
+  direction,
+  isError,
+  isLoading,
+  onPageChange,
+  onSortChange,
+  pageData,
+  sort
+}: GlobalSessionsPanelProps) => {
+  if (isLoading) {
+    return (
+      <section className="chart-card">
+        <div className="table-skeleton" aria-label="Loading sessions" />
+      </section>
+    );
+  }
+
+  if (isError) {
+    return (
+      <section className="chart-card" role="alert">
+        <h2 className="chart-card-title">Sessions could not be loaded</h2>
+        <p className="chart-card-subtitle">Rebuild the cache or re-index sessions and try again.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="chart-card">
+      <SessionsTable
+        rows={pageData.rows}
+        total={pageData.total}
+        page={pageData.page}
+        pageSize={pageData.pageSize}
+        sort={sort}
+        direction={direction}
+        showProject
+        onSortChange={onSortChange}
+        onPageChange={onPageChange}
+      />
+    </section>
+  );
+};
+
+const getDefaultFilters = (settings: AppSettings | undefined, isError: boolean) => {
+  if (settings) {
+    return DEFAULT_FILTERS({ globalSessionsDefaultRange: settings.globalSessionsDefaultRange });
+  }
+
+  return isError ? DEFAULT_FILTERS({ globalSessionsDefaultRange: "7d" }) : undefined;
+};
+
 /**
  * Renders the global sessions route.
  */
@@ -67,13 +189,8 @@ export const GlobalSessionsPage = () => {
   const portfolio = useQuery({ queryKey: portfolioQueryKey, queryFn: getPortfolio });
   const saveSettings = useMutation(createSaveSettingsMutationOptions(queryClient));
   const defaultFilters = useMemo(
-    () =>
-      settings.isSuccess && settings.data
-        ? DEFAULT_FILTERS({ globalSessionsDefaultRange: settings.data.globalSessionsDefaultRange })
-        : settings.isError
-          ? DEFAULT_FILTERS({ globalSessionsDefaultRange: "7d" })
-        : undefined,
-    [settings.data, settings.isError, settings.isSuccess]
+    () => getDefaultFilters(settings.data, settings.isError),
+    [settings.data, settings.isError]
   );
   const filters = useMemo(
     () => (defaultFilters ? parseFiltersFromUrl(searchParams, defaultFilters) : undefined),
@@ -116,8 +233,6 @@ export const GlobalSessionsPage = () => {
   }
 
   const pageData = sessions.data ?? { rows: [], total: 0, page: filters.page, pageSize };
-  const chartData = charts.data;
-
   return (
     <div className="page-stack global-sessions-page">
       <div className="app-header">
@@ -133,75 +248,16 @@ export const GlobalSessionsPage = () => {
         onDateRangePersist={persistDefaultRange}
       />
       <FilterChipsRow filters={filters} projects={projects} onChange={setFilters} onClearAll={clearFilters} />
-      {charts.isError ? (
-        <section className="chart-card" role="alert">
-          <h2 className="chart-card-title">Charts could not be loaded</h2>
-          <p className="chart-card-subtitle">Rebuild the cache or re-index sessions and try again.</p>
-        </section>
-      ) : (
-        <div className="charts-grid" aria-label="Global session charts">
-          <ChartCard
-            title="Sessions by source"
-            subtitle="Daily Claude and Codex session volume"
-            loading={charts.isLoading}
-            empty={!charts.data?.sessionsPerDayBySource?.length}
-          >
-            <StackedSourcesChart data={chartData?.sessionsPerDayBySource ?? []} />
-          </ChartCard>
-          <ChartCard
-            title="Tokens by project"
-            subtitle="Daily tokens for top projects"
-            loading={charts.isLoading}
-            empty={!charts.data?.tokensPerDayByProject?.length}
-          >
-            <StackedProjectsChart data={chartData?.tokensPerDayByProject ?? []} />
-          </ChartCard>
-          <ChartCard
-            title="Time of day"
-            subtitle="Sessions by local start hour"
-            loading={charts.isLoading}
-            empty={!charts.data?.timeOfDayHistogram?.some((bucket) => bucket.count > 0)}
-          >
-            <TimeOfDayHistogram data={chartData?.timeOfDayHistogram ?? []} />
-          </ChartCard>
-          <ChartCard
-            title="Day of week"
-            subtitle="Sessions by local weekday"
-            loading={charts.isLoading}
-            empty={!charts.data?.dayOfWeekDistribution?.some((bucket) => bucket.count > 0)}
-          >
-            <DayOfWeekChart data={chartData?.dayOfWeekDistribution ?? []} />
-          </ChartCard>
-        </div>
-      )}
-      {sessions.isLoading ? (
-        <section className="chart-card">
-          <div className="table-skeleton" aria-label="Loading sessions" />
-        </section>
-      ) : null}
-      {sessions.isError ? (
-        <section className="chart-card" role="alert">
-          <h2 className="chart-card-title">Sessions could not be loaded</h2>
-          <p className="chart-card-subtitle">Rebuild the cache or re-index sessions and try again.</p>
-        </section>
-      ) : null}
-      {!sessions.isLoading && !sessions.isError ? (
-        <section className="chart-card">
-          <SessionsTable
-            rows={pageData.rows}
-            total={pageData.total}
-            page={pageData.page}
-            pageSize={pageData.pageSize}
-            sort={filters.sort}
-            direction={filters.direction}
-            showProject
-            onSortChange={(sort, direction) => setFilters({ ...filters, sort, direction, page: 1 })}
-            onPageChange={(page) => setFilters({ ...filters, page })}
-          />
-        </section>
-      ) : null}
+      <GlobalChartsPanel chartData={charts.data} isError={charts.isError} isLoading={charts.isLoading} />
+      <GlobalSessionsPanel
+        direction={filters.direction}
+        isError={sessions.isError}
+        isLoading={sessions.isLoading}
+        onPageChange={(page) => setFilters({ ...filters, page })}
+        onSortChange={(sort, direction) => setFilters({ ...filters, sort, direction, page: 1 })}
+        pageData={pageData}
+        sort={filters.sort}
+      />
     </div>
   );
 };
-
-const formatTotal = (total: number) => `${new Intl.NumberFormat().format(total)} sessions`;

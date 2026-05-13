@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@testing-library/jest-dom/vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 import type { PortfolioDto, ProjectDetail, ScanEvent, SessionIndexEvent, SettingsInput } from "./lib/types";
@@ -33,6 +34,20 @@ vi.mock("@tauri-apps/api/event", () => ({
 vi.mock("@tauri-apps/plugin-opener", () => ({
   openUrl: openUrlMock,
   revealItemInDir: revealItemInDirMock
+}));
+vi.mock("recharts", () => ({
+  Bar: () => <div data-testid="bar" />,
+  BarChart: ({ children }: { children?: ReactNode }) => <div data-testid="bar-chart">{children}</div>,
+  CartesianGrid: () => <div data-testid="cartesian-grid" />,
+  Legend: () => <div data-testid="legend" />,
+  Line: () => <div data-testid="line" />,
+  LineChart: ({ children }: { children?: ReactNode }) => <div data-testid="line-chart">{children}</div>,
+  ResponsiveContainer: ({ children }: { children?: ReactNode }) => (
+    <div data-testid="responsive-container">{children}</div>
+  ),
+  Tooltip: () => <div data-testid="tooltip" />,
+  XAxis: () => <div data-testid="x-axis" />,
+  YAxis: () => <div data-testid="y-axis" />
 }));
 class TestResizeObserver {
   observe() {}

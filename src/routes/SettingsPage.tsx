@@ -29,6 +29,7 @@ const CLEAR_SESSION_INDEX_CONFIRMATION =
   "Clear session index: This removes derived Claude/Codex session rows and index offsets. Source session files will not be changed.";
 
 type HiddenProjectsPanelProps = {
+  error: string | null;
   hiddenProjects: PortfolioDto["hiddenProjects"];
   onUnhide: (projectId: string) => void;
   savePending: boolean;
@@ -49,7 +50,7 @@ type IndexingPanelProps = {
   onConfirmChange: (checked: boolean) => void;
 };
 
-const HiddenProjectsPanel = ({ hiddenProjects, onUnhide, savePending }: HiddenProjectsPanelProps) => (
+const HiddenProjectsPanel = ({ error, hiddenProjects, onUnhide, savePending }: HiddenProjectsPanelProps) => (
   <section className="settings-panel" aria-labelledby="hidden-projects-title">
     <div className="panel-heading">
       <Eye aria-hidden="true" size={20} strokeWidth={2} />
@@ -78,6 +79,11 @@ const HiddenProjectsPanel = ({ hiddenProjects, onUnhide, savePending }: HiddenPr
     ) : (
       <p className="muted-copy">No hidden projects</p>
     )}
+    {error ? (
+      <div className="parse-error-alert" role="alert">
+        <p>{error}</p>
+      </div>
+    ) : null}
   </section>
 );
 
@@ -152,7 +158,7 @@ const IndexingPanel = ({
 /**
  * Renders the settings route.
  */
-export const SettingsPage = () => {
+export function SettingsPage() {
   const queryClient = useQueryClient();
   const settings = useQuery({ queryKey: settingsQueryKey, queryFn: getSettings });
   const portfolio = useQuery({ queryKey: portfolioQueryKey, queryFn: getPortfolio });
@@ -162,6 +168,7 @@ export const SettingsPage = () => {
   const [confirmedRebuild, setConfirmedRebuild] = useState(false);
   const [confirmedClearSessionIndex, setConfirmedClearSessionIndex] = useState(false);
   const [clearSessionIndexError, setClearSessionIndexError] = useState<string | null>(null);
+  const [unhideProjectError, setUnhideProjectError] = useState<string | null>(null);
   const rebuildCacheMutation = useMutation({
     mutationFn: () =>
       rebuildCache((event) => {
@@ -213,10 +220,16 @@ export const SettingsPage = () => {
   const handleUnhide = async (projectId: string) => {
     if (!settings.data) return;
 
-    await saveSettings.mutateAsync({
-      ...settings.data,
-      hiddenProjectIds: settings.data.hiddenProjectIds.filter((id) => id !== projectId)
-    });
+    try {
+      setUnhideProjectError(null);
+      await saveSettings.mutateAsync({
+        ...settings.data,
+        hiddenProjectIds: settings.data.hiddenProjectIds.filter((id) => id !== projectId)
+      });
+    } catch (error) {
+      console.error("Unhide project failed", error);
+      setUnhideProjectError("Project could not be unhidden. Try again from Settings.");
+    }
   };
 
   const handleRebuild = () => {
@@ -253,6 +266,7 @@ export const SettingsPage = () => {
           />
 
           <HiddenProjectsPanel
+            error={unhideProjectError}
             hiddenProjects={portfolio.data?.hiddenProjects ?? []}
             onUnhide={handleUnhide}
             savePending={saveSettings.isPending}
@@ -282,4 +296,4 @@ export const SettingsPage = () => {
       </div>
     </div>
   );
-};
+}

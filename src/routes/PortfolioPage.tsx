@@ -53,6 +53,77 @@ type PortfolioProjectsProps = {
   runScan: () => void;
 };
 
+type PortfolioHeaderProps = {
+  isIndexingSessions: boolean;
+  isScanning: boolean;
+  onRunScan: () => void;
+  onRunSessionIndex: () => void;
+  visibleProjectCount: number | null;
+};
+
+type PortfolioActivityRowProps = {
+  heatmapDays: Awaited<ReturnType<typeof getPortfolioHeatmap>> | undefined;
+  isHeatmapLoading: boolean;
+  scanState: typeof initialScanState;
+  sessionIndexState: typeof initialSessionIndexState;
+};
+
+const PortfolioHeader = ({
+  isIndexingSessions,
+  isScanning,
+  onRunScan,
+  onRunSessionIndex,
+  visibleProjectCount
+}: PortfolioHeaderProps) => (
+  <div className="app-header">
+    <header>
+      <h1>Portfolio</h1>
+      <p>{visibleProjectCount === null ? "Loading projects" : `${visibleProjectCount} visible projects`}</p>
+    </header>
+    <div className="header-actions">
+      <Button className="scan-cta" type="button" onClick={onRunScan} disabled={isScanning}>
+        {isScanning ? (
+          <Loader2 aria-hidden="true" size={16} strokeWidth={2} />
+        ) : (
+          <Search aria-hidden="true" size={16} strokeWidth={2} />
+        )}
+        Scan Projects
+      </Button>
+      <Button
+        className="scan-cta"
+        type="button"
+        onClick={onRunSessionIndex}
+        disabled={isIndexingSessions}
+      >
+        {isIndexingSessions ? (
+          <Loader2 aria-hidden="true" size={16} strokeWidth={2} />
+        ) : (
+          <Search aria-hidden="true" size={16} strokeWidth={2} />
+        )}
+        Index Sessions
+      </Button>
+    </div>
+  </div>
+);
+
+const PortfolioActivityRow = ({
+  heatmapDays,
+  isHeatmapLoading,
+  scanState,
+  sessionIndexState
+}: PortfolioActivityRowProps) => (
+  <div className="portfolio-activity-row">
+    <div className="portfolio-status-stack">
+      <ScanProgressPanel state={scanState} />
+      {sessionIndexState.status !== "ready" ? (
+        <SessionIndexProgressPanel state={sessionIndexState} />
+      ) : null}
+    </div>
+
+    {isHeatmapLoading ? <PortfolioHeatmapLoading /> : <ActivityHeatmap days={heatmapDays ?? []} />}
+  </div>
+);
+
 const PortfolioHeatmapLoading = () => (
   <div className="chart-card activity-heatmap-card" aria-label="Loading activity heatmap">
     <div className="chart-card-header">
@@ -230,50 +301,24 @@ export const PortfolioPage = () => {
 
   return (
     <div className="page-stack">
-      <div className="app-header">
-        <header>
-          <h1>Portfolio</h1>
-          <p>{portfolio.data ? `${portfolio.data.projects.length} visible projects` : "Loading projects"}</p>
-        </header>
-        <div className="header-actions">
-          <Button className="scan-cta" type="button" onClick={runScan} disabled={isScanning}>
-            {isScanning ? (
-              <Loader2 aria-hidden="true" size={16} strokeWidth={2} />
-            ) : (
-              <Search aria-hidden="true" size={16} strokeWidth={2} />
-            )}
-            Scan Projects
-          </Button>
-          <Button
-            className="scan-cta"
-            type="button"
-            onClick={runSessionIndex}
-            disabled={isIndexingSessions}
-          >
-            {isIndexingSessions ? (
-              <Loader2 aria-hidden="true" size={16} strokeWidth={2} />
-            ) : (
-              <Search aria-hidden="true" size={16} strokeWidth={2} />
-            )}
-            Index Sessions
-          </Button>
-        </div>
-      </div>
+      <PortfolioHeader
+        isIndexingSessions={isIndexingSessions}
+        isScanning={isScanning}
+        onRunScan={runScan}
+        onRunSessionIndex={runSessionIndex}
+        visibleProjectCount={portfolio.data?.projects.length ?? null}
+      />
 
       <PortfolioHeaderStats
         stats={portfolio.data?.stats ?? DEFAULT_PORTFOLIO_STATS}
       />
 
-      <div className="portfolio-activity-row">
-        <div className="portfolio-status-stack">
-          <ScanProgressPanel state={scanState} />
-          {sessionIndexState.status !== "ready" ? (
-            <SessionIndexProgressPanel state={sessionIndexState} />
-          ) : null}
-        </div>
-
-        {portfolioHeatmap.isLoading ? <PortfolioHeatmapLoading /> : <ActivityHeatmap days={portfolioHeatmap.data ?? []} />}
-      </div>
+      <PortfolioActivityRow
+        heatmapDays={portfolioHeatmap.data}
+        isHeatmapLoading={portfolioHeatmap.isLoading}
+        scanState={scanState}
+        sessionIndexState={sessionIndexState}
+      />
 
       <div className="portfolio-layout">
         <section className="project-grid" aria-label="Projects">
