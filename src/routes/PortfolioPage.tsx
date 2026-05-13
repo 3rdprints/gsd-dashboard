@@ -44,6 +44,24 @@ const DEFAULT_UNMATCHED_SESSIONS: PortfolioDto["unmatchedSessions"] = {
   recent: []
 };
 
+const getVisibleProjectCount = (portfolio: PortfolioDto | undefined) => {
+  if (!portfolio) {
+    return null;
+  }
+
+  return portfolio.projects.length;
+};
+
+const getPortfolioStats = (portfolio: PortfolioDto | undefined) =>
+  portfolio ? portfolio.stats : DEFAULT_PORTFOLIO_STATS;
+
+const getPortfolioProjects = (portfolio: PortfolioDto | undefined) => (portfolio ? portfolio.projects : []);
+
+const getHiddenProjects = (portfolio: PortfolioDto | undefined) => (portfolio ? portfolio.hiddenProjects : []);
+
+const getUnmatchedSessions = (portfolio: PortfolioDto | undefined) =>
+  portfolio ? portfolio.unmatchedSessions : DEFAULT_UNMATCHED_SESSIONS;
+
 type PortfolioProjectsProps = {
   hideDisabled: boolean;
   isLoading: boolean;
@@ -324,6 +342,8 @@ export const PortfolioPage = () => {
     indexSessionsMutation.mutate();
   }
 
+  const portfolioData = portfolio.data;
+
   return (
     <div className="page-stack">
       <PortfolioHeader
@@ -331,11 +351,11 @@ export const PortfolioPage = () => {
         isScanning={isScanning}
         onRunScan={runScan}
         onRunSessionIndex={runSessionIndex}
-        visibleProjectCount={portfolio.data?.projects.length ?? null}
+        visibleProjectCount={getVisibleProjectCount(portfolioData)}
       />
 
       <PortfolioHeaderStats
-        stats={portfolio.data?.stats ?? DEFAULT_PORTFOLIO_STATS}
+        stats={getPortfolioStats(portfolioData)}
       />
 
       <PortfolioActivityRow
@@ -352,14 +372,14 @@ export const PortfolioPage = () => {
             isLoading={portfolio.isLoading}
             isScanning={isScanning}
             onHideProject={handleHideProject}
-            projects={portfolio.data?.projects ?? []}
+            projects={getPortfolioProjects(portfolioData)}
             runScan={runScan}
           />
         </section>
 
         <RightRail
-          hiddenProjects={portfolio.data?.hiddenProjects ?? []}
-          unmatchedSessions={portfolio.data?.unmatchedSessions ?? DEFAULT_UNMATCHED_SESSIONS}
+          hiddenProjects={getHiddenProjects(portfolioData)}
+          unmatchedSessions={getUnmatchedSessions(portfolioData)}
         />
       </div>
     </div>

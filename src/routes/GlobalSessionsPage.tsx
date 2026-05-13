@@ -36,6 +36,16 @@ import "./GlobalSessionsPage.css";
 
 const pageSize = 100;
 
+type GlobalSessionIpcFilters = ReturnType<typeof filtersToGlobalSessionFilters>;
+
+const EMPTY_GLOBAL_SESSION_FILTERS: GlobalSessionIpcFilters = {};
+
+const DEFAULT_GLOBAL_SESSION_QUERY_FILTERS: Pick<SessionFilters, "sort" | "direction" | "page"> = {
+  sort: "startedAt",
+  direction: "desc",
+  page: 1
+};
+
 const EMPTY_GLOBAL_CHART_DATA: GlobalChartData = {
   sessionsPerDayBySource: [],
   tokensPerDayByProject: [],
@@ -221,23 +231,35 @@ const useParsedFilters = (
   );
 };
 
-const useGlobalSessionsQuery = (
+const buildGlobalSessionsQueryKey = (
   filters: SessionFilters | undefined,
-  ipcFilters: ReturnType<typeof filtersToGlobalSessionFilters> | undefined
-) =>
+  ipcFilters: GlobalSessionIpcFilters | undefined
+) => {
+  const queryFilters = filters || DEFAULT_GLOBAL_SESSION_QUERY_FILTERS;
+  const queryIpcFilters = ipcFilters || EMPTY_GLOBAL_SESSION_FILTERS;
+
+  return globalSessionsQueryKey(
+    queryIpcFilters,
+    queryFilters.sort,
+    queryFilters.direction,
+    queryFilters.page,
+    pageSize
+  );
+};
+
+const globalSessionsQueryEnabled = (
+  filters: SessionFilters | undefined,
+  ipcFilters: GlobalSessionIpcFilters | undefined
+) => Boolean(filters && ipcFilters);
+
+const useGlobalSessionsQuery = (filters: SessionFilters | undefined, ipcFilters: GlobalSessionIpcFilters | undefined) =>
   useQuery({
-    queryKey: globalSessionsQueryKey(
-      ipcFilters ?? {},
-      filters?.sort ?? "startedAt",
-      filters?.direction ?? "desc",
-      filters?.page ?? 1,
-      pageSize
-    ),
+    queryKey: buildGlobalSessionsQueryKey(filters, ipcFilters),
     queryFn: () => listGlobalSessions(ipcFilters!, filters!.sort, filters!.direction, filters!.page, pageSize),
-    enabled: !!ipcFilters && !!filters
+    enabled: globalSessionsQueryEnabled(filters, ipcFilters)
   });
 
-const useGlobalChartsQuery = (ipcFilters: ReturnType<typeof filtersToGlobalSessionFilters> | undefined) =>
+const useGlobalChartsQuery = (ipcFilters: GlobalSessionIpcFilters | undefined) =>
   useQuery({
     queryKey: globalChartsQueryKey(ipcFilters ?? {}),
     queryFn: () => getGlobalChartData(ipcFilters!),
