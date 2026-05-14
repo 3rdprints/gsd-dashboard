@@ -34,16 +34,17 @@ jobs:
             exit 1
           fi
 
-      - name: Sync version from tag
-        env:
-          TAG_VERSION: ${{ github.ref_name }}
-        run: scripts/release/sync-version-from-tag.sh
-
       - name: Install Node
         uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
+
+      - name: Sync version from tag
+        shell: bash
+        env:
+          TAG_VERSION: ${{ github.ref_name }}
+        run: scripts/release/sync-version-from-tag.sh
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -156,16 +157,17 @@ jobs:
             exit 1
           fi
 
-      - name: Sync version from tag
-        env:
-          TAG_VERSION: ${{ github.ref_name }}
-        run: scripts/release/sync-version-from-tag.sh
-
       - name: Install Node
         uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
+
+      - name: Sync version from tag
+        shell: bash
+        env:
+          TAG_VERSION: ${{ github.ref_name }}
+        run: scripts/release/sync-version-from-tag.sh
 
       - name: Download release artifacts
         uses: actions/download-artifact@v8
