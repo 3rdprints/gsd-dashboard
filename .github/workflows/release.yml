@@ -40,6 +40,12 @@ jobs:
           node-version: 24
           cache: npm
 
+      - name: Sync version from tag
+        shell: bash
+        env:
+          TAG_VERSION: ${{ github.ref_name }}
+        run: scripts/release/sync-version-from-tag.sh
+
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
@@ -156,6 +162,12 @@ jobs:
         with:
           node-version: 24
           cache: npm
+
+      - name: Sync version from tag
+        shell: bash
+        env:
+          TAG_VERSION: ${{ github.ref_name }}
+        run: scripts/release/sync-version-from-tag.sh
 
       - name: Download release artifacts
         uses: actions/download-artifact@v8

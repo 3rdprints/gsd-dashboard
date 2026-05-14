@@ -4,7 +4,8 @@ import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PLATFORM_ARTIFACTS = {
-  "darwin-universal": /\.app\.tar\.gz$/i,
+  "darwin-aarch64": /\.app\.tar\.gz$/i,
+  "darwin-x86_64": /\.app\.tar\.gz$/i,
   "windows-x86_64": /\.msi$/i,
   "linux-x86_64": /\.AppImage$/i
 };

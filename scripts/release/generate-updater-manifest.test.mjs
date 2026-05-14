@@ -43,10 +43,12 @@ describe("generate-updater-manifest.mjs", () => {
       });
 
       assert.equal(manifest.version, "0.1.1");
-      assert.equal(manifest.platforms["darwin-universal"].signature, "darwin-signature");
+      assert.equal(manifest.platforms["darwin-aarch64"].signature, "darwin-signature");
+      assert.equal(manifest.platforms["darwin-x86_64"].signature, "darwin-signature");
       assert.equal(manifest.platforms["windows-x86_64"].signature, "windows-signature");
       assert.equal(manifest.platforms["linux-x86_64"].signature, "linux-signature");
-      assert.match(manifest.platforms["darwin-universal"].url, /\.app\.tar\.gz$/);
+      assert.match(manifest.platforms["darwin-aarch64"].url, /\.app\.tar\.gz$/);
+      assert.match(manifest.platforms["darwin-x86_64"].url, /\.app\.tar\.gz$/);
       assert.match(manifest.platforms["windows-x86_64"].url, /\.msi$/);
       assert.match(manifest.platforms["linux-x86_64"].url, /\.AppImage$/);
     });
