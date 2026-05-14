@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const REQUIRED_PLATFORMS = ["darwin-universal", "windows-x86_64", "linux-x86_64"];
+const REQUIRED_PLATFORMS = ["darwin-aarch64", "darwin-x86_64", "windows-x86_64", "linux-x86_64"];
 
 function fail(message) {
   throw new Error(message);
@@ -104,9 +104,13 @@ function validManifestFixture() {
     version: "0.1.1",
     pub_date: "2026-05-03T00:00:00Z",
     platforms: {
-      "darwin-universal": {
+      "darwin-aarch64": {
         url: "https://3rdprints.github.io/gsd-dashboard/downloads/GSD%20Dashboard.app.tar.gz",
-        signature: "darwin-inline-signature"
+        signature: "darwin-aarch64-inline-signature"
+      },
+      "darwin-x86_64": {
+        url: "https://3rdprints.github.io/gsd-dashboard/downloads/GSD%20Dashboard.app.tar.gz",
+        signature: "darwin-x86_64-inline-signature"
       },
       "windows-x86_64": {
         url: "https://3rdprints.github.io/gsd-dashboard/downloads/GSD-Dashboard_0.1.1_x64_en-US.msi",
@@ -122,7 +126,7 @@ function validManifestFixture() {
 
 function invalidManifestFixture() {
   const manifest = validManifestFixture();
-  manifest.platforms["darwin-universal"].signature = "http://3rdprints.github.io/gsd-dashboard/downloads/GSD-Dashboard.sig";
+  manifest.platforms["darwin-aarch64"].signature = "http://3rdprints.github.io/gsd-dashboard/downloads/GSD-Dashboard.sig";
   manifest.platforms["windows-x86_64"].signature = "data:text/plain,windows-signature";
   manifest.platforms["linux-x86_64"].signature = "downloads/linux.sig";
   return manifest;
