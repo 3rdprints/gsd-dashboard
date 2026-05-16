@@ -15,9 +15,12 @@ echo "Syncing version to ${VERSION} from tag ${TAG_VERSION}"
 VERSION="$VERSION" node -e "
   const fs = require('fs');
   const v = process.env.VERSION;
-  const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-  pkg.version = v;
-  fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+  for (const f of ['package.json', 'package-lock.json']) {
+    const obj = JSON.parse(fs.readFileSync(f, 'utf8'));
+    obj.version = v;
+    if (f === 'package-lock.json' && obj.packages?.['']) obj.packages[''].version = v;
+    fs.writeFileSync(f, JSON.stringify(obj, null, 2) + '\n');
+  }
 "
 
 VERSION="$VERSION" node -e "
