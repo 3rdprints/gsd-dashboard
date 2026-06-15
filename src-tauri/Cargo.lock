@@ -1644,7 +1644,7 @@ dependencies = [
 
 [[package]]
 name = "gsd-dashboard"
-version = "0.1.5"
+version = "0.1.8"
 dependencies = [
  "deadpool-sqlite",
  "dirs 6.0.0",
