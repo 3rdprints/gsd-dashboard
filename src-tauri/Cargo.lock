@@ -772,26 +772,25 @@ dependencies = [
 
 [[package]]
 name = "deadpool"
-version = "0.13.0"
-source = "git+https://github.com/deadpool-rs/deadpool.git?rev=df37445a89e0c455a5a2d8a5575d338df9407c99#df37445a89e0c455a5a2d8a5575d338df9407c99"
+version = "0.13.1"
+source = "git+https://github.com/deadpool-rs/deadpool.git?rev=3b5f9d6b3e5f40f3a9e8a398e9fd021269e24782#3b5f9d6b3e5f40f3a9e8a398e9fd021269e24782"
 dependencies = [
  "deadpool-runtime",
- "num_cpus",
  "tokio",
 ]
 
 [[package]]
 name = "deadpool-runtime"
 version = "0.3.1"
-source = "git+https://github.com/deadpool-rs/deadpool.git?rev=df37445a89e0c455a5a2d8a5575d338df9407c99#df37445a89e0c455a5a2d8a5575d338df9407c99"
+source = "git+https://github.com/deadpool-rs/deadpool.git?rev=3b5f9d6b3e5f40f3a9e8a398e9fd021269e24782#3b5f9d6b3e5f40f3a9e8a398e9fd021269e24782"
 dependencies = [
  "tokio",
 ]
 
 [[package]]
 name = "deadpool-sqlite"
-version = "0.13.0"
-source = "git+https://github.com/deadpool-rs/deadpool.git?rev=df37445a89e0c455a5a2d8a5575d338df9407c99#df37445a89e0c455a5a2d8a5575d338df9407c99"
+version = "0.14.0"
+source = "git+https://github.com/deadpool-rs/deadpool.git?rev=3b5f9d6b3e5f40f3a9e8a398e9fd021269e24782#3b5f9d6b3e5f40f3a9e8a398e9fd021269e24782"
 dependencies = [
  "deadpool",
  "deadpool-sync",
@@ -801,7 +800,7 @@ dependencies = [
 [[package]]
 name = "deadpool-sync"
 version = "0.2.0"
-source = "git+https://github.com/deadpool-rs/deadpool.git?rev=df37445a89e0c455a5a2d8a5575d338df9407c99#df37445a89e0c455a5a2d8a5575d338df9407c99"
+source = "git+https://github.com/deadpool-rs/deadpool.git?rev=3b5f9d6b3e5f40f3a9e8a398e9fd021269e24782#3b5f9d6b3e5f40f3a9e8a398e9fd021269e24782"
 dependencies = [
  "deadpool-runtime",
 ]
@@ -1790,6 +1789,9 @@ name = "hashbrown"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
+dependencies = [
+ "foldhash 0.2.0",
+]
 
 [[package]]
 name = "hashlink"
@@ -1802,11 +1804,11 @@ dependencies = [
 
 [[package]]
 name = "hashlink"
-version = "0.11.1"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "824e001ac4f3012dd16a264bec811403a67ca9deb6c102fc5049b32c4574b35f"
+checksum = "32069d97bb81e38fa67eab65e3393bf804bb85969f2bc06bf13f64aef5aba248"
 dependencies = [
- "hashbrown 0.16.1",
+ "hashbrown 0.17.1",
 ]
 
 [[package]]
@@ -2470,9 +2472,9 @@ dependencies = [
 
 [[package]]
 name = "libsqlite3-sys"
-version = "0.37.0"
+version = "0.38.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1f111c8c41e7c61a49cd34e44c7619462967221a6443b0ec299e0ac30cfb9b1"
+checksum = "f1d20bef17f513b9b3004532233187769cd072d790971f4e4da0e346eb6401e8"
 dependencies = [
  "cc",
  "pkg-config",
@@ -2689,16 +2691,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
 dependencies = [
  "autocfg",
-]
-
-[[package]]
-name = "num_cpus"
-version = "1.17.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91df4bbde75afed763b708b7eee1e8e7651e02d97f6d5dd763e89367e957b23b"
-dependencies = [
- "hermit-abi",
- "libc",
 ]
 
 [[package]]
@@ -3514,14 +3506,14 @@ dependencies = [
 
 [[package]]
 name = "rusqlite"
-version = "0.39.0"
+version = "0.40.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a0d2b0146dd9661bf67bb107c0bb2a55064d556eeb3fc314151b957f313bcd4e"
+checksum = "23f2a97da3e3873c73cb2a2e71b35c40ff95e0b1eefa8d72d8499a6928c3b5b3"
 dependencies = [
  "bitflags 2.13.1",
  "fallible-iterator",
  "fallible-streaming-iterator",
- "hashlink 0.11.1",
+ "hashlink 0.12.1",
  "libsqlite3-sys",
  "smallvec",
  "sqlite-wasm-rs",
@@ -3529,9 +3521,9 @@ dependencies = [
 
 [[package]]
 name = "rusqlite_migration"
-version = "2.5.0"
+version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "410e4d2d97ff816796ed012b789c7381ae42c09a809822a75d29a01022181184"
+checksum = "03451d4dc523c0a96d9e412c574670b3f5f184c3988b77a435876be25477bbd3"
 dependencies = [
  "log",
  "rusqlite",
